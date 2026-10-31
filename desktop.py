@@ -28,10 +28,34 @@ IMAGE_FILTER = "Görüntüler (*.jpg *.jpeg *.tif *.tiff *.png)"
 
 def is_dapi_like(arr: np.ndarray) -> bool:
     """Mavi kanalın baskın olduğu (DAPI) görüntüyü tanır; sürükle-bırakta FITC/DAPI ayrımı için."""
+    return guess_kind(arr) == "DAPI"
+
+
+def guess_kind(arr: np.ndarray) -> str | None:
+    """'DAPI' (mavi baskın), 'FITC' (yeşil baskın) veya None (gri tonlu / belirsiz → kullanıcıya sorma)."""
     if arr.ndim != 3:
-        return False
-    m = arr.reshape(-1, 3).mean(axis=0)
-    return m[2] > 1.5 * max(m[1], 1e-6)
+        return None
+    m = arr.reshape(-1, 3)[::97].astype(float).mean(axis=0)
+    if m[2] > 1.5 * max(m[1], 1e-6):
+        return "DAPI"
+    if m[1] > 1.5 * max(m[2], 1e-6):
+        return "FITC"
+    return None
+
+
+def message(parent, kind: str, text: str, ask: bool = False) -> bool:
+    """Qt'nin kendi ileti penceresi. macOS'un yerel uyarı penceresi (NSAlert) bazı macOS sürümlerinde
+    simgesini çizerken programı çökertiyor (2026-10-31, Darwin 27) → yerel pencere kullanılmaz."""
+    box = QMessageBox(parent)
+    box.setOption(QMessageBox.Option.DontUseNativeDialog, True)
+    box.setWindowTitle(APP_NAME)
+    box.setText(text)
+    box.setIcon({"warning": QMessageBox.Icon.Warning, "critical": QMessageBox.Icon.Critical,
+                 "question": QMessageBox.Icon.Question}.get(kind, QMessageBox.Icon.Information))
+    if ask:
+        box.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+        box.setDefaultButton(QMessageBox.StandardButton.Yes)
+    return box.exec() == QMessageBox.StandardButton.Yes
 
 
 VIEW_MODES = ("FITC", "DAPI", "Birleşik (FITC + DAPI)")
@@ -462,7 +486,7 @@ class MainWindow(QMainWindow):
             try:
                 loaded.append((p, *core.load_image(str(p))))
             except Exception as ex:
-                QMessageBox.warning(self, APP_NAME, f"{p.name} açılamadı:\n{ex}")
+                message(self, "warning", f"{p.name} açılamadı:\n{ex}")
         loaded.sort(key=lambda t: is_dapi_like(t[1]))  # önce FITC, sonra DAPI
         for p, arr, meta in loaded:
             self._set(p, arr, meta, "DAPI" if is_dapi_like(arr) else "FITC", run=False)
@@ -473,16 +497,13 @@ class MainWindow(QMainWindow):
         try:
             arr, meta = core.load_image(str(path))
         except Exception as ex:
-            QMessageBox.warning(self, APP_NAME, f"{path.name} açılamadı:\n{ex}")
+            message(self, "warning", f"{path.name} açılamadı:\n{ex}")
             return
-        looks = "DAPI" if is_dapi_like(arr) else "FITC"
-        if looks != kind:
-            ans = QMessageBox.question(
-                self, APP_NAME,
-                f"{path.name} bir {looks} görüntüsüne benziyor ({'mavi' if looks == 'DAPI' else 'mavi değil'}), "
-                f"ama {kind} olarak açılıyor.\n\n{looks} olarak açılsın mı?",
-                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, QMessageBox.StandardButton.Yes)
-            if ans == QMessageBox.StandardButton.Yes:
+        looks = guess_kind(arr)
+        if looks is not None and looks != kind:
+            color = "mavi" if looks == "DAPI" else "yeşil"
+            if message(self, "question", f"{path.name} bir {looks} görüntüsüne benziyor ({color} baskın), "
+                       f"ama {kind} olarak açılıyor.\n\n{looks} olarak açılsın mı?", ask=True):
                 kind = looks
         self._set(path, arr, meta, kind)
 
@@ -497,7 +518,7 @@ class MainWindow(QMainWindow):
             self.fitc = (path, arr, meta)
             self.panel.set("FITC", path.name)
             if meta.get("software"):
-                QMessageBox.warning(self, APP_NAME, f"Görüntü yazılımla işlenmiş görünüyor: {meta['software']}.\n"
+                message(self, "warning", f"Görüntü yazılımla işlenmiş görünüyor: {meta['software']}.\n"
                                     "Parlaklık/kontrast ayarı yapılmış görüntülerde CTCF güvenilir değildir.")
         else:
             self.dapi = (path, arr, meta)
@@ -517,7 +538,7 @@ class MainWindow(QMainWindow):
         _, arr, meta = self.fitc
         dapi = self.dapi[1] if self.dapi else None
         if dapi is not None and dapi.shape[:2] != arr.shape[:2]:
-            QMessageBox.warning(self, APP_NAME, "FITC ve DAPI görüntülerinin boyutları farklı; DAPI kullanılmadı.")
+            message(self, "warning", "FITC ve DAPI görüntülerinin boyutları farklı; DAPI kullanılmadı.")
             dapi = None
         self.statusBar().showMessage("Hücreler algılanıyor…")
         QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
@@ -538,7 +559,7 @@ class MainWindow(QMainWindow):
     def on_fail(self, msg):
         self._stop_thread()
         self.statusBar().showMessage("Analiz başarısız.")
-        QMessageBox.critical(self, APP_NAME, f"Analiz sırasında hata:\n{msg}")
+        message(self, "critical", f"Analiz sırasında hata:\n{msg}")
 
     def on_done(self, a: core.Analysis):
         first = self.analysis is None
@@ -686,8 +707,8 @@ class MainWindow(QMainWindow):
         self.table.horizontalHeaderItem(1).setText(f"Alan ({unit})")
 
     def about(self):
-        QMessageBox.about(self, APP_NAME,
-                          f"<b>{APP_NAME} {VERSION}</b><br>Immunositokimya görüntülerinde CTCF ölçümü.<br><br>"
+        message(self, "info",
+                f"<b>{APP_NAME} {VERSION}</b><br>Immunositokimya görüntülerinde CTCF ölçümü.<br><br>"
                           "CTCF = IntDen − (Area × Mean background)<br>McCloy et al., 2014, <i>Cell Cycle</i><br><br>"
                           "Ölçümler ImageJ/Fiji ile birebir aynıdır.<br>© Erdal Balcan, MIT lisansı")
 
