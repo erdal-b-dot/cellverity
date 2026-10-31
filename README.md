@@ -69,6 +69,7 @@ Durdurmak için: macOS `./stop.sh`; Windows'ta küçültülmüş "ICC CTCF Olcer
 - `app.py` — Streamlit arayüzü
 - `install_mac.sh`, `start.sh`, `stop.sh`, `run.command` — macOS
 - `install_windows.bat`, `start_windows.bat` — Windows
+- `tests/test_core.py` — doğrulama testi (Fiji ile doğrulanmış değerler); `.venv/bin/python tests/test_core.py`
 
 ## Atıf
 Bu aracı bir yayında kullanırsanız `CITATION.cff` dosyasındaki bilgilerle atıf yapın.
