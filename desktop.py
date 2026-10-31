@@ -16,7 +16,7 @@ from PySide6.QtWidgets import (QAbstractItemView, QApplication, QButtonGroup, QC
                                QFileDialog, QFormLayout, QFrame, QGraphicsPixmapItem, QGraphicsScene,
                                QGraphicsView, QGroupBox, QHBoxLayout, QHeaderView, QLabel, QMainWindow,
                                QMessageBox, QPushButton, QRadioButton, QScrollArea, QSlider, QSpinBox,
-                               QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget)
+                               QTableWidget, QTableWidgetItem, QTabWidget, QVBoxLayout, QWidget)
 
 import core
 
@@ -38,6 +38,31 @@ NUCLEUS_COLOR = (255, 0, 255)  # mor: hem yeşil hem mavi zeminde görünür
 TABLE_COLS = [("Cell", "Hücre", 0), ("Area", "Alan", 2), ("Mean", "Mean", 3), ("StdDev", "StdDev", 3),
               ("Min", "Min", 0), ("Max", "Max", 0), ("IntDen", "IntDen", 1), ("RawIntDen", "RawIntDen", 0),
               ("CTCF", "CTCF", 1), ("Saturated_px", "Doymuş px", 0)]
+BG_COLS = [("BG", "Kutu", 0), ("x0", "x", 0), ("y0", "y", 0), ("Area_px", "Piksel", 0), ("Mean", "Mean", 3),
+           ("StdDev", "StdDev", 3), ("Min", "Min", 0), ("Max", "Max", 0), ("RawIntDen", "RawIntDen", 0)]
+
+
+def make_table(cols) -> QTableWidget:
+    t = QTableWidget(0, len(cols))
+    t.setHorizontalHeaderLabels([c[1] for c in cols])
+    t.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+    t.verticalHeader().setVisible(False)
+    t.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+    t.setAlternatingRowColors(True)
+    return t
+
+
+def fill(table: QTableWidget, cols, df):
+    table.setRowCount(0)
+    if df is None or not len(df):
+        return
+    table.setRowCount(len(df))
+    for r, row in enumerate(df.itertuples(index=False)):
+        for c, (col, _, dec) in enumerate(cols):
+            v = getattr(row, col)
+            it = QTableWidgetItem(f"{v:,.{dec}f}".replace(",", " ") if dec else f"{int(v)}")
+            it.setTextAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+            table.setItem(r, c, it)
 
 
 def merge_display(fitc: np.ndarray, dapi: np.ndarray, gain: float) -> np.ndarray:
@@ -269,14 +294,13 @@ class MainWindow(QMainWindow):
         dock.setMinimumWidth(330)
         self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, dock)
 
-        self.table = QTableWidget(0, len(TABLE_COLS))
-        self.table.setHorizontalHeaderLabels([c[1] for c in TABLE_COLS])
-        self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
-        self.table.verticalHeader().setVisible(False)
-        self.table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
-        self.table.setAlternatingRowColors(True)
+        self.table = make_table(TABLE_COLS)
+        self.bg_table = make_table(BG_COLS)
+        self.tabs = QTabWidget()
+        self.tabs.addTab(self.table, "Hücreler")
+        self.tabs.addTab(self.bg_table, "Background kutuları")
         tdock = QDockWidget("CTCF ölçümü  —  CTCF = IntDen − (Alan × background ortalaması)", self)
-        tdock.setWidget(self.table)
+        tdock.setWidget(self.tabs)
         tdock.setFeatures(QDockWidget.DockWidgetFeature.DockWidgetMovable)
         self.addDockWidget(Qt.DockWidgetArea.BottomDockWidgetArea, tdock)
         self.resizeDocks([tdock], [190], Qt.Orientation.Vertical)
@@ -525,27 +549,26 @@ class MainWindow(QMainWindow):
                   f"{s.bg_size}×{s.bg_size} px)"
             if (bg["Max"] > a.threshold * 0.5).any():
                 msg += "<br><span style='color:#a60'>⚠️ Bazı kutularda sinyal/debris olabilir.</span>"
+            if bg["Max"].max() == 0:
+                msg += ("<br><span style='color:#555'>ℹ️ Kutulardaki tüm pikseller 0: kamera siyah seviyesi "
+                        "kırpılmış (Fiji'de de 0). Bu durumda CTCF = IntDen olur; tüm görüntüler aynı "
+                        "ayarla çekildiyse sorun değildir. Ayrıntı: alttaki 'Background kutuları' sekmesi.</span>")
             p.bg_info.setText(msg)
         else:
-            cells = None
+            cells = bg = None
             p.bg_info.setText("<span style='color:#b22'>Background kutusu yok — CTCF hesaplanamaz.</span>"
                               + (" Görüntüye tıklayarak kutu ekleyin." if p.bg_manual.isChecked() else
                                  " Kutu boyutunu küçültün."))
         self.fill_table(cells)
+        fill(self.bg_table, BG_COLS, bg)
+        self.tabs.setTabText(1, f"Background kutuları ({len(bg) if bg is not None else 0})")
         if redraw:
             self.redraw()
 
     def fill_table(self, cells):
-        self.table.setRowCount(0)
+        fill(self.table, TABLE_COLS, cells)
         if cells is None or not len(cells):
             return
-        self.table.setRowCount(len(cells))
-        for r, row in enumerate(cells.itertuples(index=False)):
-            for c, (col, _, dec) in enumerate(TABLE_COLS):
-                v = getattr(row, col)
-                it = QTableWidgetItem(f"{v:,.{dec}f}".replace(",", " ") if dec else f"{int(v)}")
-                it.setTextAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
-                self.table.setItem(r, c, it)
         unit = cells["Area_unit"].iloc[0]
         self.table.horizontalHeaderItem(1).setText(f"Alan ({unit})")
 
