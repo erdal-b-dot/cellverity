@@ -391,6 +391,8 @@ class MainWindow(QMainWindow):
         self.a_fitc.setToolTip("Ölçülecek yeşil (FITC) görüntüyü açar. Yeni FITC açılınca eski DAPI kaldırılır.")
         self.a_dapi = act("DAPI aç…", lambda: self.open_dialog("DAPI"), "Ctrl+D")
         self.a_dapi.setToolTip("Aynı alanın mavi (DAPI) görüntüsünü açar; değen hücreleri çekirdeklere göre ayırmak için.")
+        self.a_close = act("Görüntüleri kapat", self.close_images, QKeySequence.StandardKey.Close)
+        self.a_close.setToolTip("Açık FITC ve DAPI görüntülerini kapatır (⌘W / Ctrl+W).")
         self.a_fit = act("Pencereye sığdır", self.view.fit, "Ctrl+0")
         self.a_in = act("Yakınlaştır", lambda: self.view.zoom(1.25), QKeySequence.StandardKey.ZoomIn)
         self.a_out = act("Uzaklaştır", lambda: self.view.zoom(0.8), QKeySequence.StandardKey.ZoomOut)
@@ -404,7 +406,7 @@ class MainWindow(QMainWindow):
         self.view_mode.currentIndexChanged.connect(lambda _: self.redraw(fit=False))
 
         m = self.menuBar().addMenu("Dosya")
-        m.addActions([self.a_fitc, self.a_dapi])
+        m.addActions([self.a_fitc, self.a_dapi, self.a_close])
         m.addSeparator()
         m.addAction(act("Çıkış", self.close, QKeySequence.StandardKey.Quit))
         m = self.menuBar().addMenu("Görünüm")
@@ -416,7 +418,7 @@ class MainWindow(QMainWindow):
 
         tb = self.addToolBar("Araçlar")
         tb.setMovable(False)
-        tb.addActions([self.a_fitc, self.a_dapi])
+        tb.addActions([self.a_fitc, self.a_dapi, self.a_close])
         tb.addSeparator()
         tb.addActions([self.a_fit, self.a_in, self.a_out])
         tb.addSeparator()
@@ -425,6 +427,25 @@ class MainWindow(QMainWindow):
         tb.addAction(self.a_nuc)
 
     # ---------------------------------------------------------- dosya açma
+    def close_images(self):
+        if self._thread is not None:
+            return
+        self.fitc = self.dapi = self.analysis = None
+        self.selected, self.manual_boxes, self.boxes = set(), [], []
+        self.view.set_boxes([])
+        self.view.item.setPixmap(QPixmap())
+        self.view.placeholder.show()
+        p = self.panel
+        for key in p.fields:
+            p.set(key, "—")
+        p.set_mode(None)
+        p.sel_info.setText("Seçili: —")
+        p.bg_info.setText("Background ortalaması: —")
+        p.bg_auto.setChecked(True)
+        self.fill_table(None)
+        fill(self.bg_table, BG_COLS, None)
+        self.statusBar().showMessage("Görüntüler kapatıldı — yeni FITC ve DAPI çiftini sürükleyin.")
+
     def open_dialog(self, kind):
         path, _ = QFileDialog.getOpenFileName(self, f"{kind} görüntüsü aç", "", IMAGE_FILTER)
         if path:
