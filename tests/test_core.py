@@ -80,10 +80,24 @@ def test_v2_bright_core_nuclei():
         assert abs(got[0] - exp[0]) < 0.01 and abs(got[1] - exp[1]) < 0.1, (got, exp)
 
 
+def test_scale_label_reading():
+    """Ölçek etiketi okunmalı: 20 µm (40×) ve 50 µm (20×). 2026-10-31 öncesi hep 20 varsayılıyordu →
+    50 µm'lik görüntülerde alan 6.25 kat küçük çıkıyordu."""
+    a, _ = core.load_image(str(FITC))
+    assert core.read_scale_label(a, core.detect_scale_bar(a)) == 20.0
+    p50 = ROOT / "ornek" / "Image_286.jpg"
+    if p50.exists():
+        a, m = core.load_image(str(p50))
+        an = core.analyze(a, m)
+        assert an.bar_um == 50.0 and an.bar_um_source == "label"
+        assert abs(an.um_per_px - 50 / 172) < 1e-9 and an.objective[0] == 20
+
+
 if __name__ == "__main__":
     if not FITC.exists():
         sys.exit(f"Örnek görüntü yok: {FITC}")
     test_image_392()
     test_analyze_matches_manual_pipeline()
     test_v2_bright_core_nuclei()
+    test_scale_label_reading()
     print("✅ Doğrulama testi geçti: hesaplamalar Fiji ile doğrulanmış değerlerle aynı.")

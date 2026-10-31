@@ -71,7 +71,11 @@ if fitc_arr.dtype == np.uint8 and f_fitc.name.lower().endswith((".jpg", ".jpeg")
 sb = core.detect_scale_bar(fitc_arr)
 with st.sidebar:
     st.header("Kalibrasyon")
-    bar_um = st.number_input("Ölçek çubuğu (µm)", value=20.0, min_value=0.1)
+    lbl_um = core.read_scale_label(fitc_arr, sb)
+    bar_um = st.number_input("Ölçek çubuğu (µm)", value=lbl_um or 20.0, min_value=0.1,
+                             help="Etiketten otomatik okunur (ör. 20 µm = 40×, 50 µm = 20×).")
+    if sb.found and lbl_um is None:
+        st.error("Ölçek çubuğunun değeri okunamadı — 20 µm varsayıldı. Görüntüdeki değeri kontrol edin.")
     bar_px = st.number_input("Ölçek çubuğu (piksel)", value=int(sb.bar_px or 0), min_value=0,
                              help="Otomatik algılandı; 0 = kalibrasyonsuz (piksel birimi)")
     cam_px = st.number_input("Kamera piksel boyutu (µm)", value=5.86,

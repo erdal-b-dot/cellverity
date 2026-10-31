@@ -104,6 +104,59 @@ def detect_scale_bar(arr: np.ndarray) -> ScaleBar:
     return ScaleBar(best > 20, bbox, best if best > 20 else None)
 
 
+# cellSens ölçek etiketi rakamları (24×16 ikili şablon, satır başına 4 hex). Gerçek DP74/cellSens
+# görüntülerinden çıkarıldı (Image_392 "20 µm", Image_286 "50 µm"). Şablonu olmayan rakam → None.
+_DIGITS = {
+    "0": "0ff00ff0303c303cf00cf00cc00cc00cc00cc00cc00fc00fc00fc00fc00cc00cc00cc00cf00cf00c303c303c0ff00ff0",
+    "2": "07fc07fc181f380ff807f003e003c00300030007000f001f003c007801f003e007c00f801e003c00f800f800ffffffff",
+    "5": "3ffc3ffc3000300030003000300030003ff03ff0f03cf03c000f000f000f000fc00fc00ff00cf00c303c303c0ff00ff0",
+}
+_DIGIT_T = {d: np.array([[int(c) for c in f"{int(h[i:i + 4], 16):016b}"] for i in range(0, 96, 4)], bool)
+            for d, h in _DIGITS.items()}
+
+
+def read_scale_label(arr: np.ndarray, sb: ScaleBar) -> float | None:
+    """Ölçek çubuğunun altındaki sayıyı (ör. "20", "50") okur → µm. Emin değilse None.
+
+    Etiket okunmazsa çubuk uzunluğu doğru olsa bile µm değeri bilinemez; 20 µm varsaymak 50 µm'lik
+    (20×) görüntülerde alanı 6.25 kat küçük verir (2026-10-31'de bulunan hata)."""
+    if not sb.found or arr.ndim != 3:
+        return None
+    y0, y1, x0, x1 = sb.bbox
+    sub = arr[y0:y1, x0:x1].astype(int)
+    ys, xs = np.where(sub.min(-1) > 200)
+    if len(ys) == 0:
+        return None
+    sub = sub[ys.min():ys.max() + 1, xs.min():xs.max() + 1]
+    dark = sub.sum(-1) < 3 * 128
+    rows = np.where(dark.mean(1) > 0.5)[0]          # ölçek çizgisinin satırları
+    txt = dark[(rows.max() + 3 if len(rows) else 0):, 2:-2]
+    if txt.size == 0:
+        return None
+    lab = measure.label(txt, connectivity=2)
+    regs = sorted([r for r in measure.regionprops(lab) if r.area > 8], key=lambda r: r.bbox[1])
+    if not regs:
+        return None
+    h = max(r.bbox[2] - r.bbox[0] for r in regs)
+    glyphs = [regs[0]]
+    for a, b in zip(regs, regs[1:]):
+        if b.bbox[1] - a.bbox[3] > 0.35 * h:        # boşluk → sayı bitti ("µm" başlıyor)
+            break
+        glyphs.append(b)
+    from skimage import transform
+    digits = ""
+    for r in glyphs:
+        g = transform.resize(r.image.astype(float), (24, 16), order=1, anti_aliasing=False) > 0.5
+        scores = {d: (g == t).mean() for d, t in _DIGIT_T.items()}
+        best = max(scores, key=scores.get)
+        ranked = sorted(scores.values(), reverse=True)
+        # farklı cellSens yazı boyutlarında eşleşme ~0.82'ye iner; ikinci adaydan belirgin farkla seç
+        if ranked[0] < 0.78 or ranked[0] - ranked[1] < 0.1:
+            return None
+        digits += best
+    return float(digits) if digits else None
+
+
 def estimate_objective(um_per_px: float, camera_pixel_um: float = 5.86) -> tuple[int, float]:
     """µm/piksel'den objektif büyütmesini tahmin eder (adaptör 1× varsayımıyla)."""
     raw = camera_pixel_um / um_per_px
@@ -293,7 +346,7 @@ def measure_cells(img: np.ndarray, labels: np.ndarray, cell_ids, bg_mean: float,
 class Settings:
     """Varsayılanlar v1.0.0 Streamlit arayüzüyle aynıdır (Fiji doğrulaması bu ayarlarla yapıldı)."""
     channel: str = "G"
-    bar_um: float = 20.0
+    bar_um: float | None = None        # None → etiketten okunur; okunamazsa 20 varsayılır (uyarıyla)
     bar_px: int | None = None          # None → ölçek çubuğundan otomatik
     camera_pixel_um: float = 5.86
     thresh_method: str = "Li"
@@ -322,6 +375,9 @@ class Analysis:
     cell_ids: list[int]
     touching: list[tuple[int, int]] = field(default_factory=list)
     camera_pixel_um: float = 5.86
+    bar_um: float = 20.0
+    bar_um_source: str = "default"     # "label" (okundu) | "user" | "default" (okunamadı → 20 varsayıldı)
+    dapi_overlap: float | None = None  # çekirdek alanının hücre maskesi içindeki oranı (aynı alan mı?)
 
     @property
     def segmentation_mode(self) -> str:
@@ -338,7 +394,12 @@ def analyze(fitc_arr: np.ndarray, meta: dict, dapi_arr: np.ndarray | None = None
     s = s or Settings()
     sb = detect_scale_bar(fitc_arr)
     bar_px = s.bar_px if s.bar_px is not None else sb.bar_px
-    upp = s.bar_um / bar_px if bar_px else None
+    if s.bar_um is not None:
+        bar_um, src = s.bar_um, "user"
+    else:
+        lbl = read_scale_label(fitc_arr, sb)
+        bar_um, src = (lbl, "label") if lbl else (20.0, "default")
+    upp = bar_um / bar_px if bar_px else None
     exclude = np.zeros(fitc_arr.shape[:2], bool)
     if sb.found:
         y0, y1, x0, x1 = sb.bbox
@@ -352,9 +413,11 @@ def analyze(fitc_arr: np.ndarray, meta: dict, dapi_arr: np.ndarray | None = None
     labels, th = segment_cells(fitc_ch, upp or 1.0, exclude, nuclei, s.thresh_method, s.thresh_factor,
                                s.min_cell_um2)
     ids = [int(i) for i in np.setdiff1d(np.unique(labels), [0])]
-    a = Analysis(fitc_arr, meta, sb, upp, exclude, fitc_ch, dapi_ch, nuclei, labels, th, ids,
-                 touching_pairs(labels), s.camera_pixel_um)
-    return a
+    overlap = None
+    if nuclei is not None and nuclei.any():
+        overlap = float((labels[nuclei > 0] > 0).mean())
+    return Analysis(fitc_arr, meta, sb, upp, exclude, fitc_ch, dapi_ch, nuclei, labels, th, ids,
+                    touching_pairs(labels), s.camera_pixel_um, bar_um, src, overlap)
 
 
 def background_and_measure(a: Analysis, cell_ids, s: Settings | None = None, boxes=None):
@@ -363,6 +426,10 @@ def background_and_measure(a: Analysis, cell_ids, s: Settings | None = None, box
     if boxes is None:
         boxes = auto_background_boxes(a.fitc_ch, a.labels > 0, a.exclude, s.bg_size, s.bg_n,
                                       signal_thresh=a.threshold * 0.3)
+        if not boxes:
+            # yüksek arka planlı görüntülerde (ör. BECLIN) zemin parlaklığı eşiğin %30'unu aşar ve her yer
+            # yasaklanır → yalnızca hücrelerden uzaklık koşuluyla seç
+            boxes = auto_background_boxes(a.fitc_ch, a.labels > 0, a.exclude, s.bg_size, s.bg_n)
     sat = a.meta["max_value"]
     bg = measure_backgrounds(a.fitc_ch, boxes, (a.um_per_px or 1) ** 2, sat)
     bg_mean = float(bg["Mean"].mean()) if len(bg) else 0.0

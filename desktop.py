@@ -16,7 +16,8 @@ from PySide6.QtWidgets import (QAbstractItemView, QApplication, QButtonGroup, QC
                                QFileDialog, QFormLayout, QFrame, QGraphicsPixmapItem, QGraphicsRectItem,
                                QGraphicsScene, QGraphicsSimpleTextItem,
                                QGraphicsView, QGroupBox, QHBoxLayout, QHeaderView, QLabel, QMainWindow,
-                               QMessageBox, QPushButton, QRadioButton, QScrollArea, QSlider, QSpinBox,
+                               QDoubleSpinBox, QMessageBox, QPushButton, QRadioButton, QScrollArea,
+                               QSlider, QSpinBox,
                                QTableWidget, QTableWidgetItem, QTabWidget, QVBoxLayout, QWidget)
 
 import core
@@ -35,10 +36,16 @@ def guess_kind(arr: np.ndarray) -> str | None:
     """'DAPI' (mavi baskın), 'FITC' (yeşil baskın) veya None (gri tonlu / belirsiz → kullanıcıya sorma)."""
     if arr.ndim != 3:
         return None
-    m = arr.reshape(-1, 3)[::97].astype(float).mean(axis=0)
-    if m[2] > 1.5 * max(m[1], 1e-6):
+    # Yalnızca en parlak %1 piksele (boyalı yapı) bakılır; arka plan halesi yanıltmasın.
+    # Mavi/kırmızı oranı: DP74'te DAPI turkuaz görünür (G yüksek) ama kırmızısı düşüktür; FITC sarı-yeşil
+    # görünür (R yüksek). ZÜBEYDE/ICC'deki 282 tek kanal görüntüde FITC ≤ 0.79, DAPI ≥ 1.47 (2026-10-31).
+    a = arr.reshape(-1, 3)[::7].astype(float)
+    mx = a.max(axis=1)
+    r, _, b = a[mx >= np.percentile(mx, 99)].mean(axis=0)
+    ratio = b / (r + 1)
+    if ratio > 1.2:
         return "DAPI"
-    if m[1] > 1.5 * max(m[2], 1e-6):
+    if ratio < 0.9:
         return "FITC"
     return None
 
@@ -233,9 +240,9 @@ class AnalysisWorker(QObject):
     finished = Signal(object)
     failed = Signal(str)
 
-    def __init__(self, fitc, meta, dapi):
+    def __init__(self, fitc, meta, dapi, settings):
         super().__init__()
-        self.args = fitc, meta, dapi
+        self.args = fitc, meta, dapi, settings
 
     def run(self):
         try:
@@ -257,7 +264,20 @@ class InfoPanel(QWidget):
             lbl.setWordWrap(True)
             self.fields[key] = lbl
             form.addRow(f"<b>{key}</b>", lbl)
+        self.bar_um = QDoubleSpinBox()
+        self.bar_um.setRange(0, 5000)
+        self.bar_um.setDecimals(0)
+        self.bar_um.setSuffix(" µm")
+        self.bar_um.setSpecialValueText("otomatik (etiketten)")
+        self.bar_um.setToolTip("Ölçek çubuğunun altında yazan değer. 'otomatik' = program etiketi okur.\n"
+                               "Yanlış okunduysa buraya doğru değeri yazın.")
+        form.insertRow(2, "<b>Ölçek çubuğu</b>", self.bar_um)
         lay.addLayout(form)
+        self.calib_warn = QLabel()
+        self.calib_warn.setWordWrap(True)
+        self.calib_warn.setStyleSheet("background:#fbe4e4; color:#922; padding:6px; border-radius:4px;")
+        self.calib_warn.hide()
+        lay.addWidget(self.calib_warn)
         self.mode = QLabel()
         self.mode.setWordWrap(True)
         lay.addWidget(self.mode)
@@ -337,6 +357,11 @@ class InfoPanel(QWidget):
         if a is None:
             self.mode.setText("")
             self.mode.setStyleSheet("")
+        elif a.nuclei is not None and a.dapi_overlap is not None and a.dapi_overlap < 0.5:
+            self.mode.setText(f"⚠️ <b>DAPI bu FITC ile aynı alana ait görünmüyor</b> — çekirdeklerin "
+                              f"%{100 * (1 - a.dapi_overlap):.0f}'i hücrelerin dışında kalıyor. Aynı alanın DAPI "
+                              "görüntüsünü açın (dosya numaraları ardışık olsa bile alan farklı olabilir).")
+            self.mode.setStyleSheet("background:#fbe4e4; color:#922; padding:6px; border-radius:4px;")
         elif a.nuclei is not None:
             self.mode.setText("🧬 <b>Hücre ayırma: DAPI çekirdekleri</b>")
             self.mode.setStyleSheet("background:#e3f4e6; color:#174; padding:6px; border-radius:4px;")
@@ -369,6 +394,7 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(self.view)
         self.panel = InfoPanel()
         self.panel.gain.valueChanged.connect(lambda _: self.redraw(fit=False))
+        self.panel.bar_um.editingFinished.connect(self.run_analysis)
         self.view.clicked.connect(self.on_click)
         self.view.box_moved.connect(self.on_box_moved)
         p = self.panel
@@ -463,6 +489,8 @@ class MainWindow(QMainWindow):
         for key in p.fields:
             p.set(key, "—")
         p.set_mode(None)
+        p.bar_um.setValue(0)
+        p.calib_warn.hide()
         p.sel_info.setText("Seçili: —")
         p.bg_info.setText("Background ortalaması: —")
         p.bg_auto.setChecked(True)
@@ -512,11 +540,16 @@ class MainWindow(QMainWindow):
             if self.fitc is None or self.fitc[0] != path:
                 self.analysis = None
                 self.selected, self.manual_boxes = set(), []
+                self.panel.bar_um.setValue(0)  # yeni görüntü → etiketten oku
                 if self.fitc is not None and self.dapi is not None:  # önceki alanın DAPI'si yanlış ayırır
                     self.dapi = None
                     self.panel.set("DAPI", "— (yeni FITC açıldı; aynı alanın DAPI'sini açın)")
             self.fitc = (path, arr, meta)
             self.panel.set("FITC", path.name)
+            if path.suffix.lower() in (".jpg", ".jpeg") and not meta.get("model") and not meta.get("software"):
+                message(self, "warning", f"{path.name}: kamera bilgisi (EXIF) yok.\n\nBu genellikle birleştirilmiş "
+                        "(merge) ya da başka programda yeniden kaydedilmiş bir görüntü demektir. CTCF için "
+                        "mikroskobun doğrudan kaydettiği tek kanal FITC görüntüsünü kullanın.")
             if meta.get("software"):
                 message(self, "warning", f"Görüntü yazılımla işlenmiş görünüyor: {meta['software']}.\n"
                                     "Parlaklık/kontrast ayarı yapılmış görüntülerde CTCF güvenilir değildir.")
@@ -543,7 +576,8 @@ class MainWindow(QMainWindow):
         self.statusBar().showMessage("Hücreler algılanıyor…")
         QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
         self._thread = QThread(self)
-        self._worker = AnalysisWorker(arr, meta, dapi)
+        bar = self.panel.bar_um.value()
+        self._worker = AnalysisWorker(arr, meta, dapi, core.Settings(bar_um=bar or None))
         self._worker.moveToThread(self._thread)
         self._thread.started.connect(self._worker.run)
         self._worker.finished.connect(self.on_done)
@@ -567,7 +601,17 @@ class MainWindow(QMainWindow):
         self.analysis = a
         p = self.panel
         if a.um_per_px:
-            p.set("Kalibrasyon", f"{a.um_per_px:.4f} µm/piksel  (çubuk {a.scale_bar.bar_px} px = 20 µm)")
+            src = {"label": "etiketten okundu", "user": "elle girildi",
+                   "default": "etiket OKUNAMADI, varsayıldı"}[a.bar_um_source]
+            p.set("Kalibrasyon", f"{a.um_per_px:.4f} µm/piksel  (çubuk {a.scale_bar.bar_px} px = "
+                                 f"{a.bar_um:g} µm, {src})")
+            if a.bar_um_source == "default":
+                p.calib_warn.setText("⚠️ Ölçek çubuğunun değeri okunamadı; 20 µm varsayıldı. Görüntünün sağ alt "
+                                     "köşesindeki değere bakıp yukarıdaki 'Ölçek çubuğu' kutusuna yazın — yanlış "
+                                     "değer alan ve IntDen'i kat kat değiştirir.")
+                p.calib_warn.show()
+            else:
+                p.calib_warn.hide()
             obj, raw = a.objective
             p.set("Objektif", f"{obj}×  (hesaplanan {raw:.1f}×)")
         else:
