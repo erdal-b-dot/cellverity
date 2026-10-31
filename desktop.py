@@ -1,6 +1,7 @@
 """ICC CTCF Ölçer 2.0 — bağımsız masaüstü arayüzü (PySide6/Qt).
 
-Hesaplamalar core.py'dedir (v1.0.0 Streamlit sürümüyle aynı, Fiji ile doğrulandı).
+Hesaplamalar core.py'dedir (ölçüm tanımları ImageJ/Fiji ile birebir aynı). v2 çekirdek algılaması
+parlak çekirdek gövdesini kullanır (core.Settings.nuc_bright_core); v1.0.0 Streamlit sürümü eskisini kullanır.
 Çalıştırma:  .venv/bin/python desktop.py   (Windows: .venv\\Scripts\\python desktop.py)
 """
 from __future__ import annotations
@@ -11,9 +12,11 @@ from pathlib import Path
 import numpy as np
 from PySide6.QtCore import QObject, QRectF, Qt, QThread, Signal
 from PySide6.QtGui import QAction, QImage, QKeySequence, QPainter, QPixmap
-from PySide6.QtWidgets import (QApplication, QDockWidget, QFileDialog, QFormLayout, QFrame,
-                               QComboBox, QGraphicsPixmapItem, QGraphicsScene, QGraphicsView, QLabel,
-                               QMainWindow, QMessageBox, QSlider, QVBoxLayout, QWidget)
+from PySide6.QtWidgets import (QAbstractItemView, QApplication, QButtonGroup, QComboBox, QDockWidget,
+                               QFileDialog, QFormLayout, QFrame, QGraphicsPixmapItem, QGraphicsScene,
+                               QGraphicsView, QGroupBox, QHBoxLayout, QHeaderView, QLabel, QMainWindow,
+                               QMessageBox, QPushButton, QRadioButton, QScrollArea, QSlider, QSpinBox,
+                               QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget)
 
 import core
 
@@ -31,6 +34,10 @@ def is_dapi_like(arr: np.ndarray) -> bool:
 
 
 VIEW_MODES = ("FITC", "DAPI", "Birleşik (FITC + DAPI)")
+NUCLEUS_COLOR = (255, 0, 255)  # mor: hem yeşil hem mavi zeminde görünür
+TABLE_COLS = [("Cell", "Hücre", 0), ("Area", "Alan", 2), ("Mean", "Mean", 3), ("StdDev", "StdDev", 3),
+              ("Min", "Min", 0), ("Max", "Max", 0), ("IntDen", "IntDen", 1), ("RawIntDen", "RawIntDen", 0),
+              ("CTCF", "CTCF", 1), ("Saturated_px", "Doymuş px", 0)]
 
 
 def merge_display(fitc: np.ndarray, dapi: np.ndarray, gain: float) -> np.ndarray:
@@ -48,10 +55,12 @@ def to_pixmap(im) -> QPixmap:
 
 # ------------------------------------------------------------------ Görüntü alanı
 class ImageView(QGraphicsView):
-    """Fare tekerleği ile yakınlaştırma, sürükleyerek kaydırma."""
+    """Fare tekerleği ile yakınlaştırma, sürükleyerek kaydırma; kısa tıklama → clicked(y, x)."""
+    clicked = Signal(int, int)
 
     def __init__(self):
         super().__init__()
+        self._press = None
         self.setScene(QGraphicsScene(self))
         self.item = QGraphicsPixmapItem()
         self.item.setTransformationMode(Qt.TransformationMode.SmoothTransformation)
@@ -87,6 +96,19 @@ class ImageView(QGraphicsView):
     def wheelEvent(self, e):
         self.zoom(1.25 if e.angleDelta().y() > 0 else 0.8)
 
+    def mousePressEvent(self, e):
+        self._press = e.position().toPoint()
+        super().mousePressEvent(e)
+
+    def mouseReleaseEvent(self, e):
+        super().mouseReleaseEvent(e)
+        if self._press is not None and (e.position().toPoint() - self._press).manhattanLength() < 5:
+            pt = self.mapToScene(self._press)
+            pm = self.item.pixmap()
+            if not pm.isNull() and 0 <= pt.x() < pm.width() and 0 <= pt.y() < pm.height():
+                self.clicked.emit(int(pt.y()), int(pt.x()))
+        self._press = None
+
 
 # ------------------------------------------------------------- Arka plan işi
 class AnalysisWorker(QObject):
@@ -121,10 +143,59 @@ class InfoPanel(QWidget):
         self.mode = QLabel()
         self.mode.setWordWrap(True)
         lay.addWidget(self.mode)
+        sel = QGroupBox("Hücre seçimi")
+        sl = QVBoxLayout(sel)
+        sl.addWidget(QLabel("Hücreye tıklayarak seçin / bırakın."))
+        row = QHBoxLayout()
+        self.btn_all = QPushButton("Tüm hücreleri seç")
+        self.btn_none = QPushButton("Seçimi temizle")
+        row.addWidget(self.btn_all)
+        row.addWidget(self.btn_none)
+        sl.addLayout(row)
+        self.sel_info = QLabel("Seçili: —")
+        sl.addWidget(self.sel_info)
+        lay.addWidget(sel)
+
+        bg = QGroupBox("Background")
+        bl = QVBoxLayout(bg)
+        row = QHBoxLayout()
+        self.bg_auto = QRadioButton("Otomatik")
+        self.bg_manual = QRadioButton("Elle")
+        self.bg_auto.setChecked(True)
+        self.bg_group = QButtonGroup(self)
+        self.bg_group.addButton(self.bg_auto)
+        self.bg_group.addButton(self.bg_manual)
+        row.addWidget(self.bg_auto)
+        row.addWidget(self.bg_manual)
+        row.addStretch()
+        bl.addLayout(row)
+        f2 = QFormLayout()
+        self.bg_size = QSpinBox()
+        self.bg_size.setRange(5, 500)
+        self.bg_size.setSingleStep(5)
+        self.bg_size.setValue(50)
+        self.bg_size.setSuffix(" px")
+        self.bg_n = QSpinBox()
+        self.bg_n.setRange(1, 10)
+        self.bg_n.setValue(3)
+        f2.addRow("Kutu boyutu (kare)", self.bg_size)
+        f2.addRow("Otomatik kutu sayısı", self.bg_n)
+        bl.addLayout(f2)
+        self.bg_hint = QLabel("Elle: hücre dışındaki boş alana tıklayın → kutu eklenir; kutuya tıklayın → silinir.")
+        self.bg_hint.setWordWrap(True)
+        self.bg_hint.setStyleSheet("color:#666;")
+        bl.addWidget(self.bg_hint)
+        self.btn_bg_clear = QPushButton("Elle kutuları temizle")
+        bl.addWidget(self.btn_bg_clear)
+        self.bg_info = QLabel("Background ortalaması: —")
+        self.bg_info.setWordWrap(True)
+        bl.addWidget(self.bg_info)
+        lay.addWidget(bg)
+
         legend = QLabel("<b>Çizgiler</b><br>"
-                        "<span style='color:#b8b8b8'>━</span> hücre sınırı (numaralı)<br>"
-                        "<span style='color:#d4b000'>━</span> seçili hücre<br>"
-                        "<span style='color:#00a0ff'>━</span> çekirdek sınırı (DAPI'den)<br>"
+                        "<span style='color:#9a9a9a'>━</span> hücre sınırı (numaralı)<br>"
+                        "<span style='color:#d4b000'>━</span> seçili hücre (ölçülür)<br>"
+                        "<span style='color:#ff00ff'>━</span> çekirdek sınırı (DAPI'den)<br>"
                         "<span style='color:#ff3c3c'>□</span> background kutusu")
         lay.addSpacing(8)
         lay.addWidget(legend)
@@ -170,16 +241,45 @@ class MainWindow(QMainWindow):
         self.analysis: core.Analysis | None = None
         self._thread = None
         self._pending = False  # analiz sürerken yeni görüntü gelirse bitince yeniden çalıştır
+        self.selected: set[int] = set()
+        self.manual_boxes: list[tuple[int, int, int, int]] = []
+        self.boxes: list[tuple[int, int, int, int]] = []
+        self._auto_cache = None  # (analysis id, size, n) → kutular
 
         self.view = ImageView()
         self.setCentralWidget(self.view)
         self.panel = InfoPanel()
         self.panel.gain.valueChanged.connect(lambda _: self.redraw(fit=False))
-        dock = QDockWidget("Görüntü bilgisi", self)
-        dock.setWidget(self.panel)
+        self.view.clicked.connect(self.on_click)
+        p = self.panel
+        p.btn_all.clicked.connect(self.select_all)
+        p.btn_none.clicked.connect(self.select_none)
+        p.bg_auto.toggled.connect(lambda _: self.update_measure())
+        p.bg_size.valueChanged.connect(lambda _: self.update_measure())
+        p.bg_n.valueChanged.connect(lambda _: self.update_measure())
+        p.btn_bg_clear.clicked.connect(self.clear_manual_boxes)
+        scroll = QScrollArea()
+        scroll.setWidget(self.panel)
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QFrame.Shape.NoFrame)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        dock = QDockWidget("Görüntü bilgisi ve ayarlar", self)
+        dock.setWidget(scroll)
         dock.setFeatures(QDockWidget.DockWidgetFeature.DockWidgetMovable)
-        dock.setMinimumWidth(300)
+        dock.setMinimumWidth(330)
         self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, dock)
+
+        self.table = QTableWidget(0, len(TABLE_COLS))
+        self.table.setHorizontalHeaderLabels([c[1] for c in TABLE_COLS])
+        self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        self.table.verticalHeader().setVisible(False)
+        self.table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        self.table.setAlternatingRowColors(True)
+        tdock = QDockWidget("CTCF ölçümü  —  CTCF = IntDen − (Alan × background ortalaması)", self)
+        tdock.setWidget(self.table)
+        tdock.setFeatures(QDockWidget.DockWidgetFeature.DockWidgetMovable)
+        self.addDockWidget(Qt.DockWidgetArea.BottomDockWidgetArea, tdock)
+        self.resizeDocks([tdock], [190], Qt.Orientation.Vertical)
         self._build_actions()
         self.statusBar().showMessage("Hazır — görüntü açın veya sürükleyin.")
 
@@ -274,6 +374,7 @@ class MainWindow(QMainWindow):
         if kind == "FITC":
             if self.fitc is None or self.fitc[0] != path:
                 self.analysis = None
+                self.selected, self.manual_boxes = set(), []
                 if self.fitc is not None and self.dapi is not None:  # önceki alanın DAPI'si yanlış ayırır
                     self.dapi = None
                     self.panel.set("DAPI", "— (yeni FITC açıldı; aynı alanın DAPI'sini açın)")
@@ -338,8 +439,11 @@ class MainWindow(QMainWindow):
         p.set("Hücre sayısı", f"{len(a.cell_ids)}")
         p.set("Çekirdek sayısı", f"{int(a.nuclei.max())}" if a.nuclei is not None else "— (DAPI yok)")
         p.set_mode(a)
+        self.selected &= set(a.cell_ids)
+        self.update_measure(redraw=False)
         self.redraw(fit=first)
-        self.statusBar().showMessage(f"{len(a.cell_ids)} hücre bulundu.")
+        self.statusBar().showMessage(f"{len(a.cell_ids)} hücre bulundu. Ölçmek için hücrelere tıklayın "
+                                     "veya 'Tüm hücreleri seç'.")
         if self._pending:
             self._pending = False
             self.run_analysis()
@@ -358,7 +462,92 @@ class MainWindow(QMainWindow):
         else:
             disp = core.to_display(a.fitc_arr, gain)
         nuclei = a.nuclei if self.a_nuc.isChecked() else None
-        self.view.set_pixmap(to_pixmap(core.overlay(disp, a.labels, set(), [], nuclei)), fit)
+        self.view.set_pixmap(to_pixmap(core.overlay(disp, a.labels, self.selected, self.boxes, nuclei,
+                                                    nucleus_color=NUCLEUS_COLOR, nucleus_width=1)), fit)
+
+    # ------------------------------------------------------ seçim / ölçüm
+    def on_click(self, y, x):
+        a = self.analysis
+        if a is None:
+            return
+        for b in list(self.manual_boxes):
+            if b[0] <= y < b[2] and b[1] <= x < b[3]:
+                self.manual_boxes.remove(b)
+                self.update_measure()
+                return
+        cid = int(a.labels[y, x])
+        if cid:
+            self.selected ^= {cid}
+        elif self.panel.bg_manual.isChecked():
+            box = core.box_at(y, x, self.panel.bg_size.value(), a.labels.shape)
+            y0, x0, y1, x1 = box
+            if (a.labels[y0:y1, x0:x1] > 0).any():
+                self.statusBar().showMessage("⚠️ Kutu bir hücreye taşıyor — biraz daha uzağa tıklayın.", 5000)
+                return
+            self.manual_boxes.append(box)
+        else:
+            self.statusBar().showMessage("Boş alana tıklandı. Elle background için sağ panelde 'Elle' seçin.", 5000)
+            return
+        self.update_measure()
+
+    def select_all(self):
+        if self.analysis:
+            self.selected = set(self.analysis.cell_ids)
+            self.update_measure()
+
+    def select_none(self):
+        self.selected = set()
+        self.update_measure()
+
+    def clear_manual_boxes(self):
+        self.manual_boxes = []
+        self.update_measure()
+
+    def update_measure(self, redraw=True):
+        a = self.analysis
+        if a is None:
+            return
+        p = self.panel
+        s = core.Settings(bg_size=p.bg_size.value(), bg_n=p.bg_n.value())
+        if p.bg_auto.isChecked():
+            key = (id(a), s.bg_size, s.bg_n)
+            if self._auto_cache is None or self._auto_cache[0] != key:
+                _, _, boxes = core.background_and_measure(a, [], s)
+                self._auto_cache = (key, boxes)
+            self.boxes = list(self._auto_cache[1])
+        else:
+            self.boxes = list(self.manual_boxes)
+        p.btn_bg_clear.setEnabled(p.bg_manual.isChecked() and bool(self.manual_boxes))
+        p.sel_info.setText(f"Seçili: {len(self.selected)} / {len(a.cell_ids)} hücre")
+        if self.boxes:
+            cells, bg, _ = core.background_and_measure(a, sorted(self.selected), s, self.boxes)
+            msg = f"Background ortalaması: <b>{bg['Mean'].mean():.3f}</b>  (n = {len(bg)} kutu, " \
+                  f"{s.bg_size}×{s.bg_size} px)"
+            if (bg["Max"] > a.threshold * 0.5).any():
+                msg += "<br><span style='color:#a60'>⚠️ Bazı kutularda sinyal/debris olabilir.</span>"
+            p.bg_info.setText(msg)
+        else:
+            cells = None
+            p.bg_info.setText("<span style='color:#b22'>Background kutusu yok — CTCF hesaplanamaz.</span>"
+                              + (" Görüntüye tıklayarak kutu ekleyin." if p.bg_manual.isChecked() else
+                                 " Kutu boyutunu küçültün."))
+        self.fill_table(cells)
+        if redraw:
+            self.redraw()
+
+    def fill_table(self, cells):
+        self.table.setRowCount(0)
+        if cells is None or not len(cells):
+            return
+        self.table.setRowCount(len(cells))
+        for r, row in enumerate(cells.itertuples(index=False)):
+            for c, (col, _, dec) in enumerate(TABLE_COLS):
+                v = getattr(row, col)
+                it = QTableWidgetItem(f"{v:,.{dec}f}".replace(",", " ") if dec else f"{int(v)}")
+                it.setTextAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+                self.table.setItem(r, c, it)
+        unit = cells["Area_unit"].iloc[0]
+        self.table.horizontalHeaderItem(1).setText(f"Alan ({unit})")
 
     def about(self):
         QMessageBox.about(self, APP_NAME,

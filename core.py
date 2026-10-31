@@ -118,9 +118,28 @@ THRESH = {"Otsu": filters.threshold_otsu, "Li": filters.threshold_li,
 
 def segment_nuclei(dapi: np.ndarray, um_per_px: float, exclude: np.ndarray,
                    min_area_um2: float = 15.0, nucleus_diam_um: float = 10.0,
-                   method: str = "Otsu", split: bool = True) -> np.ndarray:
+                   method: str = "Otsu", split: bool = True, bright_core: bool = False) -> np.ndarray:
+    """Çekirdek etiketleri.
+
+    bright_core=False (v1.0.0): Otsu eşiği; DAPI çevresindeki loş mavi haleyi de çekirdeğe katar.
+    bright_core=True  (v2): yalnızca parlak çekirdek gövdesi (3 sınıflı Otsu'nun üst eşiği) ve
+    yumuşatılmış DAPI yoğunluk tepelerinden ayırma — değen çekirdekleri daha doğru böler.
+    """
     sm = filters.gaussian(dapi, sigma=max(1.0, 0.5 / um_per_px), preserve_range=True)
     sm[exclude] = 0
+    if bright_core:
+        th = filters.threshold_multiotsu(sm[~exclude], classes=3)[-1]
+        mask = sm > th
+        mask = morphology.remove_small_objects(mask, max_size=max(1, int(min_area_um2 / um_per_px ** 2)))
+        mask = ndi.binary_fill_holes(mask)
+        if not split:
+            return measure.label(mask)
+        smooth = filters.gaussian(dapi, sigma=0.3 * nucleus_diam_um / um_per_px, preserve_range=True)
+        peaks = feature.peak_local_max(smooth, min_distance=max(3, int(0.4 * nucleus_diam_um / um_per_px)),
+                                       labels=measure.label(mask), exclude_border=False)
+        markers = np.zeros(mask.shape, int)
+        markers[tuple(peaks.T)] = np.arange(1, len(peaks) + 1)
+        return segmentation.watershed(-smooth, markers, mask=mask)
     th = THRESH[method](sm[~exclude])
     mask = sm > th
     mask = morphology.remove_small_objects(mask, max_size=max(1, int(min_area_um2 / um_per_px ** 2)))
@@ -281,6 +300,7 @@ class Settings:
     thresh_factor: float = 1.0
     min_cell_um2: float = 50.0
     nuc_split: bool = True
+    nuc_bright_core: bool = True       # v2 varsayılanı; False = v1.0.0 çekirdek algılaması
     nuc_diam_um: float = 10.0
     min_nuc_um2: float = 15.0
     bg_size: int = 50
@@ -327,7 +347,8 @@ def analyze(fitc_arr: np.ndarray, meta: dict, dapi_arr: np.ndarray | None = None
     dapi_ch = get_channel(dapi_arr, "B" if dapi_arr.ndim == 3 else "G") if dapi_arr is not None else None
     nuclei = None
     if dapi_ch is not None:
-        nuclei = segment_nuclei(dapi_ch, upp or 1.0, exclude, s.min_nuc_um2, s.nuc_diam_um, split=s.nuc_split)
+        nuclei = segment_nuclei(dapi_ch, upp or 1.0, exclude, s.min_nuc_um2, s.nuc_diam_um, split=s.nuc_split,
+                                bright_core=s.nuc_bright_core)
     labels, th = segment_cells(fitc_ch, upp or 1.0, exclude, nuclei, s.thresh_method, s.thresh_factor,
                                s.min_cell_um2)
     ids = [int(i) for i in np.setdiff1d(np.unique(labels), [0])]
@@ -358,12 +379,15 @@ def to_display(arr: np.ndarray, gain: float = 1.0) -> np.ndarray:
 
 
 def overlay(display_rgb: np.ndarray, labels: np.ndarray, selected: set[int],
-            bg_boxes, nuclei: np.ndarray | None = None, font_scale: int = 2) -> Image.Image:
+            bg_boxes, nuclei: np.ndarray | None = None, font_scale: int = 2,
+            nucleus_color=(0, 160, 255), nucleus_width: int = 0) -> Image.Image:
     from PIL import ImageDraw, ImageFont
     out = display_rgb.copy()
     if nuclei is not None and nuclei.max() > 0:
         nb = segmentation.find_boundaries(nuclei, mode="inner")
-        out[nb] = (0, 160, 255)
+        if nucleus_width:
+            nb = ndi.binary_dilation(nb, morphology.disk(nucleus_width))
+        out[nb] = nucleus_color
     for cid in np.setdiff1d(np.unique(labels), [0]):
         b = segmentation.find_boundaries(labels == cid, mode="inner")
         b = ndi.binary_dilation(b, morphology.disk(1))
