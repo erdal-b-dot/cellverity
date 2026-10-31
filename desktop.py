@@ -12,7 +12,7 @@ import numpy as np
 from PySide6.QtCore import QObject, QRectF, Qt, QThread, Signal
 from PySide6.QtGui import QAction, QImage, QKeySequence, QPainter, QPixmap
 from PySide6.QtWidgets import (QApplication, QDockWidget, QFileDialog, QFormLayout, QFrame,
-                               QGraphicsPixmapItem, QGraphicsScene, QGraphicsView, QLabel,
+                               QComboBox, QGraphicsPixmapItem, QGraphicsScene, QGraphicsView, QLabel,
                                QMainWindow, QMessageBox, QSlider, QVBoxLayout, QWidget)
 
 import core
@@ -28,6 +28,16 @@ def is_dapi_like(arr: np.ndarray) -> bool:
         return False
     m = arr.reshape(-1, 3).mean(axis=0)
     return m[2] > 1.5 * max(m[1], 1e-6)
+
+
+VIEW_MODES = ("FITC", "DAPI", "Birleşik (FITC + DAPI)")
+
+
+def merge_display(fitc: np.ndarray, dapi: np.ndarray, gain: float) -> np.ndarray:
+    """FITC yeşil + DAPI mavi kanallarını tek renkli görüntüde birleştirir (yalnız ekran için)."""
+    f = core.to_display(fitc, gain)
+    d = core.to_display(dapi, gain)
+    return np.maximum(f, d)
 
 
 def to_pixmap(im) -> QPixmap:
@@ -111,6 +121,13 @@ class InfoPanel(QWidget):
         self.mode = QLabel()
         self.mode.setWordWrap(True)
         lay.addWidget(self.mode)
+        legend = QLabel("<b>Çizgiler</b><br>"
+                        "<span style='color:#b8b8b8'>━</span> hücre sınırı (numaralı)<br>"
+                        "<span style='color:#d4b000'>━</span> seçili hücre<br>"
+                        "<span style='color:#00a0ff'>━</span> çekirdek sınırı (DAPI'den)<br>"
+                        "<span style='color:#ff3c3c'>□</span> background kutusu")
+        lay.addSpacing(8)
+        lay.addWidget(legend)
         lay.addSpacing(12)
         lay.addWidget(QLabel("<b>Görüntü parlaklığı</b> (yalnız ekran; ölçümü etkilemez)"))
         self.gain = QSlider(Qt.Orientation.Horizontal)
@@ -176,12 +193,20 @@ class MainWindow(QMainWindow):
             return a
 
         self.a_fitc = act("FITC aç…", lambda: self.open_dialog("FITC"), QKeySequence.StandardKey.Open)
+        self.a_fitc.setToolTip("Ölçülecek yeşil (FITC) görüntüyü açar. Yeni FITC açılınca eski DAPI kaldırılır.")
         self.a_dapi = act("DAPI aç…", lambda: self.open_dialog("DAPI"), "Ctrl+D")
+        self.a_dapi.setToolTip("Aynı alanın mavi (DAPI) görüntüsünü açar; değen hücreleri çekirdeklere göre ayırmak için.")
         self.a_fit = act("Pencereye sığdır", self.view.fit, "Ctrl+0")
         self.a_in = act("Yakınlaştır", lambda: self.view.zoom(1.25), QKeySequence.StandardKey.ZoomIn)
         self.a_out = act("Uzaklaştır", lambda: self.view.zoom(0.8), QKeySequence.StandardKey.ZoomOut)
-        self.a_nuc = act("Çekirdekleri göster", lambda: self.redraw(fit=False), "Ctrl+N", checkable=True)
+        self.a_nuc = act("Çekirdek sınırları", lambda: self.redraw(fit=False), "Ctrl+N", checkable=True)
         self.a_nuc.setChecked(True)
+        self.a_nuc.setToolTip("DAPI'den bulunan çekirdeklerin sınırlarını mavi çizgiyle gösterir/gizler.\n"
+                              "Program değen hücreleri bu çekirdeklere göre ayırır. Ölçümü etkilemez.")
+        self.view_mode = QComboBox()
+        self.view_mode.addItems(VIEW_MODES)
+        self.view_mode.setToolTip("Ekranda hangi görüntünün gösterileceği. Ölçüm her zaman FITC'den yapılır.")
+        self.view_mode.currentIndexChanged.connect(lambda _: self.redraw(fit=False))
 
         m = self.menuBar().addMenu("Dosya")
         m.addActions([self.a_fitc, self.a_dapi])
@@ -198,7 +223,11 @@ class MainWindow(QMainWindow):
         tb.setMovable(False)
         tb.addActions([self.a_fitc, self.a_dapi])
         tb.addSeparator()
-        tb.addActions([self.a_fit, self.a_in, self.a_out, self.a_nuc])
+        tb.addActions([self.a_fit, self.a_in, self.a_out])
+        tb.addSeparator()
+        tb.addWidget(QLabel(" Görüntü: "))
+        tb.addWidget(self.view_mode)
+        tb.addAction(self.a_nuc)
 
     # ---------------------------------------------------------- dosya açma
     def open_dialog(self, kind):
@@ -218,6 +247,7 @@ class MainWindow(QMainWindow):
                 loaded.append((p, *core.load_image(str(p))))
             except Exception as ex:
                 QMessageBox.warning(self, APP_NAME, f"{p.name} açılamadı:\n{ex}")
+        loaded.sort(key=lambda t: is_dapi_like(t[1]))  # önce FITC, sonra DAPI
         for p, arr, meta in loaded:
             self._set(p, arr, meta, "DAPI" if is_dapi_like(arr) else "FITC", run=False)
         if loaded:
@@ -229,12 +259,24 @@ class MainWindow(QMainWindow):
         except Exception as ex:
             QMessageBox.warning(self, APP_NAME, f"{path.name} açılamadı:\n{ex}")
             return
+        looks = "DAPI" if is_dapi_like(arr) else "FITC"
+        if looks != kind:
+            ans = QMessageBox.question(
+                self, APP_NAME,
+                f"{path.name} bir {looks} görüntüsüne benziyor ({'mavi' if looks == 'DAPI' else 'mavi değil'}), "
+                f"ama {kind} olarak açılıyor.\n\n{looks} olarak açılsın mı?",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, QMessageBox.StandardButton.Yes)
+            if ans == QMessageBox.StandardButton.Yes:
+                kind = looks
         self._set(path, arr, meta, kind)
 
     def _set(self, path, arr, meta, kind, run=True):
         if kind == "FITC":
             if self.fitc is None or self.fitc[0] != path:
                 self.analysis = None
+                if self.fitc is not None and self.dapi is not None:  # önceki alanın DAPI'si yanlış ayırır
+                    self.dapi = None
+                    self.panel.set("DAPI", "— (yeni FITC açıldı; aynı alanın DAPI'sini açın)")
             self.fitc = (path, arr, meta)
             self.panel.set("FITC", path.name)
             if meta.get("software"):
@@ -243,6 +285,7 @@ class MainWindow(QMainWindow):
         else:
             self.dapi = (path, arr, meta)
             self.panel.set("DAPI", path.name)
+            self.view_mode.setCurrentIndex(2)  # DAPI'nin yüklendiği görülsün
         if run:
             self.run_analysis()
 
@@ -305,7 +348,15 @@ class MainWindow(QMainWindow):
         a = self.analysis
         if a is None:
             return
-        disp = core.to_display(a.fitc_arr, gain=self.panel.gain.value() / 10)
+        gain = self.panel.gain.value() / 10
+        mode = self.view_mode.currentIndex()
+        dapi = self.dapi[1] if self.dapi and self.dapi[1].shape[:2] == a.fitc_arr.shape[:2] else None
+        if mode == 1 and dapi is not None:
+            disp = core.to_display(dapi, gain)
+        elif mode == 2 and dapi is not None:
+            disp = merge_display(a.fitc_arr, dapi, gain)
+        else:
+            disp = core.to_display(a.fitc_arr, gain)
         nuclei = a.nuclei if self.a_nuc.isChecked() else None
         self.view.set_pixmap(to_pixmap(core.overlay(disp, a.labels, set(), [], nuclei)), fit)
 
