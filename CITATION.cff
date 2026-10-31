@@ -1,0 +1,30 @@
+cff-version: 1.2.0
+message: "Bu yazılımı kullanırsanız lütfen aşağıdaki şekilde atıf yapın."
+title: "ICC CTCF Ölçer: immunositokimya görüntülerinde hücre başına CTCF ölçüm aracı"
+type: software
+authors:
+  - family-names: Balcan
+    given-names: Erdal
+    affiliation: "Manisa Celal Bayar Üniversitesi"
+    orcid: "https://orcid.org/0000-0001-7675-1386"
+version: 1.0.0
+date-released: 2026-10-31
+license: MIT
+keywords:
+  - immunocytochemistry
+  - CTCF
+  - fluorescence quantification
+  - ImageJ
+references:
+  - type: article
+    authors:
+      - family-names: McCloy
+        given-names: Rachael A.
+    title: "Partial inhibition of Cdk1 in G2 phase overrides the SAC and decouples mitotic events"
+    journal: "Cell Cycle"
+    year: 2014
+    volume: 13
+    issue: 9
+    start: 1400
+    end: 1412
+    doi: "10.4161/cc.28401"

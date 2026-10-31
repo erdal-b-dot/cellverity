@@ -1,0 +1,8 @@
+.venv/
+__pycache__/
+*.pyc
+server.log
+.DS_Store
+# Araştırma verileri repoya girmez (yayımlanmamış görüntüler / doğrulama çıktıları)
+ornek/
+dogrulama/
