@@ -1,0 +1,3 @@
+-r requirements.txt
+# Masaüstü sürüm (v2). 6.9.3 = macOS 12 Monterey'i destekleyen son PySide6.
+pyside6-essentials==6.9.3

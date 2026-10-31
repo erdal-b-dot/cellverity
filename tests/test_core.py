@@ -41,6 +41,19 @@ def run_default_pipeline():
     return sb, upp, cells, bg
 
 
+def test_analyze_matches_manual_pipeline():
+    """core.analyze() (masaüstü sürümün kullandığı akış) adım adım akışla birebir aynı olmalı."""
+    sb, upp, cells_ref, bg_ref = run_default_pipeline()
+    fitc_arr, meta = core.load_image(open(FITC, "rb"))
+    a = core.analyze(fitc_arr, meta, core.load_image(open(DAPI, "rb"))[0])
+    assert a.um_per_px == upp and a.segmentation_mode == "DAPI nuclei"
+    assert a.objective[0] == 40
+    cells, bg, _ = core.background_and_measure(a, a.cell_ids)
+    assert np.array_equal(cells[["Area", "Mean", "IntDen", "CTCF"]].to_numpy(),
+                          cells_ref[["Area", "Mean", "IntDen", "CTCF"]].to_numpy())
+    assert np.array_equal(bg["Mean"].to_numpy(), bg_ref["Mean"].to_numpy())
+
+
 def test_image_392():
     sb, upp, cells, bg = run_default_pipeline()
     assert sb.bar_px == 138, sb.bar_px
@@ -58,4 +71,5 @@ if __name__ == "__main__":
     if not FITC.exists():
         sys.exit(f"Örnek görüntü yok: {FITC}")
     test_image_392()
+    test_analyze_matches_manual_pipeline()
     print("✅ Doğrulama testi geçti: hesaplamalar Fiji ile doğrulanmış değerlerle aynı.")

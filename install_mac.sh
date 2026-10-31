@@ -10,7 +10,7 @@ if ! command -v uv >/dev/null 2>&1; then
   export PATH="$HOME/.local/bin:$PATH"
 fi
 uv venv --python 3.12 .venv
-uv pip install --python .venv/bin/python -r requirements.txt
+uv pip install --python .venv/bin/python -r requirements-desktop.txt
 chmod +x start.sh stop.sh run.command
 mkdir -p "$HOME/Applications"
 osacompile -o "$HOME/Applications/ICC CTCF Ölçer.app" -e "do shell script quoted form of \"$APP_DIR/start.sh\" & \" > /dev/null 2>&1\""

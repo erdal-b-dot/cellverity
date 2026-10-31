@@ -269,6 +269,86 @@ def measure_cells(img: np.ndarray, labels: np.ndarray, cell_ids, bg_mean: float,
     return df
 
 
+# ------------------------------------------------------- Tek adımda tüm akış
+@dataclass
+class Settings:
+    """Varsayılanlar v1.0.0 Streamlit arayüzüyle aynıdır (Fiji doğrulaması bu ayarlarla yapıldı)."""
+    channel: str = "G"
+    bar_um: float = 20.0
+    bar_px: int | None = None          # None → ölçek çubuğundan otomatik
+    camera_pixel_um: float = 5.86
+    thresh_method: str = "Li"
+    thresh_factor: float = 1.0
+    min_cell_um2: float = 50.0
+    nuc_split: bool = True
+    nuc_diam_um: float = 10.0
+    min_nuc_um2: float = 15.0
+    bg_size: int = 50
+    bg_n: int = 3
+
+
+@dataclass
+class Analysis:
+    fitc_arr: np.ndarray
+    meta: dict
+    scale_bar: ScaleBar
+    um_per_px: float | None
+    exclude: np.ndarray
+    fitc_ch: np.ndarray
+    dapi_ch: np.ndarray | None
+    nuclei: np.ndarray | None
+    labels: np.ndarray
+    threshold: float
+    cell_ids: list[int]
+    touching: list[tuple[int, int]] = field(default_factory=list)
+    camera_pixel_um: float = 5.86
+
+    @property
+    def segmentation_mode(self) -> str:
+        return "DAPI nuclei" if self.nuclei is not None else "Shape only"
+
+    @property
+    def objective(self) -> tuple[int, float] | None:
+        return estimate_objective(self.um_per_px, self.camera_pixel_um) if self.um_per_px else None
+
+
+def analyze(fitc_arr: np.ndarray, meta: dict, dapi_arr: np.ndarray | None = None,
+            s: Settings | None = None) -> Analysis:
+    """Kalibrasyon → çekirdek → hücre segmentasyonu. Arayüzler (Streamlit / masaüstü) bunu çağırır."""
+    s = s or Settings()
+    sb = detect_scale_bar(fitc_arr)
+    bar_px = s.bar_px if s.bar_px is not None else sb.bar_px
+    upp = s.bar_um / bar_px if bar_px else None
+    exclude = np.zeros(fitc_arr.shape[:2], bool)
+    if sb.found:
+        y0, y1, x0, x1 = sb.bbox
+        exclude[y0:y1, x0:x1] = True
+    fitc_ch = get_channel(fitc_arr, s.channel)
+    dapi_ch = get_channel(dapi_arr, "B" if dapi_arr.ndim == 3 else "G") if dapi_arr is not None else None
+    nuclei = None
+    if dapi_ch is not None:
+        nuclei = segment_nuclei(dapi_ch, upp or 1.0, exclude, s.min_nuc_um2, s.nuc_diam_um, split=s.nuc_split)
+    labels, th = segment_cells(fitc_ch, upp or 1.0, exclude, nuclei, s.thresh_method, s.thresh_factor,
+                               s.min_cell_um2)
+    ids = [int(i) for i in np.setdiff1d(np.unique(labels), [0])]
+    a = Analysis(fitc_arr, meta, sb, upp, exclude, fitc_ch, dapi_ch, nuclei, labels, th, ids,
+                 touching_pairs(labels), s.camera_pixel_um)
+    return a
+
+
+def background_and_measure(a: Analysis, cell_ids, s: Settings | None = None, boxes=None):
+    """Background kutuları (verilmezse otomatik) + hücre ölçümü → (cells_df, bg_df, boxes)."""
+    s = s or Settings()
+    if boxes is None:
+        boxes = auto_background_boxes(a.fitc_ch, a.labels > 0, a.exclude, s.bg_size, s.bg_n,
+                                      signal_thresh=a.threshold * 0.3)
+    sat = a.meta["max_value"]
+    bg = measure_backgrounds(a.fitc_ch, boxes, (a.um_per_px or 1) ** 2, sat)
+    bg_mean = float(bg["Mean"].mean()) if len(bg) else 0.0
+    cells = measure_cells(a.fitc_ch, a.labels, cell_ids, bg_mean, a.um_per_px, sat, a.nuclei)
+    return cells, bg, boxes
+
+
 # -------------------------------------------------------------- Görselleştirme
 def to_display(arr: np.ndarray, gain: float = 1.0) -> np.ndarray:
     a = arr.astype(np.float64)
