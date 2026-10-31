@@ -11,9 +11,10 @@ from pathlib import Path
 
 import numpy as np
 from PySide6.QtCore import QObject, QRectF, Qt, QThread, Signal
-from PySide6.QtGui import QAction, QImage, QKeySequence, QPainter, QPixmap
+from PySide6.QtGui import QAction, QBrush, QColor, QFont, QImage, QKeySequence, QPainter, QPen, QPixmap
 from PySide6.QtWidgets import (QAbstractItemView, QApplication, QButtonGroup, QComboBox, QDockWidget,
-                               QFileDialog, QFormLayout, QFrame, QGraphicsPixmapItem, QGraphicsScene,
+                               QFileDialog, QFormLayout, QFrame, QGraphicsPixmapItem, QGraphicsRectItem,
+                               QGraphicsScene, QGraphicsSimpleTextItem,
                                QGraphicsView, QGroupBox, QHBoxLayout, QHeaderView, QLabel, QMainWindow,
                                QMessageBox, QPushButton, QRadioButton, QScrollArea, QSlider, QSpinBox,
                                QTableWidget, QTableWidgetItem, QTabWidget, QVBoxLayout, QWidget)
@@ -80,12 +81,20 @@ def to_pixmap(im) -> QPixmap:
 
 # ------------------------------------------------------------------ Görüntü alanı
 class ImageView(QGraphicsView):
-    """Fare tekerleği ile yakınlaştırma, sürükleyerek kaydırma; kısa tıklama → clicked(y, x)."""
+    """Fare tekerleği ile yakınlaştırma, sürükleyerek kaydırma; kısa tıklama → clicked(y, x).
+
+    Background kutuları ayrı sahne nesneleridir: üzerine basıp sürükleyince taşınır → box_moved(i, y0, x0).
+    """
     clicked = Signal(int, int)
+    box_moved = Signal(int, int, int)
+    BOX_COLOR = QColor(255, 60, 60)
 
     def __init__(self):
         super().__init__()
         self._press = None
+        self._drag = None  # (kutu indeksi, fare ile kutu köşesi arasındaki fark)
+        self.box_items: list[tuple[QGraphicsRectItem, QGraphicsSimpleTextItem]] = []
+        self.setMouseTracking(True)
         self.setScene(QGraphicsScene(self))
         self.item = QGraphicsPixmapItem()
         self.item.setTransformationMode(Qt.TransformationMode.SmoothTransformation)
@@ -121,11 +130,71 @@ class ImageView(QGraphicsView):
     def wheelEvent(self, e):
         self.zoom(1.25 if e.angleDelta().y() > 0 else 0.8)
 
+    # ------------------------------------------------------- kutular
+    def set_boxes(self, boxes):
+        for r, t in self.box_items:
+            self.scene().removeItem(r)
+            self.scene().removeItem(t)
+        self.box_items = []
+        pen = QPen(self.BOX_COLOR, 3)
+        font = QFont()
+        font.setPixelSize(26)
+        font.setBold(True)
+        for i, (y0, x0, y1, x1) in enumerate(boxes, 1):
+            r = self.scene().addRect(0, 0, x1 - x0, y1 - y0, pen, QBrush(QColor(255, 60, 60, 35)))
+            r.setPos(x0, y0)
+            t = self.scene().addSimpleText(f"BG{i}", font)
+            t.setBrush(self.BOX_COLOR)
+            t.setPos(x0, y0 - 30)
+            self.box_items.append((r, t))
+
+    def box_at(self, pt) -> int | None:
+        for i, (r, _) in enumerate(self.box_items):
+            if r.sceneBoundingRect().contains(pt):
+                return i
+        return None
+
     def mousePressEvent(self, e):
         self._press = e.position().toPoint()
+        if e.button() == Qt.MouseButton.LeftButton:
+            pt = self.mapToScene(self._press)
+            i = self.box_at(pt)
+            if i is not None:
+                self._drag = (i, pt - self.box_items[i][0].pos())
+                self.viewport().setCursor(Qt.CursorShape.ClosedHandCursor)
+                return
         super().mousePressEvent(e)
 
+    def mouseMoveEvent(self, e):
+        if self._drag is not None:
+            i, off = self._drag
+            r, t = self.box_items[i]
+            pm = self.item.pixmap()
+            w, h = r.rect().width(), r.rect().height()
+            pos = self.mapToScene(e.position().toPoint()) - off
+            x = min(max(pos.x(), 0), pm.width() - w)
+            y = min(max(pos.y(), 0), pm.height() - h)
+            r.setPos(round(x), round(y))
+            t.setPos(round(x), round(y) - 30)
+            return
+        super().mouseMoveEvent(e)
+        if not e.buttons():
+            over = self.box_at(self.mapToScene(e.position().toPoint())) is not None
+            self.viewport().setCursor(Qt.CursorShape.OpenHandCursor if over else Qt.CursorShape.ArrowCursor)
+
     def mouseReleaseEvent(self, e):
+        if self._drag is not None:
+            i, _ = self._drag
+            self._drag = None
+            self.viewport().setCursor(Qt.CursorShape.OpenHandCursor)
+            if (e.position().toPoint() - self._press).manhattanLength() < 5:
+                pt = self.mapToScene(self._press)  # taşımadan tıklama → kutu silme vb.
+                self.clicked.emit(int(pt.y()), int(pt.x()))
+            else:
+                pos = self.box_items[i][0].pos()
+                self.box_moved.emit(i, int(pos.y()), int(pos.x()))
+            self._press = None
+            return
         super().mouseReleaseEvent(e)
         if self._press is not None and (e.position().toPoint() - self._press).manhattanLength() < 5:
             pt = self.mapToScene(self._press)
@@ -206,7 +275,8 @@ class InfoPanel(QWidget):
         f2.addRow("Kutu boyutu (kare)", self.bg_size)
         f2.addRow("Otomatik kutu sayısı", self.bg_n)
         bl.addLayout(f2)
-        self.bg_hint = QLabel("Elle: hücre dışındaki boş alana tıklayın → kutu eklenir; kutuya tıklayın → silinir.")
+        self.bg_hint = QLabel("Kutuları fareyle sürükleyerek taşıyabilirsiniz (otomatik kutu taşınırsa 'Elle'ye "
+                              "geçilir). Elle: boş alana tıklayın → kutu eklenir; kutuya tıklayın → silinir.")
         self.bg_hint.setWordWrap(True)
         self.bg_hint.setStyleSheet("color:#666;")
         bl.addWidget(self.bg_hint)
@@ -276,6 +346,7 @@ class MainWindow(QMainWindow):
         self.panel = InfoPanel()
         self.panel.gain.valueChanged.connect(lambda _: self.redraw(fit=False))
         self.view.clicked.connect(self.on_click)
+        self.view.box_moved.connect(self.on_box_moved)
         p = self.panel
         p.btn_all.clicked.connect(self.select_all)
         p.btn_none.clicked.connect(self.select_none)
@@ -486,8 +557,9 @@ class MainWindow(QMainWindow):
         else:
             disp = core.to_display(a.fitc_arr, gain)
         nuclei = a.nuclei if self.a_nuc.isChecked() else None
-        self.view.set_pixmap(to_pixmap(core.overlay(disp, a.labels, self.selected, self.boxes, nuclei,
+        self.view.set_pixmap(to_pixmap(core.overlay(disp, a.labels, self.selected, [], nuclei,
                                                     nucleus_color=NUCLEUS_COLOR, nucleus_width=1)), fit)
+        self.view.set_boxes(self.boxes)
 
     # ------------------------------------------------------ seçim / ölçüm
     def on_click(self, y, x):
@@ -513,6 +585,26 @@ class MainWindow(QMainWindow):
             self.statusBar().showMessage("Boş alana tıklandı. Elle background için sağ panelde 'Elle' seçin.", 5000)
             return
         self.update_measure()
+
+    def on_box_moved(self, i, y0, x0):
+        a = self.analysis
+        if a is None or i >= len(self.boxes):
+            return
+        oy0, ox0, oy1, ox1 = self.boxes[i]
+        new = (y0, x0, y0 + oy1 - oy0, x0 + ox1 - ox0)
+        if (a.labels[new[0]:new[2], new[1]:new[3]] > 0).any():
+            self.statusBar().showMessage("⚠️ Kutu bir hücreye taşıyor — eski yerine döndü.", 5000)
+            self.view.set_boxes(self.boxes)
+            return
+        if self.panel.bg_auto.isChecked():
+            # otomatik kutu taşındı → kutular elle moduna geçer (diğerleri yerinde kalır)
+            self.manual_boxes = list(self.boxes)
+            self.manual_boxes[i] = new
+            self.panel.bg_manual.setChecked(True)  # update_measure'ü tetikler
+            self.statusBar().showMessage("Otomatik kutu taşındı → Background 'Elle' moduna geçti.", 5000)
+        else:
+            self.manual_boxes[i] = new
+            self.update_measure()
 
     def select_all(self):
         if self.analysis:
