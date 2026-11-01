@@ -81,7 +81,8 @@ def plot(results: pd.DataFrame, metric: str = "CTCF", kind: str = PLOT_KINDS[0],
     """Grup grafiği + istatistik metni. fig verilirse onun üzerine çizer (Qt tuvali için)."""
     from scipy import stats as sps
     import matplotlib
-    if fig is None:
+    own = fig is None
+    if own:
         matplotlib.use("Agg")
         import matplotlib.pyplot as plt
         fig = plt.figure(dpi=150)
@@ -91,7 +92,8 @@ def plot(results: pd.DataFrame, metric: str = "CTCF", kind: str = PLOT_KINDS[0],
         ref = data[0].mean()
         data = [d / ref for d in data]
     fig.clear()
-    fig.set_size_inches(max(3.5, 1.3 * len(groups) + 1.5), 4)
+    if own:  # Qt tuvalinin boyutunu pencere belirler; değiştirmek eski çizimi ekranda bırakıyordu
+        fig.set_size_inches(max(3.5, 1.3 * len(groups) + 1.5), 4)
     ax = fig.add_subplot(111)
     x = np.arange(len(groups))
     if kind == PLOT_KINDS[0]:
