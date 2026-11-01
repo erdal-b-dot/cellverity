@@ -917,6 +917,15 @@ class MainWindow(QMainWindow):
         self.bg_table = make_table(BG_COLS)
         self.tabs = QTabWidget()
         self.res_table = make_table(RES_COLS)
+        self.res_table.setMouseTracking(True)
+        self.res_table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        self.res_table.cellEntered.connect(self.preview_result_row)
+        self.res_table.cellClicked.connect(self.open_result_row)
+        self.res_table.setToolTip(T("Satırın üzerine gelin: hücrenin önizlemesi. Tıklayın: görüntüyü açar ve hücreyi "
+                                    "seçer (sınır düzeltme, Fiji doğrulaması için)."))
+        self._thumbs = {}       # (görüntü yolu, hücre) → küçük resim dosyası
+        self._img_cache = {}    # görüntü yolu → dizi (son birkaç görüntü)
+        self._after_analysis = None
         self.sum_table = make_table(SUM_COLS)
         self.tabs.addTab(self.table, T("Hücreler"))
         self.tabs.addTab(self.bg_table, T("Background kutuları"))
@@ -1206,6 +1215,9 @@ class MainWindow(QMainWindow):
         self.update_measure(redraw=False)
         self.redraw(fit=first)
         self.statusBar().showMessage(T("{0} hücre bulundu. Ölçmek için hücrelere tıklayın veya 'Tüm hücreleri seç'.").format(len(a.cell_ids)))
+        if self._after_analysis is not None:
+            fn, self._after_analysis = self._after_analysis, None
+            fn()
         if self._pending:
             self._pending = False
             self.run_analysis()
@@ -1504,6 +1516,90 @@ class MainWindow(QMainWindow):
 
     def batch_dialog(self):
         BatchDialog(self).exec()
+
+    # ------------------------------------------- biriken sonuçlardan görüntüye dönüş
+    def _result_row(self, row):
+        r = self.results
+        return r.iloc[row] if 0 <= row < len(r) else None
+
+    def preview_result_row(self, row, _col):
+        """Satırın üzerine gelince hücrenin çevresinden küçük önizleme (görüntü analiz edilmez, hızlıdır)."""
+        rec = self._result_row(row)
+        if rec is None or "Centroid_x" not in rec or rec.get("Centroid_x") != rec.get("Centroid_x"):
+            return
+        key = (rec["Image_path"], int(rec["Cell"]))
+        if key not in self._thumbs:
+            try:
+                path = rec["Image_path"]
+                if path not in self._img_cache:
+                    if len(self._img_cache) > 4:
+                        self._img_cache.pop(next(iter(self._img_cache)))
+                    self._img_cache[path] = core.load_image(path)[0]
+                arr = self._img_cache[path]
+            except Exception:
+                return
+            from PIL import Image, ImageDraw
+            import tempfile
+            cx, cy, half = int(rec["Centroid_x"]), int(rec["Centroid_y"]), 130
+            h, w = arr.shape[:2]
+            x0, y0 = max(cx - half, 0), max(cy - half, 0)
+            crop = Image.fromarray(core.to_display(arr[y0:min(cy + half, h), x0:min(cx + half, w)], 1.3))
+            d = ImageDraw.Draw(crop)
+            r_px = (rec["Area"] / max(rec.get("um_per_px", 1) or 1, 1e-9) ** 2 / np.pi) ** 0.5 \
+                if rec.get("Area_unit") == "µm²" else (rec["Area"] / np.pi) ** 0.5
+            px, py = cx - x0, cy - y0
+            d.ellipse([px - r_px, py - r_px, px + r_px, py + r_px], outline=(255, 220, 0), width=2)
+            f = Path(tempfile.gettempdir()) / f"icc_ctcf_thumb_{abs(hash(key))}.png"
+            crop.save(f)
+            self._thumbs[key] = f
+        from PySide6.QtGui import QCursor
+        from PySide6.QtWidgets import QToolTip
+        QToolTip.showText(QCursor.pos(), f"<img src='{self._thumbs[key].as_posix()}' width='220'><br>"
+                          + T("<b>{0}</b> · hücre {1} · CTCF {2:,.0f}<br><i>Tıklayın: görüntüyü açar</i>").format(
+                              rec["Image"], int(rec["Cell"]), rec["CTCF"]).replace(",", " "), self.res_table)
+
+    def open_result_row(self, row, _col):
+        """Satıra tıklayınca görüntüyü (ve DAPI'sini) açar; o görüntünün tabloda kayıtlı hücrelerini seçer,
+        tıklanan hücreyi ortalar. Düzeltip yeniden eklerseniz eski satırların yerine geçer."""
+        rec = self._result_row(row)
+        if rec is None or self._thread is not None:
+            return
+        fitc = Path(rec["Image_path"])
+        if not fitc.exists():
+            message(self, "warning", T("Görüntü bulunamadı (taşınmış ya da disk bağlı değil):\n{0}").format(fitc))
+            return
+        if self.fitc is not None and self.fitc[0] == fitc and self.analysis is not None:
+            self._focus_result(rec)
+            return
+        self.close_images()
+        dapi_name = rec.get("DAPI_image") or ""
+        dapi = fitc.parent / dapi_name if isinstance(dapi_name, str) and dapi_name else None
+        for p, kind in ((fitc, "FITC"), (dapi, "DAPI")):
+            if p is not None and p.exists():
+                arr, meta = core.load_image(str(p))
+                self._set(p, arr, meta, kind, run=False)
+        self.panel.group.setText(str(rec.get("Group", "")))
+        exp = rec.get("Experiment", "")
+        self.panel.experiment.setText("" if exp != exp else str(exp))
+        if rec.get("BG_box_px") == rec.get("BG_box_px") and rec.get("BG_box_px"):
+            self.panel.bg_size.setValue(int(rec["BG_box_px"]))
+        self._after_analysis = lambda: self._focus_result(rec)
+        self.run_analysis()
+
+    def _focus_result(self, rec):
+        a = self.analysis
+        r = self.results
+        cells = set(r.loc[r["Image_path"] == rec["Image_path"], "Cell"].astype(int))
+        self.selected = cells & set(a.cell_ids)
+        self.update_measure()
+        cid = int(rec["Cell"])
+        if cid in a.cell_ids:
+            from PySide6.QtCore import QPointF
+            ys, xs = np.nonzero(a.labels == cid)
+            self.view.centerOn(QPointF(xs.mean(), ys.mean()))
+        self.statusBar().showMessage(T("{0} açıldı: tablodaki {1} hücre seçili, hücre {2} ortada. Düzeltip "
+                                       "'Sonuç tablosuna ekle' derseniz eski satırların yerine geçer.").format(
+                                           rec["Image"], len(self.selected), cid), 10000)
 
     def refresh_results(self):
         if len(self.results) and "Experiment" not in self.results:  # eski Excel'ler

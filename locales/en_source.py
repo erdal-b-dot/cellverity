@@ -344,6 +344,12 @@ EN = {
     "Hata:\n{0}": "Error:\n{0}",
     "<b>Kaydet</b>": "<b>Save</b>",
     "%{0:.0f}": "{0:.0f}%",
+    "Satırın üzerine gelin: hücrenin önizlemesi. Tıklayın: görüntüyü açar ve hücreyi seçer (sınır düzeltme, Fiji doğrulaması için).":
+        "Hover over a row: preview of the cell. Click: opens the image and selects the cell (for boundary editing and Fiji verification).",
+    "<b>{0}</b> · hücre {1} · CTCF {2:,.0f}<br><i>Tıklayın: görüntüyü açar</i>": "<b>{0}</b> · cell {1} · CTCF {2:,.0f}<br><i>Click to open the image</i>",
+    "Görüntü bulunamadı (taşınmış ya da disk bağlı değil):\n{0}": "Image not found (moved, or the disk is not connected):\n{0}",
+    "{0} açıldı: tablodaki {1} hücre seçili, hücre {2} ortada. Düzeltip 'Sonuç tablosuna ekle' derseniz eski satırların yerine geçer.":
+        "{0} opened: {1} cells from the table selected, cell {2} centred. After editing, 'Add to results table' replaces the earlier rows.",
     # ---- dil
     "Dil / Language": "Language / Dil",
     "Dil değişikliği program yeniden başlatılınca geçerli olur. Şimdi yeniden başlatılsın mı?":
