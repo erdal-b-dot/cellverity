@@ -35,6 +35,9 @@ Windows: extract the zip, run `ICC CTCF Olcer.exe`; if SmartScreen appears: **Mo
 
 **User guide:** [English](docs/USER_GUIDE.md) ([PDF](docs/USER_GUIDE.pdf)) · [Türkçe](docs/KULLANIM_KILAVUZU.md) ([PDF](docs/KULLANIM_KILAVUZU.pdf)) — also in the app: Help ▸ User guide (F1).
 
+## Example data
+[`examples/`](examples/) contains two raw FITC + DAPI pairs (crowded and sparse fields; Olympus BX43 / DP74 / cellSens Entry, 40×) with expected results, so you can try the program and check your installation. Images are licensed **CC BY 4.0** (code: MIT).
+
 ## Validation
 - **Identical to Fiji 1.54p** for the same ROIs (Area, Mean, StdDev, Min, Max, IntDen, RawIntDen; largest difference < 0.00001 %), checked automatically by the test suite when Fiji is installed.
 - Scale bar and its label read correctly in **all 3,534 fluorescence images** tested: the author's own 2018–2021 archive (3,233 images; MDM2/P53/PARC ICC, doxorubicin and tunicamycin dose series) and the development data set (301 images); two cellSens box styles (20/50 µm). FITC–DAPI pairing by chance-corrected overlap: 1,807 pairs matched automatically in the archive; non-fluorescence images (e.g. Giemsa) are recognised and skipped.
@@ -80,6 +83,7 @@ Issues and suggestions: [GitHub Issues](https://github.com/erdal-b-dot/icc-ctcf-
 **ICC CTCF Ölçer**, immunositokimya floresan görüntülerinde hücre başına **CTCF** ölçen bir masaüstü programıdır. ImageJ'deki elle yapılan iş akışını otomatikleştirir; ölçümleri ImageJ/Fiji ile birebir aynıdır.
 
 - **İndirme:** [Releases](https://github.com/erdal-b-dot/icc-ctcf-olcer/releases) — Mac (Apple Silicon / Intel) `.dmg`, Windows `.zip`. Python gerekmez.
+- **Örnek veri:** [`examples/`](examples/) — iki ham FITC + DAPI çifti ve beklenen sonuçlar (CC BY 4.0).
 - **Kullanım kılavuzu:** [KULLANIM_KILAVUZU.md](docs/KULLANIM_KILAVUZU.md) ([PDF](docs/KULLANIM_KILAVUZU.pdf)); programda Yardım ▸ Kullanım kılavuzu (F1).
 - **Dil:** Arayüz bilgisayarın diline göre Türkçe ya da İngilizce açılır; Görünüm ▸ Dil / Language ile değiştirilir.
 - **Özellikler:** ölçek çubuğundan otomatik kalibrasyon; FITC'den hücre, DAPI'den çekirdek bulma; değen hücreleri çekirdeklere göre ayırma; otomatik/taşınabilir/elle background; sınır düzeltme (böl, birleştir, sil, çiz); klasörü toplu ölçme; Dunnett dahil grup istatistiği (hücre/görüntü/deney ortalaması); ayrıntılı Excel; Fiji köprüsü ve Bland–Altman doğrulaması.

@@ -30,5 +30,5 @@
     }
   ],
   "version": "2.0.0",
-  "notes": "Developed and validated with images acquired on an Olympus BX43 fluorescence microscope, Olympus DP74 colour camera and cellSens Entry software."
+  "notes": "Developed and validated with images acquired on an Olympus BX43 fluorescence microscope, Olympus DP74 colour camera and cellSens Entry software. Example images in examples/ are licensed CC BY 4.0 (© 2021 Erdal Balcan); program code is MIT-licensed."
 }

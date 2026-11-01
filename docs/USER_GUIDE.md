@@ -110,6 +110,8 @@ However good the program is, the validity of the measurement depends on the imag
 
 ## 4. Quick start (5 minutes)
 
+> Example images to try: the [`examples/`](https://github.com/erdal-b-dot/icc-ctcf-olcer/tree/main/examples) folder in the repository (two FITC + DAPI pairs with expected results, CC BY 4.0).
+
 1. Open the program.
 2. In Finder/Explorer, **select the FITC and DAPI files together** and drag them onto the window. The program tells which one is DAPI by its colour.
 3. Check the right panel: **Calibration** (e.g. 0.1449 µm/pixel, 20 µm, *read from label*), **Objective**, **Cell count**, the green **"Cell separation: DAPI nuclei"** box.

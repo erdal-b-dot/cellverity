@@ -112,6 +112,8 @@ Program ne kadar iyi olursa olsun, ölçümün geçerliliği görüntüye bağl�
 
 ## 4. Hızlı başlangıç (5 dakika)
 
+> Denemek için örnek görüntüler: repodaki [`examples/`](https://github.com/erdal-b-dot/icc-ctcf-olcer/tree/main/examples) klasörü (beklenen sonuçlarıyla iki FITC + DAPI çifti, CC BY 4.0).
+
 1. Programı açın.
 2. Finder/Gezgin'de **FITC ve DAPI dosyalarını birlikte seçip** pencereye sürükleyin. Program hangisinin DAPI olduğunu rengine göre anlar.
 3. Sağ panelde kontrol edin: **Kalibrasyon** (ör. 0.1449 µm/piksel, 20 µm, *etiketten okundu*), **Objektif**, **Hücre sayısı**, yeşil **"Hücre ayırma: DAPI çekirdekleri"** kutusu.

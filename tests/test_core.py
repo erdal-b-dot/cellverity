@@ -307,6 +307,22 @@ def test_scale_bar_hard_cases():
         assert sb.bar_px == 137 and core.read_scale_label(a, sb) == 20.0, (name, sb)
 
 
+def test_examples_expected_results():
+    """Repodaki örnek veri (examples/, CC BY 4.0) beklenen sonuçları vermeli — herkesin bilgisayarında çalışan test."""
+    import pandas as pd
+    import batch
+    folder = ROOT / "examples" / "PARC_control"
+    exp = pd.read_csv(folder / "expected_results_v2.csv").set_index("FITC")
+    for it in batch.scan(folder, recursive=False):
+        if it.status != "ready":
+            continue
+        a, cells, bg = batch.measure(it, core.Settings())
+        e = exp.loc[it.fitc.name]
+        assert it.dapi.name == e.DAPI and len(a.cell_ids) == e.cells_detected, (it.fitc.name, len(a.cell_ids))
+        assert int(a.nuclei.max()) == e.nuclei and len(cells) == e.cells_measured_edge_excluded
+        assert abs(cells.CTCF.median() - e.CTCF_median) < 1, (cells.CTCF.median(), e.CTCF_median)
+
+
 if __name__ == "__main__":
     if not FITC.exists():
         sys.exit(f"Örnek görüntü yok: {FITC}")
@@ -323,4 +339,5 @@ if __name__ == "__main__":
     test_translations()
     test_chance_corrected_pairing()
     test_scale_bar_hard_cases()
+    test_examples_expected_results()
     print("✅ Doğrulama testi geçti: hesaplamalar Fiji ile doğrulanmış değerlerle aynı.")
