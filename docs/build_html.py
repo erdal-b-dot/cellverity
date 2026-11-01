@@ -33,22 +33,27 @@ h1+p+hr+h2{break-before:avoid}table{display:table;break-inside:auto}tr,blockquot
 """
 
 
-def build():
+GUIDES = {"tr": ("KULLANIM_KILAVUZU.md", "kilavuz.html", "KULLANIM_KILAVUZU.pdf", "ICC CTCF Ölçer Kılavuzu"),
+          "en": ("USER_GUIDE.md", "user_guide.html", "USER_GUIDE.pdf", "ICC CTCF Ölçer User Guide")}
+
+
+def build(lang="tr"):
     here = Path(__file__).parent
-    md = (here / "KULLANIM_KILAVUZU.md").read_text(encoding="utf-8")
+    src, html_name, _, title = GUIDES[lang]
+    md = (here / src).read_text(encoding="utf-8")
     body = markdown.markdown(md, extensions=["tables", "fenced_code", "toc"],
                              extension_configs={"toc": {"slugify": slugify}})
-    html = ("<!doctype html><html lang='tr'><head><meta charset='utf-8'>"
+    html = (f"<!doctype html><html lang='{lang}'><head><meta charset='utf-8'>"
             "<meta name='viewport' content='width=device-width,initial-scale=1'>"
-            f"<title>ICC CTCF Ölçer Kılavuzu</title><style>{CSS}</style></head><body>{body}</body></html>")
-    (here / "kilavuz.html").write_text(html, encoding="utf-8")
+            f"<title>{title}</title><style>{CSS}</style></head><body>{body}</body></html>")
+    (here / html_name).write_text(html, encoding="utf-8")
     ids = set(re.findall(r'id="([^"]+)"', html))
     broken = sorted({h for h in re.findall(r'href="#([^"]+)"', html) if h not in ids})
     return len(html), broken
 
 
-def build_pdf() -> Path | None:
-    """kilavuz.html → KULLANIM_KILAVUZU.pdf (Chrome/Edge başsız yazdırma; yoksa atlanır)."""
+def build_pdf(lang="tr") -> Path | None:
+    """<kılavuz>.html → <kılavuz>.pdf (Chrome/Edge başsız yazdırma; yoksa atlanır)."""
     import shutil
     import subprocess
     here = Path(__file__).parent
@@ -58,17 +63,19 @@ def build_pdf() -> Path | None:
                 r"C:\Program Files\Google\Chrome\Application\chrome.exe",
                 r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe"):
         if exe and Path(exe).exists():
-            out = here / "KULLANIM_KILAVUZU.pdf"
+            _, html_name, pdf_name, _ = GUIDES[lang]
+            out = here / pdf_name
             subprocess.run([exe, "--headless=new", "--disable-gpu", "--no-pdf-header-footer",
                             "--force-prefers-color-scheme=light", f"--print-to-pdf={out}",
-                            (here / "kilavuz.html").resolve().as_uri()],
+                            (here / html_name).resolve().as_uri()],
                            check=True, capture_output=True, timeout=120)
             return out
     return None
 
 
 if __name__ == "__main__":
-    n, broken = build()
-    print(f"kilavuz.html: {n // 1024} KB; kırık iç bağlantı: {broken or 'yok'}")
-    pdf = build_pdf()
-    print(f"PDF: {pdf} ({pdf.stat().st_size // 1024} KB)" if pdf else "PDF: Chrome/Edge bulunamadı, atlandı")
+    for lang in GUIDES:
+        n, broken = build(lang)
+        print(f"{GUIDES[lang][1]}: {n // 1024} KB; kırık iç bağlantı: {broken or 'yok'}")
+        pdf = build_pdf(lang)
+        print(f"  PDF: {pdf.name} ({pdf.stat().st_size // 1024} KB)" if pdf else "  PDF: Chrome/Edge bulunamadı, atlandı")

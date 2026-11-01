@@ -16,7 +16,7 @@ h1+p+hr+h2{break-before:avoid}table{display:table;break-inside:auto}tr,blockquot
 @page{size:A4;margin:16mm 14mm}}
 </style></head><body><h1 id="icc-ctcf-olcer-2-kullanim-kilavuzu">ICC CTCF Ölçer 2 — Kullanım Kılavuzu</h1>
 <p><em>Sürüm 2.0.0 · Erdal Balcan, Manisa Celal Bayar Üniversitesi · MIT lisansı · DOI: <a href="https://doi.org/10.5281/zenodo.23860021">10.5281/zenodo.23860021</a></em></p>
-<p>Kaynak kod ve indirmeler: https://github.com/erdal-b-dot/icc-ctcf-olcer</p>
+<p>Kaynak kod ve indirmeler: https://github.com/erdal-b-dot/icc-ctcf-olcer · English guide: <code>USER_GUIDE.md</code></p>
 <hr />
 <h2 id="icindekiler">İçindekiler</h2>
 <ol>
@@ -72,6 +72,7 @@ h1+p+hr+h2{break-before:avoid}table{display:table;break-inside:auto}tr,blockquot
 </table>
 <p><strong>Ölçümler ImageJ/Fiji ile birebir aynıdır.</strong> Aynı hücre sınırları verildiğinde Area, Mean, StdDev, Min, Max, IntDen ve RawIntDen değerleri Fiji'ninkiyle aynı çıkar (en büyük fark &lt; 0.00001 %). Bunu programın içinden kendiniz de kontrol edebilirsiniz: <strong>Fiji ▸ Fiji ile doğrula</strong> (<a href="#11-fiji-koprusu-ve-yontem-dogrulamasi">Bölüm 11</a>).</p>
 <p>Görüntüleriniz bilgisayarınızdan dışarı <strong>hiçbir yere gönderilmez</strong>; program internetsiz çalışır.</p>
+<p><strong>Dil:</strong> Arayüz bilgisayarınızın diline göre Türkçe ya da İngilizce açılır. Değiştirmek için <strong>Görünüm ▸ Dil / Language</strong> (yeniden başlatınca geçerli olur). Excel çıktısı her zaman İngilizcedir.</p>
 <hr />
 <h2 id="2-kurulum">2. Kurulum</h2>
 <h3 id="21-hazir-program-onerilen-python-gerekmez">2.1 Hazır program (önerilen — Python gerekmez)</h3>
@@ -115,7 +116,7 @@ Monterey'de Apple Silicon paketi için <strong>macOS 12.3 veya üstü</strong> g
 2. <code>ICC CTCF Olcer.exe</code>'ye çift tıklayın. "Windows bilgisayarınızı korudu" çıkarsa <strong>Ek bilgi ▸ Yine de çalıştır</strong>.
 3. Masaüstü kısayolu: exe'ye sağ tıklayın ▸ Gönder ▸ Masaüstü (kısayol oluştur).</p>
 <p><strong>İndirme adresi:</strong> https://github.com/erdal-b-dot/icc-ctcf-olcer/releases (en yeni sürüm en üstte).</p>
-<p><strong>Başka bir bilgisayara aktarmak:</strong> paket dosyasını Google Drive paylaşım bağlantısı, USB bellek ya da e-postayla (≈100 MB) gönderin. Paketler: Drive ▸ <code>ARASTIRMA_KASAM/01_Projeler/ICC_CTCF_Olcer/kurulum_paketleri/</code>. Yeni paket üretmek: kaynak kod klasöründe <code>./build_mac.sh</code> (Mac) / <code>build_windows.bat</code> (Windows).</p>
+<p><strong>Başka bir bilgisayara aktarmak:</strong> paket dosyasını paylaşım bağlantısı, USB bellek ya da e-postayla (≈100 MB) gönderin, ya da yukarıdaki indirme adresini paylaşın. Yeni paket üretmek: kaynak kod klasöründe <code>./build_mac.sh</code> (Mac) / <code>build_windows.bat</code> (Windows).</p>
 <h3 id="22-gelistirici-kurulumu-kaynak-koddan">2.2 Geliştirici kurulumu (kaynak koddan)</h3>
 <p>Python ortamıyla çalıştırmak isterseniz (güncellemeleri <code>git pull</code> ile almak için):
 - Mac: <code>./install_mac.sh</code>, sonra <code>./run_desktop.command</code>
@@ -492,7 +493,7 @@ Program Fiji'yi şu yerlerde kendisi arar: <code>İndirilenler/Fiji</code>, <cod
 <ul>
 <li><strong>CSV</strong> (Türkçe karakterler Excel'de doğru açılır).</li>
 <li><strong>ROI görüntüsü (PNG):</strong> işaretli sınırlar ve kutularla.</li>
-<li><strong>ImageJ/Fiji karşılaştırma paketi (ZIP):</strong> ölçülen kanal (TIFF) + ROI'ler (RoiSet.zip) + talimat.</li>
+<li><strong>ImageJ/Fiji karşılaştırma paketi (ZIP):</strong> ölçülen kanal (TIFF) + ROI'ler (RoiSet.zip) + talimat (<code>NASIL_KULLANILIR.txt</code> / <code>HOW_TO_USE.txt</code>, ölçek değeriyle).</li>
 </ul>
 <h3 id="94-kaybetmemek-icin">9.4 Kaybetmemek için</h3>
 <ul>
@@ -877,8 +878,13 @@ Program Fiji'yi şu yerlerde kendisi arar: <code>İndirilenler/Fiji</code>, <cod
 <td>Fiji köprüsü çalışmıyor</td>
 <td>Fiji ▸ Fiji konumunu seç… ; Fiji'yi bir kez kendiniz açıp kapatın (ilk kurulum güncellemeleri)</td>
 </tr>
+<tr>
+<td>Arayüz yanlış dilde</td>
+<td>Görünüm ▸ Dil / Language, sonra yeniden başlatın</td>
+</tr>
 </tbody>
 </table>
+<p>Soru ve hata bildirimi: https://github.com/erdal-b-dot/icc-ctcf-olcer/issues</p>
 <hr />
 <h2 id="15-teknik-ayrintilar">15. Teknik ayrıntılar</h2>
 <p><strong>Ölçüm tanımları (ImageJ ile aynı):</strong>
@@ -899,4 +905,4 @@ Program Fiji'yi şu yerlerde kendisi arar: <code>İndirilenler/Fiji</code>, <cod
 - Fiji 1.54p ile aynı ROI'lerde Area/Mean/StdDev/Min/Max/IntDen/RawIntDen birebir aynı (Image_392: 5 ROI; Image_286, background ≠ 0: 54 ROI; en büyük fark &lt; 0.00001 %).
 - Elle çizim (1 görüntü, 2 değen hücre — ön veri): Dice 0.943 / 0.938; CTCF farkı +2.3 % / +3.7 %.
 - 20× yoğun kümeler (Image_286/287): 47 çekirdek, 51 hücre.</p>
-<p><strong>Program dosyaları:</strong> <code>core.py</code> (ölçüm), <code>batch.py</code> (toplu), <code>report.py</code> (Excel, grafik, istatistik), <code>fiji.py</code> (Fiji köprüsü), <code>desktop.py</code> (arayüz), <code>tests/test_core.py</code> (doğrulama testleri).</p></body></html>
+<p><strong>Program dosyaları:</strong> <code>core.py</code> (ölçüm), <code>batch.py</code> (toplu), <code>report.py</code> (Excel, grafik, istatistik), <code>fiji.py</code> (Fiji köprüsü), <code>desktop.py</code> (arayüz), <code>i18n.py</code> + <code>locales/</code> (diller), <code>tests/test_core.py</code> (doğrulama testleri).</p></body></html>

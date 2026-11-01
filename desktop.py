@@ -1744,7 +1744,7 @@ class MainWindow(QMainWindow):
     def open_manual(self):
         from PySide6.QtCore import QUrl
         from PySide6.QtGui import QDesktopServices
-        path = resource("docs/kilavuz.html")
+        path = resource("docs/user_guide.html" if i18n.language() == "en" else "docs/kilavuz.html")
         if not path.exists():
             message(self, "warning", T("Kılavuz bulunamadı: {0}").format(path))
             return

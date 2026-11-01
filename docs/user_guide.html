@@ -1,0 +1,908 @@
+<!doctype html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>ICC CTCF Ölçer User Guide</title><style>
+:root{--bg:#fff;--fg:#1d1f23;--muted:#5b6170;--line:#e3e5ea;--code:#f4f5f7;--accent:#2f7d32;--warn:#a15c00}
+@media (prefers-color-scheme:dark){:root{--bg:#16181c;--fg:#e6e7ea;--muted:#a2a7b3;--line:#2c3038;--code:#22252b;--accent:#7fca7f;--warn:#e0a24a}}
+html{background:var(--bg)}body{max-width:920px;margin:0 auto;padding:24px 16px 80px;background:var(--bg);color:var(--fg);
+font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif}
+h1{font-size:1.9em;border-bottom:2px solid var(--accent);padding-bottom:.3em}h2{margin-top:2.2em;border-bottom:1px solid var(--line);padding-bottom:.2em}
+h3{margin-top:1.6em}a{color:var(--accent)}code{background:var(--code);padding:.1em .35em;border-radius:4px;font-size:.92em}
+pre{background:var(--code);padding:12px;border-radius:6px;overflow-x:auto}pre code{padding:0}
+table{border-collapse:collapse;width:100%;margin:1em 0;font-size:.94em;display:block;overflow-x:auto}
+th,td{border:1px solid var(--line);padding:6px 9px;vertical-align:top;text-align:left}th{background:var(--code)}
+blockquote{margin:1em 0;padding:.6em 1em;border-left:4px solid var(--warn);background:var(--code);border-radius:0 6px 6px 0}
+hr{border:0;border-top:1px solid var(--line);margin:2em 0}
+@media print{:root{--bg:#fff;--fg:#000;--muted:#444;--line:#bbb;--code:#f2f2f2;--accent:#1f5f22;--warn:#8a5000}
+body{max-width:none;font-size:10.5pt;padding:0}a{color:inherit;text-decoration:none}h2{break-before:page}
+h1+p+hr+h2{break-before:avoid}table{display:table;break-inside:auto}tr,blockquote,pre{break-inside:avoid}
+@page{size:A4;margin:16mm 14mm}}
+</style></head><body><h1 id="icc-ctcf-olcer-2-user-guide">ICC CTCF Ölçer 2 — User Guide</h1>
+<p><em>Version 2.0.0 · Erdal Balcan, Manisa Celal Bayar University · MIT license · DOI: <a href="https://doi.org/10.5281/zenodo.23860021">10.5281/zenodo.23860021</a></em></p>
+<p>Source code and downloads: https://github.com/erdal-b-dot/icc-ctcf-olcer · Türkçe kılavuz: <code>KULLANIM_KILAVUZU.md</code></p>
+<hr />
+<h2 id="contents">Contents</h2>
+<ol>
+<li><a href="#1-what-does-the-program-do">What does the program do?</a></li>
+<li><a href="#2-installation">Installation</a></li>
+<li><a href="#3-image-requirements">Image requirements</a></li>
+<li><a href="#4-quick-start-5-minutes">Quick start (5 minutes)</a></li>
+<li><a href="#5-the-main-window">The main window</a></li>
+<li><a href="#6-measuring-a-single-image-step-by-step">Measuring a single image — step by step</a></li>
+<li><a href="#7-editing-cell-boundaries">Editing cell boundaries</a></li>
+<li><a href="#8-batch-measuring-a-folder">Batch-measuring a folder</a></li>
+<li><a href="#9-results-excel-and-autosave">Results, Excel and autosave</a></li>
+<li><a href="#10-plots-and-statistics-comparing-groups">Plots and statistics (comparing groups)</a></li>
+<li><a href="#11-fiji-bridge-and-method-validation">Fiji bridge and method validation</a></li>
+<li><a href="#12-warnings-what-they-mean-and-what-to-do">Warnings: what they mean and what to do</a></li>
+<li><a href="#13-for-your-paper-methods-text-and-citation">For your paper: methods text and citation</a></li>
+<li><a href="#14-troubleshooting">Troubleshooting</a></li>
+<li><a href="#15-technical-details">Technical details</a></li>
+</ol>
+<hr />
+<h2 id="1-what-does-the-program-do">1. What does the program do?</h2>
+<p>It measures <strong>per-cell CTCF</strong> (corrected total cell fluorescence) in immunocytochemistry (ICC) fluorescence images:</p>
+<blockquote>
+<p><strong>CTCF = Integrated density − (Cell area × Mean background)</strong>
+(McCloy et al., 2014, <em>Cell Cycle</em> 13:1400–1412)</p>
+</blockquote>
+<p>It automates the manual ImageJ workflow:</p>
+<table>
+<thead>
+<tr>
+<th>Manually in ImageJ</th>
+<th>In this program</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Calibrate with Set Scale</td>
+<td>The scale bar <strong>and the value printed under it</strong> (20 µm, 50 µm) are read automatically</td>
+</tr>
+<tr>
+<td>Trace every cell with the polygon tool</td>
+<td>Cells are segmented from FITC; touching cells are separated using DAPI nuclei</td>
+</tr>
+<tr>
+<td>Draw and measure 3 background regions</td>
+<td>3 boxes are placed automatically away from cells (movable, or add your own)</td>
+</tr>
+<tr>
+<td>Measure → copy to Excel → formula</td>
+<td>Table, Excel, group summary, plots and statistics in one click</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Measurements are identical to ImageJ/Fiji.</strong> For the same cell boundaries, Area, Mean, StdDev, Min, Max, IntDen and RawIntDen are the same as Fiji's (largest difference &lt; 0.00001 %). You can check this yourself from within the program: <strong>Fiji ▸ Verify with Fiji</strong> (<a href="#11-fiji-bridge-and-method-validation">Section 11</a>).</p>
+<p>Your images are <strong>never sent anywhere</strong>; the program works offline.</p>
+<p><strong>Language:</strong> the interface follows your computer's language (Turkish or English). Change it under <strong>View ▸ Language / Dil</strong> (takes effect after restart). Excel output is always in English.</p>
+<hr />
+<h2 id="2-installation">2. Installation</h2>
+<h3 id="21-ready-to-run-app-recommended-no-python-needed">2.1 Ready-to-run app (recommended — no Python needed)</h3>
+<p>Download from <strong>https://github.com/erdal-b-dot/icc-ctcf-olcer/releases</strong> (newest version at the top).</p>
+<table>
+<thead>
+<tr>
+<th>Computer</th>
+<th>File</th>
+<th>Minimum system</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Apple Silicon Mac (M1/M2/M3/M4)</td>
+<td><code>ICC_CTCF_Olcer_&lt;version&gt;_mac_AppleSilicon.dmg</code></td>
+<td>macOS 12.3</td>
+</tr>
+<tr>
+<td>Intel Mac</td>
+<td><code>ICC_CTCF_Olcer_&lt;version&gt;_mac_Intel.dmg</code></td>
+<td>macOS 12.0 (Monterey)</td>
+</tr>
+<tr>
+<td>Windows 10/11 (64-bit)</td>
+<td><code>ICC_CTCF_Olcer_&lt;version&gt;_Windows.zip</code></td>
+<td>Windows 10</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>To find your Mac's processor: Apple menu ▸ <strong>About This Mac</strong>. "Chip: Apple M…" means Apple Silicon; "Processor: Intel…" means Intel.</p>
+</blockquote>
+<p><strong>macOS:</strong>
+1. Double-click the <code>.dmg</code> → drag <strong>ICC CTCF Ölçer</strong> onto the <strong>Applications</strong> folder shown next to it. Then eject the disk (⏏) in the Finder sidebar.
+2. <strong>On first launch</strong> do not double-click: <strong>right-click the app ▸ Open ▸ Open</strong>. (The app is not notarized by Apple, so macOS shows an "unidentified developer" warning; this is needed only once.)
+3. If you see <em>"is damaged and can't be opened"</em> (happens with downloaded files), run once in Terminal:
+   <code>xattr -cr "/Applications/ICC CTCF Ölçer.app"</code></p>
+<p><strong>Windows:</strong>
+1. Right-click the zip ▸ <strong>Extract All</strong>. Put the folder e.g. in <code>Documents</code> (do not run it from inside the zip).
+2. Double-click <code>ICC CTCF Olcer.exe</code>. If <em>"Windows protected your PC"</em> appears: <strong>More info ▸ Run anyway</strong>.
+3. Desktop shortcut: right-click the exe ▸ Send to ▸ Desktop (create shortcut).</p>
+<h3 id="22-running-from-source">2.2 Running from source</h3>
+<p>With a Python environment (to receive updates via <code>git pull</code>):
+- macOS: <code>./install_mac.sh</code>, then <code>./run_desktop.command</code>
+- Windows: <code>install_windows.bat</code>, then <code>start_desktop.bat</code></p>
+<p>Building the stand-alone packages yourself: <code>./build_mac.sh</code> (macOS) / <code>build_windows.bat</code> (Windows).</p>
+<h3 id="23-fiji-optional-but-recommended">2.3 Fiji (optional but recommended)</h3>
+<p>The Fiji bridge (<a href="#11-fiji-bridge-and-method-validation">Section 11</a>) requires Fiji: https://imagej.net/software/fiji/downloads
+The program looks for Fiji in <code>Downloads/Fiji</code>, <code>Applications/Fiji</code>, your home folder (<code>~/Fiji</code>, <code>C:\Fiji</code>). Elsewhere: <strong>Fiji ▸ Choose Fiji location…</strong> (asked once, remembered).</p>
+<h3 id="24-earlier-browser-version-v1">2.4 Earlier browser version (v1)</h3>
+<p>v1 (the browser-based Streamlit version, Turkish only) is still available under the <code>v1.0.0</code> tag. v1 and v2 give the same numbers for the same cell boundaries, but the <strong>nucleus detection method differs</strong>, so boundaries between touching cells are drawn slightly differently (<a href="#15-technical-details">Section 15</a>). Measure all images of a study with <strong>the same version</strong>.</p>
+<hr />
+<h2 id="3-image-requirements">3. Image requirements</h2>
+<p>However good the program is, the validity of the measurement depends on the image.</p>
+<p><strong>Required:</strong>
+- <strong>Raw, single-channel images.</strong> The FITC image saved directly by the microscope software (cellSens etc.). Images that went through Photoshop, had brightness/contrast adjusted, or were <strong>merged</strong> <strong>cannot be used</strong> for CTCF — the program detects these and warns you.
+- <strong>All compared images acquired with identical settings:</strong> same objective, exposure time, gain, lamp power, white balance.
+- <strong>Same objective.</strong> Do not compare 20× with 40× images — the program warns if objectives are mixed.
+- <strong>No saturated pixels.</strong> The number of saturated pixels is reported for every cell ("Saturated px" column).</p>
+<p><strong>Recommended:</strong>
+- <strong>The DAPI image of the same field.</strong> Essential for separating touching cells correctly (<a href="#12-warnings-what-they-mean-and-what-to-do">Warnings</a>).
+- <strong>Keep the scale bar in the image.</strong> Calibration is read from it (cellSens style: white box in the lower right corner).
+- <strong>TIFF</strong> is better than JPEG (JPEG is lossy). Use the same format for all images of a study.</p>
+<p><strong>Tested camera:</strong> Olympus DP74 colour camera with cellSens. On this camera FITC appears yellow-green and DAPI <strong>cyan</strong>. FITC is measured on the <strong>green (G) channel</strong>; FITC and DAPI are told apart by the blue/red ratio of the brightest pixels. Other cameras/software should work for measurement; if the scale-bar label cannot be read, the program warns you and asks for the value (<a href="#62-checking-the-calibration">Section 6.2</a>).</p>
+<hr />
+<h2 id="4-quick-start-5-minutes">4. Quick start (5 minutes)</h2>
+<ol>
+<li>Open the program.</li>
+<li>In Finder/Explorer, <strong>select the FITC and DAPI files together</strong> and drag them onto the window. The program tells which one is DAPI by its colour.</li>
+<li>Check the right panel: <strong>Calibration</strong> (e.g. 0.1449 µm/pixel, 20 µm, <em>read from label</em>), <strong>Objective</strong>, <strong>Cell count</strong>, the green <strong>"Cell separation: DAPI nuclei"</strong> box.</li>
+<li><strong>Select all cells</strong> (or click the cells to measure — they turn yellow). The <strong>Cells</strong> tab below shows CTCF.</li>
+<li>In the right panel enter <strong>Group / condition</strong> (e.g. <em>Control</em>) and <strong>Experiment / replicate</strong> (e.g. <em>1</em>) → <strong>➕ Add to results table</strong> (⌘↩ / Ctrl+Enter).</li>
+<li>Next image: close with <strong>⌘W</strong>, drag the next pair, change the group, add.</li>
+<li>When done: <strong>Save to Excel</strong> (⌘E) and <strong>Plot…</strong> (⌘G).</li>
+</ol>
+<p>With many images, use <strong>Batch-measure folder</strong> (⌘B) instead of steps 4–6 (<a href="#8-batch-measuring-a-folder">Section 8</a>).</p>
+<hr />
+<h2 id="5-the-main-window">5. The main window</h2>
+<table>
+<thead>
+<tr>
+<th>Part</th>
+<th>Contents</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Menus</strong></td>
+<td>File · Results · Fiji · Edit · View · Help</td>
+</tr>
+<tr>
+<td><strong>Toolbar 1</strong></td>
+<td>Open FITC · Open DAPI · Close images · Fit/Zoom in/Zoom out · <strong>Display:</strong> FITC / DAPI / Merged · Nucleus outlines</td>
+</tr>
+<tr>
+<td><strong>Toolbar 2</strong></td>
+<td><strong>Boundary editing:</strong> Select · Split · Merge · Delete · Draw · Undo · Redo — <strong>Results:</strong> add to table · batch · Excel · Plot · Verify with Fiji</td>
+</tr>
+<tr>
+<td><strong>Image area</strong></td>
+<td>Mouse wheel: zoom · Drag: pan · Click: select cell</td>
+</tr>
+<tr>
+<td><strong>Right panel</strong></td>
+<td>Files, scale bar, calibration, objective, counts, cell-separation indicator, cell selection, background settings, results (group, experiment), legend, display brightness</td>
+</tr>
+<tr>
+<td><strong>Bottom tabs</strong></td>
+<td>Cells · Background boxes · Collected results · Group summary</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Outlines on the image:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Outline</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Grey, numbered</td>
+<td>Cell boundary found by the program</td>
+</tr>
+<tr>
+<td><strong>Yellow</strong></td>
+<td>Selected (measured) cell</td>
+</tr>
+<tr>
+<td><strong>Magenta</strong></td>
+<td>Nucleus boundary found in DAPI</td>
+</tr>
+<tr>
+<td><strong>Red square</strong> (BG1, BG2…)</td>
+<td>Background box</td>
+</tr>
+</tbody>
+</table>
+<p>The <strong>Display brightness</strong> slider and <strong>Display: FITC/DAPI/Merged</strong> change <strong>only the screen</strong>; measurement always uses the raw FITC (green channel) data.</p>
+<hr />
+<h2 id="6-measuring-a-single-image-step-by-step">6. Measuring a single image — step by step</h2>
+<h3 id="61-opening-images">6.1 Opening images</h3>
+<ul>
+<li><strong>Drag and drop</strong> (easiest): drag FITC + DAPI together.</li>
+<li><strong>Open FITC… (⌘O)</strong> and <strong>Open DAPI… (⌘D)</strong>.</li>
+<li>If you use the wrong button (e.g. a blue file with "Open FITC"), the program asks: <em>"… looks like a DAPI image, open it as DAPI?"</em></li>
+<li><strong>Opening a new FITC removes the previous field's DAPI</strong> (another field's nuclei would separate cells wrongly). Open the new field's DAPI too.</li>
+<li><strong>Close images (⌘W):</strong> clears the window; collected results are kept.</li>
+</ul>
+<h3 id="62-checking-the-calibration">6.2 Checking the calibration</h3>
+<p>The <strong>Calibration</strong> line in the right panel also tells the source:
+- <em>read from label</em> — the value under the scale bar (20 µm, 50 µm) was read. ✅
+- <em>entered manually</em> — the value you typed into the <strong>Scale bar</strong> box.
+- <em>label NOT READ, assumed</em> — a red warning appears; type the value shown in the image into the <strong>Scale bar</strong> box.</p>
+<blockquote>
+<p>⚠️ A wrong scale value makes <strong>area and IntDen wrong several-fold</strong> (e.g. 20 µm instead of 50 µm: 6.25×). Glance at the calibration line for every new image.</p>
+</blockquote>
+<p>Known values for DP74 + cellSens: <strong>20 µm = 138 px → 0.1449 µm/px (40×)</strong>; <strong>50 µm = 172 px → 0.2907 µm/px (20×)</strong>.</p>
+<h3 id="63-cell-separation-indicator">6.3 Cell-separation indicator</h3>
+<table>
+<thead>
+<tr>
+<th>Indicator</th>
+<th>Meaning</th>
+<th>What to do</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>🟢 <strong>DAPI nuclei</strong></td>
+<td>Touching cells were separated using nuclei</td>
+<td>—</td>
+</tr>
+<tr>
+<td>🟡 <strong>Shape only (no touching cells)</strong></td>
+<td>No DAPI, but none needed</td>
+<td>—</td>
+</tr>
+<tr>
+<td>🔴 <strong>Shape only — N touching cell pairs</strong></td>
+<td>Touching cells separated by shape only (~5% error)</td>
+<td>Open the DAPI of the same field</td>
+</tr>
+<tr>
+<td>🔴 <strong>DAPI does not seem to belong to the same field</strong></td>
+<td>Most nuclei lie outside the cells</td>
+<td>Open the correct DAPI (consecutive numbers can still be different fields)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="64-selecting-cells">6.4 Selecting cells</h3>
+<ul>
+<li><strong>Click</strong> a cell → it turns yellow and is measured; click again → deselected.</li>
+<li><strong>Select all cells</strong> / <strong>Clear selection</strong>.</li>
+<li>Do not measure cells <strong>cut off</strong> at the image border (their area is incomplete).</li>
+</ul>
+<h3 id="65-background">6.5 Background</h3>
+<ul>
+<li><strong>Automatic</strong> (default): <strong>3 boxes</strong> (50×50 pixels) ≥ 40 pixels away from cells, free of signal/debris, as close to the cells as possible. Size and number are set in the right panel.</li>
+<li><strong>Moving boxes:</strong> hover over a box (hand cursor), press and drag. It is re-measured when released. Moving an automatic box switches to <strong>Manual</strong>; the other boxes stay in place.</li>
+<li><strong>Manual:</strong> click an empty area → a box is added; click a box → it is removed. <strong>Clear manual boxes</strong>.</li>
+<li>A box overlapping a cell is not accepted (it moves back).</li>
+<li>Per-box values: <strong>Background boxes</strong> tab below.</li>
+</ul>
+<blockquote>
+<p>ℹ️ <strong>If the background is 0</strong>, the camera/cellSens clipped the dark background to zero; CTCF = IntDen. Comparisons are valid if all images were acquired with the same settings.</p>
+</blockquote>
+<h3 id="66-adding-to-the-results-table">6.6 Adding to the results table</h3>
+<ul>
+<li><strong>Group / condition:</strong> e.g. <em>Control</em>, <em>Drug 10 µM 24 h</em>. Plots and statistics group by this label.</li>
+<li><strong>Experiment / replicate:</strong> independent experiment (biological replicate): <em>1</em>, <em>2</em>, <em>3</em>… Needed for statistics on experiment means (<a href="#10-plots-and-statistics-comparing-groups">Section 10</a>).</li>
+<li><strong>➕ Add to results table (⌘↩).</strong> Re-adding the same image replaces the earlier entry (it is not counted twice).</li>
+</ul>
+<hr />
+<h2 id="7-editing-cell-boundaries">7. Editing cell boundaries</h2>
+<p>Automatic boundaries are good in most images; dense clusters, debris or dim cells may need corrections. <strong>Toolbar 2 ▸ Boundary editing</strong>:</p>
+<table>
+<thead>
+<tr>
+<th>Tool</th>
+<th>How</th>
+<th>When</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Select</strong></td>
+<td>Normal mode</td>
+<td>Select cells, move boxes, pan</td>
+</tr>
+<tr>
+<td><strong>Split</strong></td>
+<td>Draw a line across touching cells <strong>from one edge to the other</strong></td>
+<td>Two (or more) cells were counted as one</td>
+</tr>
+<tr>
+<td><strong>Merge</strong></td>
+<td>Click one cell, then its neighbour</td>
+<td>One cell was split in two</td>
+</tr>
+<tr>
+<td><strong>Delete</strong></td>
+<td>Click the region</td>
+<td>Debris or a non-cell region</td>
+</tr>
+<tr>
+<td><strong>Draw</strong></td>
+<td>Draw the cell boundary with the mouse; it closes when released</td>
+<td>A missed cell or a poorly outlined boundary (the drawing overrides cells beneath)</td>
+</tr>
+<tr>
+<td><strong>Undo / Redo</strong></td>
+<td>⌘Z / ⇧⌘Z (Windows: Ctrl+Z / Ctrl+Y), 30 steps</td>
+<td>Every edit can be undone</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>In Split and Draw modes, pan by holding <strong>⌥ Option (Windows: Alt)</strong> while dragging.</li>
+<li>Splitting and merging <strong>preserve the total area</strong>.</li>
+<li>Edits are written to the <strong>Manual_edits</strong> column in Excel (e.g. <em>merge 1+2; split 1</em>).</li>
+<li>Changing the scale value re-analyses the image and <strong>resets the edits</strong> (a warning appears below). Calibrate first, then edit.</li>
+</ul>
+<hr />
+<h2 id="8-batch-measuring-a-folder">8. Batch-measuring a folder</h2>
+<p><strong>Results ▸ Batch-measure folder… (⌘B)</strong></p>
+<h3 id="81-recommended-folder-layout">8.1 Recommended folder layout</h3>
+<pre><code>Experiments/
+  Exp_1/
+    Control/      ← FITC + DAPI images
+    Treatment1/
+    Treatment2/
+  Exp_2/
+    Control/
+    ...
+</code></pre>
+<ul>
+<li><strong>Group</strong> = name of the folder containing the image; <strong>Experiment</strong> = the folder above it.</li>
+<li>If you select a single experiment folder (e.g. <code>Exp_1</code>), its name becomes the experiment name.</li>
+<li>Both can be edited in the table before measuring.</li>
+</ul>
+<h3 id="82-fitcdapi-pairing">8.2 FITC–DAPI pairing</h3>
+<p>Each FITC is paired with the DAPI, among those <strong>within ±3 file numbers in the same folder</strong>, whose <strong>nuclei actually overlap the cells</strong> (≥ 50%). Consecutive numbers do not always mean the same field — the program checks the images themselves.</p>
+<table>
+<thead>
+<tr>
+<th>Status</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>🟢 <strong>ready</strong></td>
+<td>Pair found (percentage in the Overlap column)</td>
+</tr>
+<tr>
+<td>🟠 <strong>no DAPI</strong></td>
+<td>No matching DAPI; cells will be separated by shape only</td>
+</tr>
+<tr>
+<td>⚪ <strong>skipped: no camera information</strong></td>
+<td>Merged or re-saved image</td>
+</tr>
+<tr>
+<td>⚪ <strong>skipped: processed image</strong></td>
+<td>Saved by Photoshop etc.</td>
+</tr>
+<tr>
+<td>⚪ <strong>skipped: could not tell FITC from DAPI</strong></td>
+<td>Ambiguous colour (e.g. merged)</td>
+</tr>
+<tr>
+<td>⚪ <strong>skipped: unpaired DAPI</strong></td>
+<td>A DAPI that belongs to no FITC</td>
+</tr>
+</tbody>
+</table>
+<h3 id="83-measurement">8.3 Measurement</h3>
+<ul>
+<li>Ticked rows are measured; untick those you do not want.</li>
+<li>In each image: <strong>all cells</strong> + <strong>automatic background</strong> (box size/number from the right panel).</li>
+<li><strong>Cells touching the image border</strong> are excluded by default.</li>
+<li>The <strong>Selection</strong> column in Excel records <em>manual click</em> or <em>batch: all cells, edge excluded</em>.</li>
+<li>After batch measurement, opening suspicious images one by one is recommended (especially dense clusters).</li>
+</ul>
+<hr />
+<h2 id="9-results-excel-and-autosave">9. Results, Excel and autosave</h2>
+<h3 id="91-excel-sheets">9.1 Excel sheets</h3>
+<table>
+<thead>
+<tr>
+<th>Sheet</th>
+<th>Contents</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Cells</strong></td>
+<td>All per-cell measurements with context</td>
+</tr>
+<tr>
+<td><strong>Group_summary</strong></td>
+<td>n, mean, SD, SEM, median, min, max per group (CTCF)</td>
+</tr>
+<tr>
+<td><strong>Image_means</strong></td>
+<td>Image (field) means — ready to paste into GraphPad</td>
+</tr>
+<tr>
+<td><strong>Experiment_means</strong></td>
+<td>Experiment means — the recommended statistical unit</td>
+</tr>
+<tr>
+<td><strong>Background</strong></td>
+<td>Per-box background measurements</td>
+</tr>
+<tr>
+<td><strong>Methods</strong></td>
+<td>Formulas, methods, citation</td>
+</tr>
+<tr>
+<td><strong>Validation</strong>, <strong>Validation_summary</strong></td>
+<td>Manual (Fiji) vs automatic comparison and Bland–Altman summary (if present)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="92-key-columns-in-the-cells-sheet">9.2 Key columns in the Cells sheet</h3>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Area, Mean, StdDev, Min, Max, IntDen, RawIntDen</td>
+<td>Same definitions as ImageJ</td>
+</tr>
+<tr>
+<td>BG_Mean, CTCF, CTCF_per_Area</td>
+<td>Background mean, CTCF, CTCF/area (= Mean − BG_Mean)</td>
+</tr>
+<tr>
+<td>Saturated_px</td>
+<td>Saturated pixel count (should be 0)</td>
+</tr>
+<tr>
+<td>um_per_px, Scale_bar_um, Scale_source, Objective</td>
+<td>Calibration and its source (label / user / default)</td>
+</tr>
+<tr>
+<td>BG_mode, BG_box_px, BG_n</td>
+<td>Background method</td>
+</tr>
+<tr>
+<td>Segmentation, Nucleus_method, DAPI_overlap, Touching_pairs</td>
+<td>Cell separation details</td>
+</tr>
+<tr>
+<td>Selection, Manual_edits</td>
+<td>How cells were selected; manual boundary edits</td>
+</tr>
+<tr>
+<td>Fiji_check</td>
+<td>Result of the Fiji verification, if done</td>
+</tr>
+<tr>
+<td>App_version, Timestamp</td>
+<td>Program version, date</td>
+</tr>
+</tbody>
+</table>
+<h3 id="93-other-outputs">9.3 Other outputs</h3>
+<ul>
+<li><strong>CSV</strong> (opens correctly in Excel, including non-ASCII characters).</li>
+<li><strong>ROI image (PNG):</strong> with outlines and boxes.</li>
+<li><strong>ImageJ/Fiji comparison package (ZIP):</strong> measured channel (TIFF) + ROIs (RoiSet.zip) + instructions (<code>HOW_TO_USE.txt</code>).</li>
+</ul>
+<h3 id="94-not-losing-your-work">9.4 Not losing your work</h3>
+<ul>
+<li><strong>Autosave:</strong> after every addition, <code>Documents/ICC CTCF Olcer/otomatik_kayit.xlsx</code>. Even after a crash or power cut nothing is lost; on restart the program asks <em>"Continue where you left off?"</em></li>
+<li><strong>Open previous results (Excel)…:</strong> load a saved Excel file and continue measuring (the same image is not counted twice).</li>
+<li>Quitting with unsaved results asks whether to save.</li>
+</ul>
+<hr />
+<h2 id="10-plots-and-statistics-comparing-groups">10. Plots and statistics (comparing groups)</h2>
+<p><strong>Results ▸ Plot and statistics… (⌘G)</strong></p>
+<table>
+<thead>
+<tr>
+<th>Setting</th>
+<th>Options</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Control group</strong></td>
+<td>Reference for Dunnett's test and normalisation (a group named <em>Control/Kontrol/untreated/vehicle…</em> is chosen automatically)</td>
+</tr>
+<tr>
+<td><strong>Variable</strong></td>
+<td>CTCF · CTCF_per_Area · Mean · IntDen · Area</td>
+</tr>
+<tr>
+<td><strong>Statistical unit</strong></td>
+<td>Cell · Image mean · <strong>Experiment mean (recommended)</strong></td>
+</tr>
+<tr>
+<td><strong>Multiple comparisons</strong></td>
+<td><strong>Dunnett</strong> (each group vs control) · Tukey HSD (all pairs)</td>
+</tr>
+<tr>
+<td><strong>Plot type</strong></td>
+<td>Bar (mean ± SEM) · Box · Violin — all with individual points</td>
+</tr>
+<tr>
+<td><strong>Group order</strong></td>
+<td>Drag to reorder (control always first, grey)</td>
+</tr>
+<tr>
+<td>Normalise</td>
+<td>Control mean = 1</td>
+</tr>
+<tr>
+<td>Asterisks</td>
+<td>GraphPad notation: ns, * p&lt;0.05, ** p&lt;0.01, *** p&lt;0.001, **** p&lt;0.0001</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Tests:</strong> 2 groups → Welch's t-test + Mann–Whitney U. 3+ groups → one-way ANOVA + Kruskal–Wallis + Dunnett (or Tukey).</p>
+<h3 id="101-important-the-statistical-unit-pseudoreplication">10.1 Important: the statistical unit (pseudoreplication)</h3>
+<p>Cells from the same experiment are not independent. Counting every cell as a replicate makes <strong>p values look smaller than they are</strong> (one of the most common issues flagged by reviewers). Example (simulated data, 3 experiments × 3 images × 6 cells):</p>
+<table>
+<thead>
+<tr>
+<th>Unit</th>
+<th>n</th>
+<th>Dunnett p (treatment vs control)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Cell</td>
+<td>54</td>
+<td>0.069</td>
+</tr>
+<tr>
+<td>Experiment mean</td>
+<td>3</td>
+<td><strong>0.62</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Recommendation:</strong> in publications, run statistics on <strong>means of independent experiments</strong> (at least 3); individual cells can still be shown as points in the plot. The program warns when you test at the cell level.</p>
+<p>Dunnett p values are computed by numerical integration; the program uses a fixed seed, so <strong>the same data always give the same p</strong>.</p>
+<p>Save: plot as PNG (600 dpi), PDF, SVG; statistics as .txt.</p>
+<hr />
+<h2 id="11-fiji-bridge-and-method-validation">11. Fiji bridge and method validation</h2>
+<p><strong>Fiji menu:</strong></p>
+<h3 id="111-verify-with-fiji-f">11.1 Verify with Fiji (⌘⇧F)</h3>
+<p>Has <strong>Fiji's own Measure engine</strong> measure the selected cells and background boxes <strong>in the background</strong> (no Fiji window, ~5 seconds) and shows the results side by side with the program's. When the image is added to the results table, the outcome is written to the <strong>Fiji_check</strong> column (e.g. <em>OK (1.54p99, max diff 3.3e-07 %)</em>). Changing the selection, boxes or boundaries invalidates the earlier check.</p>
+<h3 id="112-open-in-fiji">11.2 Open in Fiji</h3>
+<p>Opens Fiji with its interface: image, scale, all ROIs in the ROI Manager, Measure results. Files: <code>Documents/ICC CTCF Olcer/Fiji/&lt;image name&gt;/</code>.</p>
+<h3 id="113-compare-with-manually-traced-rois-method-validation">11.3 Compare with manually traced ROIs (method validation)</h3>
+<p>To quantify how close the automatic boundaries are to manual tracing (recommended for papers):</p>
+<ol>
+<li>In Fiji, open the FITC image. Trace a cell with the <strong>Polygon</strong> or <strong>Freehand</strong> tool → <strong>T</strong> (add to ROI Manager). Repeat for all cells.</li>
+<li>ROI Manager ▸ <strong>More » ▸ Save…</strong> → <code>manual_RoiSet_&lt;image&gt;.zip</code></li>
+<li>In the program, open the same image (and its DAPI) → <strong>Fiji ▸ Compare with ROIs traced manually…</strong> → choose the zip.</li>
+<li>Each manual ROI is matched to the automatic cell it overlaps most: area difference, CTCF difference, <strong>Dice</strong> and IoU (boundary overlap; 1 = perfect).</li>
+<li><strong>➕ Add to validation table.</strong> Repeat for 3–5 images (separate + touching cells, different conditions).</li>
+<li><strong>Fiji ▸ Method validation table and Bland–Altman…:</strong> scatter plot + Bland–Altman (percentage difference), mean difference (bias), 95% limits of agreement, Pearson r, Lin's CCC, Dice.</li>
+</ol>
+<p><strong>Recommendation:</strong> ≥ 30 cells, ≥ 3 images. Optionally re-trace the same cells a few hours later (intra-observer variability): if the automatic–manual difference is not larger than the manual–manual difference, the method is at least as reliable as manual measurement.</p>
+<hr />
+<h2 id="12-warnings-what-they-mean-and-what-to-do">12. Warnings: what they mean and what to do</h2>
+<h3 id="121-opening-images">12.1 Opening images</h3>
+<table>
+<thead>
+<tr>
+<th>Warning</th>
+<th>Meaning</th>
+<th>What to do</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><em>The image appears to have been processed with software (Adobe Photoshop…)</em></td>
+<td>The file was re-saved by an image editor</td>
+<td>Use the raw microscope output</td>
+</tr>
+<tr>
+<td><em>No camera information (EXIF)</em></td>
+<td>Merged or re-saved image</td>
+<td>Use the raw single-channel FITC</td>
+</tr>
+<tr>
+<td><em>… looks like a DAPI image, open it as DAPI?</em></td>
+<td>File colour does not match the button</td>
+<td>Usually <strong>Yes</strong></td>
+</tr>
+<tr>
+<td><em>The FITC and DAPI images differ in size; DAPI was not used</em></td>
+<td>The two files are not the same acquisition</td>
+<td>Open the correct DAPI</td>
+</tr>
+<tr>
+<td><em>New FITC opened; open the DAPI of the same field</em></td>
+<td>The previous field's DAPI was removed</td>
+<td>Open the new field's DAPI</td>
+</tr>
+</tbody>
+</table>
+<h3 id="122-calibration-and-cell-separation">12.2 Calibration and cell separation</h3>
+<table>
+<thead>
+<tr>
+<th>Warning</th>
+<th>Meaning</th>
+<th>What to do</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>🔴 <em>The scale bar value could not be read; 20 µm was assumed</em></td>
+<td>Label not read</td>
+<td>Type the value from the image into the <strong>Scale bar</strong> box</td>
+</tr>
+<tr>
+<td><em>No scale bar found — pixel units</em></td>
+<td>No scale bar</td>
+<td>Area in pixel²; comparisons valid only at identical magnification</td>
+</tr>
+<tr>
+<td>🔴 <em>Cell separation: shape only — N touching cell pairs</em></td>
+<td>No DAPI, touching cells present</td>
+<td>Open the DAPI of the same field</td>
+</tr>
+<tr>
+<td>🔴 <em>This DAPI image does not seem to belong to the same field</em></td>
+<td>Most nuclei lie outside the cells</td>
+<td>Open the correct DAPI</td>
+</tr>
+<tr>
+<td><em>Re-analysed: previous manual edits were reset</em></td>
+<td>Scale etc. changed</td>
+<td>Redo the edits</td>
+</tr>
+</tbody>
+</table>
+<h3 id="123-background">12.3 Background</h3>
+<table>
+<thead>
+<tr>
+<th>Warning</th>
+<th>Meaning</th>
+<th>What to do</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ℹ️ <em>All pixels in the boxes are 0</em></td>
+<td>Camera black level clipped; CTCF = IntDen</td>
+<td>Fine if all images used the same settings</td>
+</tr>
+<tr>
+<td>⚠️ <em>Some boxes may contain signal/debris</em></td>
+<td>Bright pixels in a box</td>
+<td>Drag the box to a clean area</td>
+</tr>
+<tr>
+<td>🔴 <em>No background box — CTCF cannot be computed</em></td>
+<td>No room for boxes / no box in Manual mode</td>
+<td>Reduce the box size or add boxes manually</td>
+</tr>
+<tr>
+<td>⚠️ <em>The box overlaps a cell</em></td>
+<td>Boxes cannot be placed on cells</td>
+<td>Place it a little further away</td>
+</tr>
+</tbody>
+</table>
+<h3 id="124-measurement-table">12.4 Measurement table</h3>
+<table>
+<thead>
+<tr>
+<th>Situation</th>
+<th>Meaning</th>
+<th>What to do</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Saturated px &gt; 0</strong></td>
+<td>Pixels at the camera's maximum → CTCF is <strong>underestimated</strong></td>
+<td>Re-acquire with lower exposure, or exclude that cell</td>
+</tr>
+</tbody>
+</table>
+<h3 id="125-statistics">12.5 Statistics</h3>
+<table>
+<thead>
+<tr>
+<th>Warning</th>
+<th>Meaning</th>
+<th>What to do</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>⚠️ <em>Each cell was counted as a replicate (risk of pseudoreplication)</em></td>
+<td>n = number of cells</td>
+<td>Use the <strong>Experiment mean</strong> unit for publication</td>
+</tr>
+<tr>
+<td>⚠️ <em>Different objectives are mixed (20×, 40×)</em></td>
+<td>Groups acquired at different magnifications</td>
+<td>Compare only images from the same objective</td>
+</tr>
+<tr>
+<td>⚠️ <em>Zero within-group variability</em></td>
+<td>Identical values repeat (same image added twice?)</td>
+<td>Check the table; the test is not reliable</td>
+</tr>
+<tr>
+<td>ℹ️ <em>2 experiments per group: low statistical power</em></td>
+<td>n &lt; 3</td>
+<td>At least 3 independent experiments</td>
+</tr>
+<tr>
+<td><em>Statistics require at least … per group</em></td>
+<td>Not enough data</td>
+<td>Add more images/experiments</td>
+</tr>
+<tr>
+<td>⚠️ <em>Few cells: r and CCC are meaningless</em> (validation)</td>
+<td>Too few cells for Bland–Altman</td>
+<td>≥ 30 cells, ≥ 3 images</td>
+</tr>
+</tbody>
+</table>
+<h3 id="126-batch-measurement-and-fiji">12.6 Batch measurement and Fiji</h3>
+<table>
+<thead>
+<tr>
+<th>Warning</th>
+<th>Meaning</th>
+<th>What to do</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>🟠 <em>no DAPI (best candidate …%)</em></td>
+<td>No overlapping DAPI found</td>
+<td>Put the correct DAPI in the folder, or accept shape-only separation</td>
+</tr>
+<tr>
+<td>⚪ <em>skipped: …</em></td>
+<td>See <a href="#82-fitcdapi-pairing">8.2</a></td>
+<td>—</td>
+</tr>
+<tr>
+<td><em>Fiji was not found</em></td>
+<td>Fiji not installed / elsewhere</td>
+<td>Fiji ▸ Choose Fiji location…</td>
+</tr>
+<tr>
+<td>⚠️ <em>Difference found</em> (Fiji verification)</td>
+<td>Program and Fiji differ (not expected)</td>
+<td>Check calibration; please report the issue</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="13-for-your-paper-methods-text-and-citation">13. For your paper: methods text and citation</h2>
+<p><strong>Example methods text (adapt to your settings):</strong></p>
+<blockquote>
+<p>Corrected total cell fluorescence (CTCF) was quantified as CTCF = integrated density − (cell area × mean background fluorescence) (McCloy et al., 2014) using ICC CTCF Ölçer v2.0.0 (Balcan, 2026; https://doi.org/10.5281/zenodo.23860021), an open-source tool whose measurements are identical to ImageJ/Fiji for the same regions of interest (verified with Fiji 1.54p). FITC fluorescence was measured on the green channel of unprocessed Olympus DP74 images (40× objective, 0.145 µm/pixel; calibration read from the embedded scale bar). Cells were segmented from the FITC channel (Li threshold) and touching cells were separated by watershed seeded with DAPI-stained nuclei. Background was the mean of three 50 × 50 pixel cell-free regions per field. Cells touching the image border were excluded. Automatic boundaries were compared with manual Fiji tracing in n = … cells from … images (Bland–Altman bias …%, 95% limits of agreement … to …%; mean Dice …). Statistics were performed on the means of N = … independent experiments using one-way ANOVA followed by Dunnett's test versus control.</p>
+</blockquote>
+<p>The <strong>Methods</strong> sheet in Excel and the <em>App_version, Nucleus_method, Scale_source, BG_box_px, BG_n, Selection, Manual_edits, Fiji_check</em> columns in the <strong>Cells</strong> sheet contain everything needed to fill in this text.</p>
+<p><strong>Citation (reference list):</strong></p>
+<blockquote>
+<p>Balcan E. (2026). <em>ICC CTCF Ölçer: per-cell corrected total cell fluorescence (CTCF) quantification for immunocytochemistry images</em> (Version 2.0.0) [Computer software]. Zenodo. https://doi.org/10.5281/zenodo.23860021</p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>DOI</th>
+<th>When to use</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>10.5281/zenodo.23860021</strong></td>
+<td><strong>This version</strong> (2.0.0) as used in your paper — recommended for reproducibility</td>
+</tr>
+<tr>
+<td>10.5281/zenodo.23860020</td>
+<td><strong>All versions</strong> of the program (concept DOI; always resolves to the newest version)</td>
+</tr>
+</tbody>
+</table>
+<p>The version used is recorded in the <strong>App_version</strong> column in Excel; if you measured with a newer version, take that version's DOI from the Zenodo page (https://doi.org/10.5281/zenodo.23860020 → "Versions").</p>
+<p>For the CTCF method: McCloy RA, Rogers S, Caldon CE, Lorca T, Castro A, Burgess A. (2014). Partial inhibition of Cdk1 in G2 phase overrides the SAC and decouples mitotic events. <em>Cell Cycle</em> 13(9):1400–1412. https://doi.org/10.4161/cc.28401</p>
+<hr />
+<h2 id="14-troubleshooting">14. Troubleshooting</h2>
+<table>
+<thead>
+<tr>
+<th>Problem</th>
+<th>Solution</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Mac: <em>"unidentified developer"</em></td>
+<td>Right-click the app ▸ Open ▸ Open (once)</td>
+</tr>
+<tr>
+<td>Mac: <em>"is damaged and can't be opened"</em></td>
+<td>Terminal: <code>xattr -cr "/Applications/ICC CTCF Ölçer.app"</code></td>
+</tr>
+<tr>
+<td>Mac (Apple Silicon, Monterey): does not open</td>
+<td>Update macOS to 12.3 or later</td>
+</tr>
+<tr>
+<td>Windows: <em>"Windows protected your PC"</em></td>
+<td>More info ▸ Run anyway</td>
+</tr>
+<tr>
+<td>Slow first start</td>
+<td>A font cache is built on first launch (once, ~10–30 s)</td>
+</tr>
+<tr>
+<td>Wrong cell count</td>
+<td>Did you use the right button (FITC/DAPI)? Is the DAPI from the same field? Correct boundaries as in <a href="#7-editing-cell-boundaries">Section 7</a></td>
+</tr>
+<tr>
+<td>A dense cluster counted as one "cell"</td>
+<td><strong>Split</strong> tool</td>
+</tr>
+<tr>
+<td>Nuclei (magenta outlines) look wrong</td>
+<td>Switch to <strong>Display: DAPI</strong> and check; is the DAPI from the same field?</td>
+</tr>
+<tr>
+<td>Values differ slightly from v1</td>
+<td>v2 uses different nucleus detection (Nucleus_method). Use one version throughout a study</td>
+</tr>
+<tr>
+<td>Excel cannot be saved</td>
+<td>If the file is open in Excel, close it and retry</td>
+</tr>
+<tr>
+<td>The program closed / crashed</td>
+<td>Reopen → <em>"Continue where you left off?"</em> → Yes (autosave)</td>
+</tr>
+<tr>
+<td>Fiji bridge does not work</td>
+<td>Fiji ▸ Choose Fiji location… ; open and close Fiji once yourself (first-run updates)</td>
+</tr>
+<tr>
+<td>Interface in the wrong language</td>
+<td>View ▸ Language / Dil, then restart</td>
+</tr>
+</tbody>
+</table>
+<p>Questions and bug reports: https://github.com/erdal-b-dot/icc-ctcf-olcer/issues</p>
+<hr />
+<h2 id="15-technical-details">15. Technical details</h2>
+<p><strong>Measurement definitions (same as ImageJ):</strong>
+- Area = number of pixels × (µm/pixel)²
+- IntDen = Area × Mean (calibrated units); RawIntDen = sum of pixel values
+- StdDev = sample standard deviation (n − 1)
+- ROI rule: a pixel belongs to the ROI if its centre lies inside the polygon
+- CTCF = IntDen − Area × BG_Mean; CTCF_per_Area = Mean − BG_Mean</p>
+<p><strong>Calibration:</strong> the length of the cellSens scale bar (white box, lower right) is measured in pixels; the number below it is read with digit templates (all 301 images of the development data set, Olympus DP74/cellSens, read correctly: 157 × 50 µm, 144 × 20 µm). Objective = camera pixel size (DP74: 5.86 µm) ÷ µm/pixel.</p>
+<p><strong>Cell segmentation:</strong> FITC (G channel) Gaussian smoothing → Li threshold → closing, hole filling, small-object removal (&lt; 50 µm²) → watershed seeded with DAPI nuclei (distance transform if no DAPI).</p>
+<p><strong>Nucleus detection (Nucleus_method):</strong>
+| Method | Version | Description |
+|---|---|---|
+| <code>otsu</code> | v1.0.0 | Otsu threshold (also includes the dim DAPI halo) |
+| <code>bright_core</code> | early v2 | Upper threshold of 3-class Otsu (misses dim nuclei) |
+| <strong><code>local</code></strong> | <strong>v2.0.0 default</strong> | Otsu mask → watershed from smoothed DAPI maxima → each nucleus trimmed at half of its own peak intensity |</p>
+<p><strong>Validation results:</strong>
+- Identical to Fiji 1.54p for the same ROIs: Area/Mean/StdDev/Min/Max/IntDen/RawIntDen (5 ROIs in a 40× image; 54 ROIs in a 20× image with non-zero background; largest difference &lt; 0.00001 %).
+- Manual tracing (1 image, 2 touching cells — preliminary): Dice 0.943 / 0.938; CTCF difference +2.3 % / +3.7 %.
+- Dense clusters at 20×: 47 nuclei, 51 cells detected.</p>
+<p><strong>Program files:</strong> <code>core.py</code> (measurement), <code>batch.py</code> (batch), <code>report.py</code> (Excel, plots, statistics), <code>fiji.py</code> (Fiji bridge), <code>desktop.py</code> (interface), <code>i18n.py</code> + <code>locales/</code> (languages), <code>tests/test_core.py</code> (validation tests).</p></body></html>

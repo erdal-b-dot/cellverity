@@ -2,7 +2,7 @@
 
 *Sürüm 2.0.0 · Erdal Balcan, Manisa Celal Bayar Üniversitesi · MIT lisansı · DOI: [10.5281/zenodo.23860021](https://doi.org/10.5281/zenodo.23860021)*
 
-Kaynak kod ve indirmeler: https://github.com/erdal-b-dot/icc-ctcf-olcer
+Kaynak kod ve indirmeler: https://github.com/erdal-b-dot/icc-ctcf-olcer · English guide: `USER_GUIDE.md`
 
 ---
 
@@ -45,6 +45,8 @@ ImageJ'de elle yapılan iş akışını otomatikleştirir:
 
 Görüntüleriniz bilgisayarınızdan dışarı **hiçbir yere gönderilmez**; program internetsiz çalışır.
 
+**Dil:** Arayüz bilgisayarınızın diline göre Türkçe ya da İngilizce açılır. Değiştirmek için **Görünüm ▸ Dil / Language** (yeniden başlatınca geçerli olur). Excel çıktısı her zaman İngilizcedir.
+
 ---
 
 ## 2. Kurulum
@@ -73,7 +75,7 @@ Görüntüleriniz bilgisayarınızdan dışarı **hiçbir yere gönderilmez**; p
 
 **İndirme adresi:** https://github.com/erdal-b-dot/icc-ctcf-olcer/releases (en yeni sürüm en üstte).
 
-**Başka bir bilgisayara aktarmak:** paket dosyasını Google Drive paylaşım bağlantısı, USB bellek ya da e-postayla (≈100 MB) gönderin. Paketler: Drive ▸ `ARASTIRMA_KASAM/01_Projeler/ICC_CTCF_Olcer/kurulum_paketleri/`. Yeni paket üretmek: kaynak kod klasöründe `./build_mac.sh` (Mac) / `build_windows.bat` (Windows).
+**Başka bir bilgisayara aktarmak:** paket dosyasını paylaşım bağlantısı, USB bellek ya da e-postayla (≈100 MB) gönderin, ya da yukarıdaki indirme adresini paylaşın. Yeni paket üretmek: kaynak kod klasöründe `./build_mac.sh` (Mac) / `build_windows.bat` (Windows).
 
 ### 2.2 Geliştirici kurulumu (kaynak koddan)
 Python ortamıyla çalıştırmak isterseniz (güncellemeleri `git pull` ile almak için):
@@ -283,7 +285,7 @@ Her FITC, **aynı klasörde ±3 numara içindeki** DAPI'ler arasından, **çekir
 ### 9.3 Diğer çıktılar
 - **CSV** (Türkçe karakterler Excel'de doğru açılır).
 - **ROI görüntüsü (PNG):** işaretli sınırlar ve kutularla.
-- **ImageJ/Fiji karşılaştırma paketi (ZIP):** ölçülen kanal (TIFF) + ROI'ler (RoiSet.zip) + talimat.
+- **ImageJ/Fiji karşılaştırma paketi (ZIP):** ölçülen kanal (TIFF) + ROI'ler (RoiSet.zip) + talimat (`NASIL_KULLANILIR.txt` / `HOW_TO_USE.txt`, ölçek değeriyle).
 
 ### 9.4 Kaybetmemek için
 - **Otomatik kayıt:** her eklemeden sonra `Belgeler/ICC CTCF Olcer/otomatik_kayit.xlsx`. Program çökse ya da elektrik gitse bile kaybolmaz; yeniden açınca *"devam edilsin mi?"* diye sorar.
@@ -440,6 +442,9 @@ Ayrıca CTCF yöntemi için: McCloy RA, Rogers S, Caldon CE, Lorca T, Castro A, 
 | Excel kaydedilemiyor | Dosya Excel'de açıksa kapatıp yeniden deneyin |
 | Program kapandı / çöktü | Yeniden açın → *"devam edilsin mi?"* → Evet (otomatik kayıt) |
 | Fiji köprüsü çalışmıyor | Fiji ▸ Fiji konumunu seç… ; Fiji'yi bir kez kendiniz açıp kapatın (ilk kurulum güncellemeleri) |
+| Arayüz yanlış dilde | Görünüm ▸ Dil / Language, sonra yeniden başlatın |
+
+Soru ve hata bildirimi: https://github.com/erdal-b-dot/icc-ctcf-olcer/issues
 
 ---
 
@@ -468,4 +473,4 @@ Ayrıca CTCF yöntemi için: McCloy RA, Rogers S, Caldon CE, Lorca T, Castro A, 
 - Elle çizim (1 görüntü, 2 değen hücre — ön veri): Dice 0.943 / 0.938; CTCF farkı +2.3 % / +3.7 %.
 - 20× yoğun kümeler (Image_286/287): 47 çekirdek, 51 hücre.
 
-**Program dosyaları:** `core.py` (ölçüm), `batch.py` (toplu), `report.py` (Excel, grafik, istatistik), `fiji.py` (Fiji köprüsü), `desktop.py` (arayüz), `tests/test_core.py` (doğrulama testleri).
+**Program dosyaları:** `core.py` (ölçüm), `batch.py` (toplu), `report.py` (Excel, grafik, istatistik), `fiji.py` (Fiji köprüsü), `desktop.py` (arayüz), `i18n.py` + `locales/` (diller), `tests/test_core.py` (doğrulama testleri).

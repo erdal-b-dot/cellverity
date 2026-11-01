@@ -6,7 +6,8 @@ block_cipher = None
 a = Analysis(
     ["desktop.py"],
     pathex=["."],
-    datas=[("assets/icon.png", "assets"), ("docs/kilavuz.html", "docs")],
+    datas=[("assets/icon.png", "assets"), ("docs/kilavuz.html", "docs"), ("docs/user_guide.html", "docs"),
+           ("locales/en.json", "locales")],
     hiddenimports=collect_submodules("skimage.feature") + collect_submodules("skimage.segmentation")
     + collect_submodules("skimage.measure") + collect_submodules("skimage.filters")
     + collect_submodules("skimage.morphology") + collect_submodules("skimage.draw")

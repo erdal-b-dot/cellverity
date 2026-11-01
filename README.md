@@ -2,93 +2,86 @@
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23860020.svg)](https://doi.org/10.5281/zenodo.23860020)
 
-Immunositokimya (ICC) floresan görüntülerinde hücre başına **CTCF (Corrected Total Cell Fluorescence)** ölçümü
-için yerel, tarayıcı tabanlı araç. ImageJ/Fiji'deki elle yapılan iş akışını otomatikleştirir; ölçüm tanımları
-ImageJ ile birebir aynıdır (Fiji ile doğrulandı).
+**Per-cell corrected total cell fluorescence (CTCF) for immunocytochemistry images** — a desktop application (macOS, Windows) that automates the ImageJ CTCF workflow, with measurements identical to ImageJ/Fiji.
 
 ```
-CTCF = Integrated Density − (Area of selected cell × Mean fluorescence of background)
+CTCF = Integrated density − (Cell area × Mean background)        (McCloy et al., 2014, Cell Cycle 13:1400–1412)
 ```
-(McCloy et al., 2014, *Cell Cycle* 13:1400–1412)
 
-## Özellikler
-- FITC (+ aynı alanın DAPI) görüntüsü yükleme; tek merge görüntü desteği
-- Ölçek çubuğundan otomatik kalibrasyon (µm/piksel) ve objektif tahmini
-- Otomatik hücre/çekirdek sayımı; birbirine değen hücrelerin DAPI çekirdeklerine göre ayrılması
-- Tıklayarak hücre seçimi veya "Tüm hücreleri seç"
-- Otomatik ya da elle background kutuları (boyut ve sayı ayarlanabilir)
-- Hücre başına Area, Mean, StdDev, Min, Max, IntDen, RawIntDen, CTCF, doymuş piksel sayısı
-- CSV / Excel (Cells, Group_summary, Background, Methods sayfaları), ROI görüntüsü
-- Grafik (bar / box / violin; PNG 600 dpi, PDF, SVG) ve istatistik (Welch t, Mann–Whitney, ANOVA, Kruskal–Wallis, Tukey HSD)
-- **ImageJ/Fiji karşılaştırma paketi:** ölçülen kanal (TIFF) + aynı ROI'ler (RoiSet.zip)
-- **Elle çizim karşılaştırması:** Fiji'de çizilmiş RoiSet.zip yüklenir → Dice, IoU, alan ve CTCF farkı
+*Türkçe açıklama aşağıda — [Türkçe](#türkçe).*
 
-## Kurulum
+## Features
+- **Automatic calibration** from the cellSens scale bar, including the printed value (20 µm, 50 µm) → µm/pixel and objective
+- **Cell segmentation** from the FITC channel; **touching cells separated with DAPI-stained nuclei**; automatic check that the DAPI image belongs to the same field
+- **Background** boxes placed automatically away from cells — movable by drag-and-drop, or placed manually
+- **Manual boundary editing:** split, merge, delete, draw — with undo/redo
+- **Batch processing** of folders: FITC–DAPI pairing by image overlap (not just file numbers), group and experiment from the folder layout, border cells excluded
+- **Statistics:** Welch's t / Mann–Whitney; one-way ANOVA, Kruskal–Wallis, **Dunnett vs a chosen control**, Tukey; on cell, image or **independent-experiment means** (guards against pseudoreplication); GraphPad-style plots (PNG 600 dpi / PDF / SVG)
+- **Excel export with full provenance:** calibration source, segmentation and nucleus method, manual edits, Fiji check, program version; image- and experiment-mean sheets
+- **Fiji bridge:** re-measure the same ROIs with Fiji's own *Measure* engine in the background and compare; open results in Fiji; compare manually traced RoiSets with automatic boundaries (**Bland–Altman**, Dice) for method validation
+- **Turkish and English** interface; autosave; images never leave your computer
 
-| Sistem | Kurulum | Başlatma |
+## Download
+Stand-alone apps (no Python needed): **[Releases](https://github.com/erdal-b-dot/icc-ctcf-olcer/releases)**
+
+| Computer | File | Requires |
 |---|---|---|
-| macOS 11+ (Big Sur, Monterey, …; Intel ve Apple Silicon) | Terminal: `./install_mac.sh` | Masaüstündeki **ICC CTCF Ölçer** |
-| Windows 10/11 | `install_windows.bat` dosyasına çift tıklayın | Masaüstündeki **ICC CTCF Olcer** kısayolu |
+| Apple Silicon Mac (M1–M4) | `…_mac_AppleSilicon.dmg` | macOS 12.3+ |
+| Intel Mac | `…_mac_Intel.dmg` | macOS 12.0+ |
+| Windows 10/11 | `…_Windows.zip` | Windows 10+ |
 
-Kurulum betikleri [uv](https://docs.astral.sh/uv/) ile Python 3.12 ortamını ve `requirements.txt`'teki sabit
-sürümleri kurar (internet gerekir, ~300 MB). Uygulama tarayıcıda `http://localhost:8517` adresinde açılır;
-görüntüler bilgisayardan dışarı gönderilmez. Önerilen tarayıcı: güncel Chrome / Edge / Firefox.
+macOS: open the DMG, drag the app to Applications; on first launch **right-click ▸ Open** (the app is not notarized).
+Windows: extract the zip, run `ICC CTCF Olcer.exe`; if SmartScreen appears: **More info ▸ Run anyway**.
 
-Durdurmak için: macOS `./stop.sh`; Windows'ta küçültülmüş "ICC CTCF Olcer sunucu" penceresini kapatın.
+**User guide:** [English](docs/USER_GUIDE.md) ([PDF](docs/USER_GUIDE.pdf)) · [Türkçe](docs/KULLANIM_KILAVUZU.md) ([PDF](docs/KULLANIM_KILAVUZU.pdf)) — also in the app: Help ▸ User guide (F1).
 
-## İş akışı
-1. Sol panelden FITC görüntüsünü ve **aynı alanın DAPI görüntüsünü** yükleyin.
-2. Kalibrasyon, hücre ve çekirdek sayısı otomatik gelir. "Hücre ayırma" göstergesini kontrol edin.
-3. Görüntüde hücreye tıklayarak seçin/bırakın veya **Tüm hücreleri seç**.
-4. Background: otomatik veya elle tıklayarak kutu ekleme.
-5. **Sonuç tablosuna ekle** → her görüntü için tekrarlayın (Grup etiketini değiştirerek).
-6. CSV / Excel / grafik indirin. **Sekmeyi kapatmadan önce indirin**; tablo yalnızca açık oturumda tutulur.
+## Validation
+- **Identical to Fiji 1.54p** for the same ROIs (Area, Mean, StdDev, Min, Max, IntDen, RawIntDen; largest difference < 0.00001 %), checked automatically by the test suite when Fiji is installed.
+- Scale-bar labels read correctly in all 301 images of the development data set (Olympus DP74 / cellSens).
+- Agreement with manual tracing (preliminary, 1 image, 2 touching cells): Dice 0.943 / 0.938, CTCF difference +2.3 % / +3.7 %. A larger validation study is in progress; the app contains the tools to run your own (Fiji ▸ Compare with manually traced ROIs).
 
-## Ölçüm tanımları (ImageJ ile aynı)
-- Area = piksel sayısı × (µm/piksel)²
-- IntDen = Area × Mean (kalibre birim) · RawIntDen = Σ piksel değerleri
-- StdDev = örneklem SD (n−1)
-- CTCF = IntDen − Area × Mean_background; CTCF_per_Area = Mean − Mean_background
-- ImageJ poligon kuralı: piksel merkezi poligon içindeyse dahil
+**Scope:** developed and validated with an Olympus DP74 colour camera and cellSens images (FITC + DAPI). Measurements work on other images; if the scale-bar label cannot be read, the program warns you and asks for the value.
 
-## Notlar
-- ⚠️ **Birbirine değen hücreler varsa aynı alanın DAPI görüntüsünü mutlaka yükleyin.** DAPI olmadan iki hücre
-  arasındaki sınır yalnızca şekle göre çizilir (test: hücre başına ~%5 alan/CTCF farkı, Dice 0.97). Uygulama
-  "Hücre ayırma" göstergesinde kullanılan modu ve değen hücre çiftlerini gösterir; sonuç tablosuna `Segmentation`
-  ve `Touching_pairs` sütunları olarak yazılır.
-- Renkli kamera (ör. Olympus DP74) görüntülerinde FITC için varsayılan ölçüm kanalı Yeşil (G)'dir. ImageJ'de RGB
-  görüntüyü doğrudan ölçtüyseniz uyum için "ImageJ RGB→8-bit (R+G+B)/3" seçin.
-- Karşılaştırılan tüm görüntüler aynı pozlama/kazanç ayarıyla, işlenmemiş (Photoshop'suz) çekilmiş olmalıdır.
-- Background = 0 çıkıyorsa kamera siyah seviyesi kırpılmıştır; CTCF ≈ IntDen olur.
-
-## Doğrulama
-- **Fiji ile hesaplama eşdeğerliği:** aynı ROI'lerle Area, Mean, StdDev, Min, Max, IntDen birebir aynı (Fiji, 2026-10-31).
-- **Elle çizimle uyum (ön veri, 1 görüntü, 2 değen hücre):** Dice 0.92–0.94; CTCF farkı −1.9 % ve +8.0 %.
-  Fark esas olarak değen hücreler arasındaki bölme çizgisinden kaynaklanır.
-
-## v2.0 masaüstü programı
-- **Kullanım kılavuzu:** [`docs/KULLANIM_KILAVUZU.md`](docs/KULLANIM_KILAVUZU.md) — programda Yardım ▸ Kullanım kılavuzu (F1)
-- Hazır paketler (Python gerekmez): `./build_mac.sh` → Apple Silicon (macOS 12.3+) ve Intel (macOS 12.0+) `.zip`;
-  Windows'ta `build_windows.bat` ya da GitHub Actions ▸ Build (elle başlatılır)
-- Paketler macOS 12 uyumlu tekerleklerle derlenir; paket kendini sınar: `"ICC CTCF Olcer" --selftest FITC DAPI`
-
-## Dosyalar
-- `core.py` — görüntü işleme ve ölçüm (arayüzden bağımsız)
-- `app.py` — Streamlit arayüzü
-- `install_mac.sh`, `start.sh`, `stop.sh`, `run.command` — macOS
-- `install_windows.bat`, `start_windows.bat` — Windows
-- `desktop.py` — **v2.0 masaüstü arayüzü (geliştiriliyor)**: `./run_desktop.command` (Mac) / `start_desktop.bat` (Windows)
-- `fiji.py` — Fiji köprüsü: aynı ROI'leri Fiji'nin Measure motoruyla arka planda ölçtürme, Fiji'de açma (v2)
-- `batch.py` — klasör işleme: FITC/DAPI eşleştirme (örtüşmeye göre) ve toplu ölçüm (v2)
-- `report.py` — biriken sonuçlar, Excel/CSV, grafik ve istatistik (v2)
-- `requirements-desktop.txt` — PySide6 6.9.3 (macOS 12 Monterey'i destekleyen son sürüm)
-- `tests/test_core.py` — doğrulama testi (Fiji ile doğrulanmış değerler); `.venv/bin/python tests/test_core.py`
-
-## Atıf
+## Citation
 Balcan E. (2026). *ICC CTCF Ölçer: per-cell corrected total cell fluorescence (CTCF) quantification for immunocytochemistry images* (Version 2.0.0) [Computer software]. Zenodo. https://doi.org/10.5281/zenodo.23860021
 
-- Bu sürüm (2.0.0): [10.5281/zenodo.23860021](https://doi.org/10.5281/zenodo.23860021)
-- Tüm sürümler (her zaman en yeniye gider): [10.5281/zenodo.23860020](https://doi.org/10.5281/zenodo.23860020)
-- İndirme (Mac/Windows paketleri, kılavuz PDF): [GitHub Releases](https://github.com/erdal-b-dot/icc-ctcf-olcer/releases)
+- This version (2.0.0): [10.5281/zenodo.23860021](https://doi.org/10.5281/zenodo.23860021)
+- All versions (resolves to the latest): [10.5281/zenodo.23860020](https://doi.org/10.5281/zenodo.23860020)
 
-Ayrıntı: `CITATION.cff`.
+Please also cite the CTCF method: McCloy RA et al. (2014) *Cell Cycle* 13(9):1400–1412, https://doi.org/10.4161/cc.28401. See `CITATION.cff`.
+
+## Running from source
+```
+./install_mac.sh            # macOS (uv + Python 3.12; macOS 12+)
+./run_desktop.command
+install_windows.bat         # Windows
+start_desktop.bat
+.venv/bin/python tests/test_core.py   # validation tests
+```
+Build stand-alone packages: `./build_mac.sh` (Apple Silicon + Intel DMGs) · `build_windows.bat`.
+
+| File | Purpose |
+|---|---|
+| `core.py` | Image processing and measurement (UI-independent, tested) |
+| `batch.py` | Folder processing, FITC–DAPI pairing |
+| `report.py` | Results, Excel, plots, statistics, Bland–Altman |
+| `fiji.py` | Fiji bridge (headless measurement, open in Fiji) |
+| `desktop.py` | Desktop interface (PySide6/Qt) |
+| `i18n.py`, `locales/` | Turkish / English interface |
+| `app.py` | v1 browser interface (Streamlit, Turkish) — kept for reference |
+| `tests/test_core.py` | Validation tests (Fiji-verified values, statistics, translations) |
+
+Issues and suggestions: [GitHub Issues](https://github.com/erdal-b-dot/icc-ctcf-olcer/issues). License: MIT.
+
+---
+
+## Türkçe
+
+**ICC CTCF Ölçer**, immunositokimya floresan görüntülerinde hücre başına **CTCF** ölçen bir masaüstü programıdır. ImageJ'deki elle yapılan iş akışını otomatikleştirir; ölçümleri ImageJ/Fiji ile birebir aynıdır.
+
+- **İndirme:** [Releases](https://github.com/erdal-b-dot/icc-ctcf-olcer/releases) — Mac (Apple Silicon / Intel) `.dmg`, Windows `.zip`. Python gerekmez.
+- **Kullanım kılavuzu:** [KULLANIM_KILAVUZU.md](docs/KULLANIM_KILAVUZU.md) ([PDF](docs/KULLANIM_KILAVUZU.pdf)); programda Yardım ▸ Kullanım kılavuzu (F1).
+- **Dil:** Arayüz bilgisayarın diline göre Türkçe ya da İngilizce açılır; Görünüm ▸ Dil / Language ile değiştirilir.
+- **Özellikler:** ölçek çubuğundan otomatik kalibrasyon; FITC'den hücre, DAPI'den çekirdek bulma; değen hücreleri çekirdeklere göre ayırma; otomatik/taşınabilir/elle background; sınır düzeltme (böl, birleştir, sil, çiz); klasörü toplu ölçme; Dunnett dahil grup istatistiği (hücre/görüntü/deney ortalaması); ayrıntılı Excel; Fiji köprüsü ve Bland–Altman doğrulaması.
+- **Atıf:** yukarıdaki *Citation* bölümü; DOI 10.5281/zenodo.23860021.
+- Eski tarayıcı sürümü (v1, Streamlit): `v1.0.0` etiketi.
