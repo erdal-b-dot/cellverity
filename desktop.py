@@ -45,7 +45,7 @@ import report
 from batch import guess_kind
 
 APP_NAME = "ICC CTCF Ölçer"
-VERSION = "2.0.0"
+VERSION = "2.1.0-dev"
 IMAGE_FILTER = T("Görüntüler (*.jpg *.jpeg *.tif *.tiff *.png)")
 AUTOSAVE = Path.home() / "Documents" / "ICC CTCF Olcer" / "otomatik_kayit.xlsx"
 
