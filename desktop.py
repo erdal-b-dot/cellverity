@@ -13,7 +13,8 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 from PySide6.QtCore import QObject, QRectF, Qt, QThread, Signal
-from PySide6.QtGui import QAction, QBrush, QColor, QFont, QImage, QKeySequence, QPainter, QPen, QPixmap
+from PySide6.QtGui import (QAction, QActionGroup, QBrush, QColor, QFont, QImage, QKeySequence, QPainter,
+                           QPainterPath, QPen, QPixmap)
 from PySide6.QtWidgets import (QAbstractItemView, QApplication, QButtonGroup, QCheckBox, QComboBox, QDialog,
                                QDockWidget, QLineEdit, QPlainTextEdit, QProgressBar,
                                QFileDialog, QFormLayout, QFrame, QGraphicsPixmapItem, QGraphicsRectItem,
@@ -35,7 +36,7 @@ AUTOSAVE = Path.home() / "Documents" / "ICC CTCF Olcer" / "otomatik_kayit.xlsx"
 
 
 def result_meta(a: core.Analysis, fitc: Path, dapi: Path | None, group: str, bg_mode: str, bg_size: int,
-                bg_n: int, note: str = "", experiment: str = "") -> dict:
+                bg_n: int, note: str = "", experiment: str = "", edits: str = "") -> dict:
     """Her hücre satırına yazılan bağlam (yöntem bölümü ve tekrarlanabilirlik için)."""
     return {"Group": group, "Experiment": experiment, "Image": fitc.name, "Image_path": str(fitc), "DAPI_image": dapi.name if dapi else "",
             "Channel": "G", "um_per_px": a.um_per_px or np.nan, "Scale_bar_um": a.bar_um,
@@ -47,7 +48,7 @@ def result_meta(a: core.Analysis, fitc: Path, dapi: Path | None, group: str, bg_
             "Touching_pairs": "; ".join(f"{i}-{j}" for i, j in a.touching),
             "Cells_in_field": len(a.cell_ids),
             "Nuclei_in_field": int(a.nuclei.max()) if a.nuclei is not None else np.nan,
-            "Selection": note, "App_version": VERSION, "Timestamp": datetime.now().strftime("%Y-%m-%d %H:%M")}
+            "Selection": note, "Manual_edits": edits, "App_version": VERSION, "Timestamp": datetime.now().strftime("%Y-%m-%d %H:%M")}
 
 
 def is_dapi_like(arr: np.ndarray) -> bool:
@@ -134,12 +135,17 @@ class ImageView(QGraphicsView):
     """
     clicked = Signal(int, int)
     box_moved = Signal(int, int, int)
+    path_drawn = Signal(list)          # çizim/bölme modunda fareyle çizilen yol [(x, y), …]
+    DRAW_MODES = ("split", "draw")
     BOX_COLOR = QColor(255, 60, 60)
 
     def __init__(self):
         super().__init__()
         self._press = None
         self._drag = None  # (kutu indeksi, fare ile kutu köşesi arasındaki fark)
+        self.mode = "select"
+        self._path = None  # çizilmekte olan yol (sahne koordinatları)
+        self._path_item = None
         self.box_items: list[tuple[QGraphicsRectItem, QGraphicsSimpleTextItem]] = []
         self.setMouseTracking(True)
         self.setScene(QGraphicsScene(self))
@@ -201,9 +207,26 @@ class ImageView(QGraphicsView):
                 return i
         return None
 
+    def set_mode(self, mode):
+        self.mode = mode
+        self.setDragMode(QGraphicsView.DragMode.NoDrag if mode in self.DRAW_MODES
+                         else QGraphicsView.DragMode.ScrollHandDrag)
+        self.viewport().setCursor(Qt.CursorShape.CrossCursor if mode != "select" else Qt.CursorShape.ArrowCursor)
+
     def mousePressEvent(self, e):
         self._press = e.position().toPoint()
-        if e.button() == Qt.MouseButton.LeftButton:
+        alt = bool(e.modifiers() & Qt.KeyboardModifier.AltModifier)
+        if self.mode in self.DRAW_MODES and e.button() == Qt.MouseButton.LeftButton and not alt:
+            pt = self.mapToScene(self._press)
+            self._path = [(pt.x(), pt.y())]
+            color = QColor(0, 230, 255) if self.mode == "split" else QColor(255, 220, 0)
+            pen = QPen(color, 2)
+            pen.setCosmetic(True)  # yakınlaştırmadan bağımsız kalınlık
+            self._path_item = self.scene().addPath(QPainterPath(), pen)
+            return
+        if self.mode in self.DRAW_MODES and alt:  # ⌥ + sürükle → kaydır
+            self.setDragMode(QGraphicsView.DragMode.ScrollHandDrag)
+        if e.button() == Qt.MouseButton.LeftButton and self.mode == "select":
             pt = self.mapToScene(self._press)
             i = self.box_at(pt)
             if i is not None:
@@ -213,6 +236,17 @@ class ImageView(QGraphicsView):
         super().mousePressEvent(e)
 
     def mouseMoveEvent(self, e):
+        if self._path is not None:
+            pt = self.mapToScene(e.position().toPoint())
+            self._path.append((pt.x(), pt.y()))
+            path = QPainterPath()
+            path.moveTo(*self._path[0])
+            for x, y in self._path[1:]:
+                path.lineTo(x, y)
+            if self.mode == "draw" and len(self._path) > 2:
+                path.lineTo(*self._path[0])
+            self._path_item.setPath(path)
+            return
         if self._drag is not None:
             i, off = self._drag
             r, t = self.box_items[i]
@@ -225,11 +259,24 @@ class ImageView(QGraphicsView):
             t.setPos(round(x), round(y) - 30)
             return
         super().mouseMoveEvent(e)
-        if not e.buttons():
+        if not e.buttons() and self.mode == "select":
             over = self.box_at(self.mapToScene(e.position().toPoint())) is not None
             self.viewport().setCursor(Qt.CursorShape.OpenHandCursor if over else Qt.CursorShape.ArrowCursor)
 
     def mouseReleaseEvent(self, e):
+        if self._path is not None:
+            pts, self._path = self._path, None
+            self.scene().removeItem(self._path_item)
+            self._path_item = None
+            if len(pts) >= 2 and (e.position().toPoint() - self._press).manhattanLength() >= 5:
+                self.path_drawn.emit(pts)
+            self._press = None
+            return
+        if self.mode in self.DRAW_MODES:
+            super().mouseReleaseEvent(e)
+            self.setDragMode(QGraphicsView.DragMode.NoDrag)
+            self._press = None
+            return
         if self._drag is not None:
             i, _ = self._drag
             self._drag = None
@@ -739,6 +786,9 @@ class MainWindow(QMainWindow):
         self._thread = None
         self._pending = False  # analiz sürerken yeni görüntü gelirse bitince yeniden çalıştır
         self.selected: set[int] = set()
+        self.undo_stack, self.redo_stack = [], []   # (labels, selected, edit_log) anlık görüntüleri
+        self.edit_log: list[str] = []
+        self._merge_first = None
         self.manual_boxes: list[tuple[int, int, int, int]] = []
         self.boxes: list[tuple[int, int, int, int]] = []
         self._auto_cache = None  # (analysis id, size, n) → kutular
@@ -750,6 +800,7 @@ class MainWindow(QMainWindow):
         self.panel.bar_um.editingFinished.connect(self.run_analysis)
         self.view.clicked.connect(self.on_click)
         self.view.box_moved.connect(self.on_box_moved)
+        self.view.path_drawn.connect(self.on_path)
         p = self.panel
         p.btn_all.clicked.connect(self.select_all)
         p.btn_none.clicked.connect(self.select_none)
@@ -839,6 +890,30 @@ class MainWindow(QMainWindow):
         m.addActions([self.a_roi, self.a_ij])
         m.addSeparator()
         m.addAction(self.a_reset)
+        self.edit_group = QActionGroup(self)
+        self.edit_acts = {}
+        tips = {"select": ("Seç", "Hücreye tıklayarak seçin/bırakın; kutuları sürükleyin; görüntüyü sürükleyerek kaydırın."),
+                "split": ("Böl", "Yapışık hücrelerin üzerine ayırma çizgisi çekin → hücre çizgiden bölünür.\n"
+                                 "Kaydırmak için ⌥ (Option/Alt) tuşuyla sürükleyin."),
+                "merge": ("Birleştir", "Önce bir hücreye, sonra birleşeceği komşusuna tıklayın."),
+                "delete": ("Sil", "Hücre olmayan (debris) ya da yanlış bulunmuş bölgeye tıklayın."),
+                "draw": ("Çiz", "Programın kaçırdığı/yanlış çizdiği hücrenin sınırını fareyle çizin (bırakınca kapanır).\n"
+                                "Çizilen alan diğer hücrelerin üzerine yazar. Kaydırmak için ⌥ ile sürükleyin.")}
+        for key, (txt, tip) in tips.items():
+            a_ = QAction(txt, self, checkable=True)
+            a_.setToolTip(f"<b>{txt}</b><br>{tip.replace(chr(10), '<br>')}")
+            a_.triggered.connect(lambda _, k=key: self.set_edit_mode(k))
+            self.edit_group.addAction(a_)
+            self.edit_acts[key] = a_
+        self.edit_acts["select"].setChecked(True)
+        self.a_undo = act("Geri al", self.undo, QKeySequence.StandardKey.Undo)
+        self.a_redo = act("Yinele", self.redo, QKeySequence.StandardKey.Redo)
+        self.a_undo.setEnabled(False)
+        self.a_redo.setEnabled(False)
+        m = self.menuBar().addMenu("Düzelt")
+        m.addActions(list(self.edit_acts.values()))
+        m.addSeparator()
+        m.addActions([self.a_undo, self.a_redo])
         m = self.menuBar().addMenu("Görünüm")
         m.addActions([self.a_fit, self.a_in, self.a_out])
         m.addSeparator()
@@ -856,7 +931,19 @@ class MainWindow(QMainWindow):
         tb.addWidget(self.view_mode)
         tb.addAction(self.a_nuc)
         tb.addSeparator()
-        tb.addActions([self.a_add, self.a_batch, self.a_xlsx, self.a_plot])
+        self.addToolBarBreak()
+        tb2 = self.addToolBar("Sınır düzeltme")
+        tb2.setMovable(False)
+        tb2.addWidget(QLabel(" Sınır düzeltme: "))
+        tb2.addActions(list(self.edit_acts.values()))
+        tb2.addSeparator()
+        tb2.addActions([self.a_undo, self.a_redo])
+        self.edit_info = QLabel()
+        self.edit_info.setStyleSheet("color:#666; padding-left:8px;")
+        tb2.addWidget(self.edit_info)
+        tb2.addSeparator()
+        tb2.addWidget(QLabel(" Sonuçlar: "))
+        tb2.addActions([self.a_add, self.a_batch, self.a_xlsx, self.a_plot])
 
     # ---------------------------------------------------------- dosya açma
     def close_images(self):
@@ -866,6 +953,8 @@ class MainWindow(QMainWindow):
         self.selected, self.manual_boxes, self.boxes = set(), [], []
         self.cur_cells = self.cur_bg = None
         self.panel.btn_add.setEnabled(False)
+        self.edit_log, self.undo_stack, self.redo_stack = [], [], []
+        self._update_edit_ui()
         self.view.set_boxes([])
         self.view.item.setPixmap(QPixmap())
         self.view.placeholder.show()
@@ -981,6 +1070,10 @@ class MainWindow(QMainWindow):
 
     def on_done(self, a: core.Analysis):
         first = self.analysis is None
+        if self.edit_log:
+            self.statusBar().showMessage("Yeniden analiz edildi: önceki elle düzeltmeler sıfırlandı.", 8000)
+        self.edit_log, self.undo_stack, self.redo_stack = [], [], []
+        self._update_edit_ui()
         self._stop_thread()
         self.analysis = a
         p = self.panel
@@ -1036,6 +1129,24 @@ class MainWindow(QMainWindow):
         a = self.analysis
         if a is None:
             return
+        mode = self.view.mode
+        if mode in ("delete", "merge"):
+            cid = int(a.labels[y, x])
+            if not cid:
+                self.statusBar().showMessage("Bir hücrenin içine tıklayın.", 4000)
+                return
+            if mode == "delete":
+                self.apply_edit(core.delete_cell(a.labels, cid), f"sil {cid}")
+                return
+            if self._merge_first is None or self._merge_first == cid:
+                self._merge_first = cid
+                self.statusBar().showMessage(f"Hücre {cid} seçildi — şimdi birleşeceği komşu hücreye tıklayın.")
+                return
+            first, self._merge_first = self._merge_first, None
+            if first in self.selected or cid in self.selected:
+                self.selected |= {first}
+            self.apply_edit(core.merge_cells(a.labels, first, cid), f"birleştir {first}+{cid}")
+            return
         for b in list(self.manual_boxes):
             if b[0] <= y < b[2] and b[1] <= x < b[3]:
                 self.manual_boxes.remove(b)
@@ -1075,6 +1186,78 @@ class MainWindow(QMainWindow):
         else:
             self.manual_boxes[i] = new
             self.update_measure()
+
+    # ------------------------------------------------- elle sınır düzeltme
+    def set_edit_mode(self, mode):
+        self._merge_first = None
+        self.view.set_mode(mode)
+        hints = {"select": "", "split": "Ayırma çizgisini hücrenin bir kenarından öbürüne çekin.",
+                 "merge": "Birleştirilecek iki hücreye sırayla tıklayın.", "delete": "Silinecek bölgeye tıklayın.",
+                 "draw": "Hücre sınırını fareyle çizin; bırakınca kapanır."}
+        self.statusBar().showMessage(hints[mode], 6000)
+
+    def on_path(self, pts):
+        a = self.analysis
+        if a is None:
+            return
+        if self.view.mode == "split":
+            new, split = core.split_cells(a.labels, pts)
+            if not split:
+                self.statusBar().showMessage("Çizgi hiçbir hücreyi ikiye ayırmadı — hücrenin bir kenarından "
+                                             "öbür kenarına kadar çekin.", 6000)
+                return
+            parent_sel = set(split) & self.selected
+            new_ids = set(np.unique(new)) - set(np.unique(a.labels))
+            if parent_sel:
+                self.selected |= {int(i) for i in new_ids}
+            self.apply_edit(new, "böl " + ",".join(map(str, split)))
+        elif self.view.mode == "draw":
+            new, cid = core.add_cell(a.labels, pts, a.exclude)
+            if not cid:
+                self.statusBar().showMessage("Çizilen alan çok küçük.", 4000)
+                return
+            self.selected.add(cid)
+            self.apply_edit(new, f"çiz {cid}")
+
+    def apply_edit(self, labels, note):
+        a = self.analysis
+        self.undo_stack.append((a.labels, set(self.selected), list(self.edit_log)))
+        del self.undo_stack[:-30]
+        self.redo_stack.clear()
+        self._set_labels(labels)
+        self.edit_log.append(note)
+        self._update_edit_ui()
+        self.statusBar().showMessage(f"✓ {note}  (geri almak için ⌘Z / Ctrl+Z)", 5000)
+
+    def _set_labels(self, labels):
+        self.analysis = core.relabeled(self.analysis, labels)
+        self.selected &= set(self.analysis.cell_ids)
+        self.panel.set("Hücre sayısı", f"{len(self.analysis.cell_ids)}"
+                       + (" (elle düzeltildi)" if self.edit_log or self.undo_stack else ""))
+        self.update_measure()
+
+    def undo(self):
+        if not self.undo_stack or self.analysis is None:
+            return
+        self.redo_stack.append((self.analysis.labels, set(self.selected), list(self.edit_log)))
+        labels, sel, log = self.undo_stack.pop()
+        self.selected, self.edit_log = sel, log
+        self._set_labels(labels)
+        self._update_edit_ui()
+
+    def redo(self):
+        if not self.redo_stack or self.analysis is None:
+            return
+        self.undo_stack.append((self.analysis.labels, set(self.selected), list(self.edit_log)))
+        labels, sel, log = self.redo_stack.pop()
+        self.selected, self.edit_log = sel, log
+        self._set_labels(labels)
+        self._update_edit_ui()
+
+    def _update_edit_ui(self):
+        self.a_undo.setEnabled(bool(self.undo_stack))
+        self.a_redo.setEnabled(bool(self.redo_stack))
+        self.edit_info.setText(f"{len(self.edit_log)} elle düzeltme" if self.edit_log else "")
 
     def select_all(self):
         if self.analysis:
@@ -1147,7 +1330,7 @@ class MainWindow(QMainWindow):
         meta = result_meta(a, fpath, self.dapi[0] if self.dapi else None, group,
                            "auto" if self.panel.bg_auto.isChecked() else "manual",
                            self.panel.bg_size.value(), len(self.cur_bg), "manual click",
-                           self.panel.experiment.text().strip())
+                           self.panel.experiment.text().strip(), "; ".join(self.edit_log))
         replaced = len(self.results) and (self.results["Image_path"] == str(fpath)).any()
         self.add_measurement(cells, self.cur_bg, meta)
         self.tabs.setCurrentIndex(2)

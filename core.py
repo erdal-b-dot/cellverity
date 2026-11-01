@@ -629,3 +629,81 @@ def compare_manual(img: np.ndarray, labels: np.ndarray, manual: list[tuple[str, 
                         "IoU": inter / (a | m).sum()})
         rows.append(row)
     return pd.DataFrame(rows)
+
+
+# ------------------------------------------------------ Elle sınır düzeltme (v2)
+# Her fonksiyon yeni bir etiket dizisi döndürür (geri al için eskisi saklanabilir).
+def _line_mask(shape, pts, width: int = 1) -> np.ndarray:
+    from skimage.draw import line
+    m = np.zeros(shape, bool)
+    for (x0, y0), (x1, y1) in zip(pts, pts[1:]):
+        rr, cc = line(int(round(y0)), int(round(x0)), int(round(y1)), int(round(x1)))
+        ok = (rr >= 0) & (rr < shape[0]) & (cc >= 0) & (cc < shape[1])
+        m[rr[ok], cc[ok]] = True
+    return ndi.binary_dilation(m, iterations=width) if width else m
+
+
+def split_cells(labels: np.ndarray, pts) -> tuple[np.ndarray, list[int]]:
+    """Çizilen çizgi (x, y noktaları) boyunca, çizginin kestiği her hücreyi parçalara ayırır.
+    Çizgi pikselleri sonra komşu parçalara geri dağıtılır → toplam alan korunur.
+    → (yeni etiketler, bölünen hücre id'leri)."""
+    cut = _line_mask(labels.shape, pts, width=1)
+    out = labels.copy()
+    nxt = int(labels.max()) + 1
+    split = []
+    for cid in np.setdiff1d(np.unique(labels[cut]), [0]):
+        cell = labels == cid
+        parts = measure.label(cell & ~cut, connectivity=1)
+        sizes = np.bincount(parts.ravel())[1:]
+        big = [i + 1 for i, n in enumerate(sizes) if n >= 20]   # çizgi ucundaki kırıntıları yok say
+        if len(big) < 2:
+            continue
+        sub = np.zeros_like(labels)
+        for k, pid in enumerate(sorted(big, key=lambda i: -sizes[i - 1])):
+            sub[parts == pid] = cid if k == 0 else nxt + k - 1
+        nxt += len(big) - 1
+        sub = segmentation.expand_labels(sub, distance=4) * cell     # çizgi piksellerini geri ver
+        out[cell] = sub[cell]
+        split.append(int(cid))
+    return out, split
+
+
+def merge_cells(labels: np.ndarray, keep: int, other: int) -> np.ndarray:
+    out = labels.copy()
+    out[out == other] = keep
+    return out
+
+
+def delete_cell(labels: np.ndarray, cid: int) -> np.ndarray:
+    out = labels.copy()
+    out[out == cid] = 0
+    return out
+
+
+def add_cell(labels: np.ndarray, pts, exclude: np.ndarray | None = None) -> tuple[np.ndarray, int]:
+    """Elle çizilmiş kapalı çokgen (x, y) → yeni hücre. Çizilen alan diğer hücrelerin üzerine yazar
+    (kullanıcının çizimi esastır). ImageJ kuralı: piksel merkezi çokgen içindeyse dahil."""
+    from skimage.draw import polygon2mask
+    xy = np.asarray(pts, float)
+    mask = polygon2mask(labels.shape, np.fliplr(xy) - 0.5)
+    if exclude is not None:
+        mask &= ~exclude
+    out = labels.copy()
+    if mask.sum() < 20:
+        return out, 0
+    cid = int(labels.max()) + 1
+    out[mask] = cid
+    # üzerine yazılan hücrelerden kopuk kırıntı kalırsa temizle
+    for other in np.setdiff1d(np.unique(labels[mask]), [0]):
+        rest = measure.label(out == other)
+        if rest.max() > 1:
+            sizes = np.bincount(rest.ravel())[1:]
+            out[(rest > 0) & (rest != 1 + int(np.argmax(sizes)))] = 0
+    return out, cid
+
+
+def relabeled(a: "Analysis", labels: np.ndarray) -> "Analysis":
+    """Düzeltilmiş etiketlerle yeni Analysis (hücre listesi ve değen çiftler güncellenir)."""
+    from dataclasses import replace
+    ids = [int(i) for i in np.setdiff1d(np.unique(labels), [0])]
+    return replace(a, labels=labels, cell_ids=ids, touching=touching_pairs(labels))

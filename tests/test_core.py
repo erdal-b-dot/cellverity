@@ -189,6 +189,26 @@ def test_group_statistics():
     assert "yalancı tekrar" in report.compare(r, "CTCF", "cell", control="Kontrol")[2]
 
 
+def test_manual_edits():
+    """Elle düzeltme: birleştir/böl alanı korur, sil kaldırır, çiz ImageJ çokgen kuralıyla piksel ekler."""
+    from skimage import measure
+    fitc_arr, meta = core.load_image(open(FITC, "rb"))
+    a = core.analyze(fitc_arr, meta, core.load_image(open(DAPI, "rb"))[0])
+    L = a.labels
+    M = core.merge_cells(L, 1, 2)
+    assert set(np.unique(M)) == {0, 1} and (M > 0).sum() == (L > 0).sum()
+    r = {p.label: p for p in measure.regionprops(L)}
+    y0, _, y1, _ = r[1].bbox
+    cx = int(r[1].centroid[1])
+    S, split = core.split_cells(L, [(cx, y0 - 5), (cx, y1 + 5)])
+    assert split == [1] and len(np.unique(S)) == 4 and (S > 0).sum() == (L > 0).sum()
+    assert set(np.unique(core.delete_cell(L, 2))) == {0, 1}
+    A, cid = core.add_cell(L, [(100, 100), (200, 100), (200, 200), (100, 200)])
+    assert cid == 3 and (A == cid).sum() == 100 * 100
+    a2 = core.relabeled(a, S)
+    assert a2.cell_ids == [1, 2, 3] and a2.labels is S
+
+
 if __name__ == "__main__":
     if not FITC.exists():
         sys.exit(f"Örnek görüntü yok: {FITC}")
@@ -200,4 +220,5 @@ if __name__ == "__main__":
     test_report_exports()
     test_batch_pairing()
     test_group_statistics()
+    test_manual_edits()
     print("✅ Doğrulama testi geçti: hesaplamalar Fiji ile doğrulanmış değerlerle aynı.")
