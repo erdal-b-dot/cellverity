@@ -7,14 +7,18 @@ authors:
     given-names: Erdal
     affiliation: "Manisa Celal Bayar Üniversitesi"
     orcid: "https://orcid.org/0000-0001-7675-1386"
-version: 1.0.0
-date-released: 2026-10-31
+version: 2.0.0
+date-released: 2026-11-01
+repository-code: "https://github.com/erdal-b-dot/icc-ctcf-olcer"
 license: MIT
 keywords:
   - immunocytochemistry
   - CTCF
   - fluorescence quantification
   - ImageJ
+  - Fiji
+  - cell segmentation
+  - DAPI
 references:
   - type: article
     authors:

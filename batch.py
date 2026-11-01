@@ -1,6 +1,6 @@
 """Klasör işleme: FITC/DAPI çiftlerini bulma ve toplu ölçüm (arayüzden bağımsız).
 
-Ardışık dosya numarası her zaman aynı alan demek değildir (ZÜBEYDE/ICC: 292+293, 394+395 farklı
+Ardışık dosya numarası her zaman aynı alan demek değildir (geliştirme veri setinde 292+293, 394+395 farklı
 alanlar). Bu yüzden her FITC için aynı klasördeki yakın numaralı DAPI adayları arasından, çekirdek
 maskesinin hücre maskesiyle en çok örtüştüğü seçilir.
 """
@@ -22,7 +22,7 @@ NEIGHBOR = 3           # dosya numarasında ±3 içindeki DAPI'ler aday
 
 def guess_kind(arr: np.ndarray) -> str | None:
     """'DAPI' / 'FITC' / None. Parlak %1 pikselde mavi/kırmızı oranı (DP74'te DAPI turkuaz görünür;
-    ZÜBEYDE/ICC'deki 282 tek kanal görüntüde FITC ≤ 0.79, DAPI ≥ 1.47)."""
+    geliştirme veri setindeki 282 tek kanal görüntüde FITC ≤ 0.79, DAPI ≥ 1.47)."""
     if arr.ndim != 3:
         return None
     a = arr.reshape(-1, 3)[::7].astype(float)

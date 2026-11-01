@@ -438,7 +438,7 @@ Excel'deki **Methods** sayfası ve **Cells** sayfasındaki *App_version, Nucleus
 - ROI kuralı: piksel merkezi çokgenin içindeyse dahil
 - CTCF = IntDen − Area × BG_Mean; CTCF_per_Area = Mean − BG_Mean
 
-**Kalibrasyon:** cellSens ölçek çubuğu (sağ alt beyaz kutu) uzunluğu piksel olarak ölçülür; altındaki sayı rakam şablonlarıyla okunur (ZÜBEYDE/ICC'deki 301 görüntünün tamamı doğru: 157 × 50 µm, 144 × 20 µm). Objektif = kamera piksel boyutu (DP74: 5.86 µm) ÷ µm/piksel.
+**Kalibrasyon:** cellSens ölçek çubuğu (sağ alt beyaz kutu) uzunluğu piksel olarak ölçülür; altındaki sayı rakam şablonlarıyla okunur (geliştirme veri setindeki (Olympus DP74, cellSens) 301 görüntünün tamamı doğru: 157 × 50 µm, 144 × 20 µm). Objektif = kamera piksel boyutu (DP74: 5.86 µm) ÷ µm/piksel.
 
 **Hücre segmentasyonu:** FITC (G kanalı) Gauss yumuşatma → Li eşiği → kapanış, delik doldurma, küçük nesne eleme (< 50 µm²) → DAPI çekirdekleri tohum olarak watershed (DAPI yoksa mesafe dönüşümü).
 
