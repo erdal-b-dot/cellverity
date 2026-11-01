@@ -64,7 +64,9 @@ class Item:
     overlap: float | None = None
     group: str = ""
     experiment: str = ""  # bağımsız deney / biyolojik tekrar
-    status: str = ""      # "hazır" | "DAPI yok" | "atlandı: …"
+    status: str = ""      # dilden bağımsız kod: "ready" | "no_dapi" | "skipped"
+    reason: str = ""      # skipped: "unreadable" | "processed" | "no_exif" | "unknown_kind" | "unpaired_dapi"
+    detail: str = ""      # ek bilgi (yazılım adı, hata türü)
     use: bool = True
 
 
@@ -88,20 +90,20 @@ def scan(folder: Path, recursive: bool = True, progress=None) -> list[Item]:
     info, items = {}, []
     for k, p in enumerate(files):
         if progress:
-            progress(k, len(files), f"Okunuyor: {p.name}")
+            progress(k, len(files), "read", p.name)
         try:
             arr, meta = core.load_image(str(p))
         except Exception as ex:
-            items.append(Item(p, status=f"atlandı: açılamadı ({type(ex).__name__})", use=False))
+            items.append(Item(p, status="skipped", reason="unreadable", detail=type(ex).__name__, use=False))
             continue
         kind = guess_kind(arr)
         skip = ""
         if meta.get("software"):
-            skip = f"işlenmiş görüntü ({meta['software']})"
+            skip = "processed:" + str(meta["software"])
         elif p.suffix.lower() in (".jpg", ".jpeg") and not meta.get("model"):
-            skip = "kamera bilgisi yok (merge/yeniden kaydedilmiş)"
+            skip = "no_exif"
         elif kind is None:
-            skip = "FITC mi DAPI mi anlaşılamadı"
+            skip = "unknown_kind"
         info[p] = (kind, arr, skip)
     dapis = [p for p, (k, _, s) in info.items() if k == "DAPI" and not s]
     used = set()
@@ -110,10 +112,12 @@ def scan(folder: Path, recursive: bool = True, progress=None) -> list[Item]:
         kind, arr, skip = info[p]
         group, exp = group_experiment(p, folder)
         if skip:
-            items.append(Item(p, group=group, experiment=exp, status=f"atlandı: {skip}", use=False))
+            reason, _, detail = skip.partition(":")
+            items.append(Item(p, group=group, experiment=exp, status="skipped", reason=reason, detail=detail,
+                              use=False))
             continue
         if progress:
-            progress(i, len(fitcs), f"Eşleştiriliyor: {p.name}")
+            progress(i, len(fitcs), "pair", p.name)
         n = _number(p)
         cands = [d for d in dapis if d.parent == p.parent and n is not None and _number(d) is not None
                  and 0 < abs(_number(d) - n) <= NEIGHBOR and info[d][1].shape[:2] == arr.shape[:2]]
@@ -121,14 +125,13 @@ def scan(folder: Path, recursive: bool = True, progress=None) -> list[Item]:
         if scored and scored[0][0] >= MIN_OVERLAP:
             ov, d = scored[0]
             used.add(d)
-            items.append(Item(p, d, ov, group, exp, "hazır"))
+            items.append(Item(p, d, ov, group, exp, "ready"))
         else:
-            best = f" (en iyi aday %{100 * scored[0][0]:.0f})" if scored else ""
-            items.append(Item(p, None, scored[0][0] if scored else None, group, exp, "DAPI yok" + best))
+            items.append(Item(p, None, scored[0][0] if scored else None, group, exp, "no_dapi"))
     for d in dapis:
         if d not in used:
             g, e = group_experiment(d, folder)
-            items.append(Item(None, d, group=g, experiment=e, status="atlandı: eşleşmeyen DAPI", use=False))
+            items.append(Item(None, d, group=g, experiment=e, status="skipped", reason="unpaired_dapi", use=False))
     return items
 
 

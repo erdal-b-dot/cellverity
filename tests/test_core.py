@@ -156,10 +156,10 @@ def test_batch_pairing():
         Image.open(p286).save(d / "B" / "Image_20-21.jpg")                                       # EXIF'siz
         items = {(it.group, it.fitc.name if it.fitc else None): it for it in batch.scan(d)}
         a = items[("A", "Image_392.jpg")]
-        assert a.dapi.name == "Image_393.jpg" and a.status == "hazır"
+        assert a.dapi.name == "Image_393.jpg" and a.status == "ready"
         b = items[("B", "Image_10.jpg")]
-        assert b.dapi is None and b.status.startswith("DAPI yok"), b
-        assert items[("B", "Image_20-21.jpg")].status.startswith("atlandı") and not items[("B", "Image_20-21.jpg")].use
+        assert b.dapi is None and b.status == "no_dapi", b
+        assert items[("B", "Image_20-21.jpg")].status == "skipped" and not items[("B", "Image_20-21.jpg")].use
         an, cells, _ = batch.measure(a, core.Settings())
         assert len(cells) == 2
 
@@ -224,7 +224,7 @@ def test_fiji_bridge():
         tif, rois = fiji.write_package(Path(d), a, a.cell_ids, boxes, "t")
         df, ver = fiji.measure_in_fiji(exe, tif, rois, a.um_per_px)
     cmp = fiji.compare(cells, bg, df)
-    assert len(cmp) == 5 and not cmp.isna().any().any() and cmp["Max fark (%)"].max() < 1e-3, cmp
+    assert len(cmp) == 5 and not cmp.isna().any().any() and cmp["Max diff (%)"].max() < 1e-3, cmp
 
 
 if __name__ == "__main__":

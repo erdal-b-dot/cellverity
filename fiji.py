@@ -16,6 +16,7 @@ import numpy as np
 import pandas as pd
 
 import core
+from i18n import T
 
 # Fiji'nin Measure komutuyla aynı ölçüm (RoiManager GUI gerektirdiği için Analyzer doğrudan çağrılır)
 MEASURE_GROOVY = r'''#@ String tif
@@ -124,7 +125,7 @@ def measure_in_fiji(fiji: Path, tif: Path, rois: Path, um_per_px: float | None, 
         ok = [ln for ln in r.stdout.splitlines() if ln.startswith("FIJI_OK")]
         if not out.exists() or not ok:
             tail = "\n".join((r.stdout + r.stderr).strip().splitlines()[-8:])
-            raise RuntimeError(f"Fiji ölçümü başarısız (çıkış kodu {r.returncode}).\n{tail}")
+            raise RuntimeError(T("Fiji ölçümü başarısız (çıkış kodu {0}).\n{1}").format(r.returncode, tail))
         df = pd.read_csv(out)
     df = df.drop(columns=[c for c in df.columns if not c.strip() or c.startswith("Unnamed")], errors="ignore")
     return df, ok[0].split(" ", 2)[2]
@@ -140,9 +141,9 @@ def compare(app_cells: pd.DataFrame, app_bg: pd.DataFrame, fiji_df: pd.DataFrame
     for _, r in m.iterrows():
         row = {"ROI": r["Label"]}
         for c in cols:
-            row[f"{c} (program)"] = r[f"{c}_app"]
+            row[f"{c} (app)"] = r[f"{c}_app"]
             row[f"{c} (Fiji)"] = r[f"{c}_fiji"]
-        row["Max fark (%)"] = max(
+        row["Max diff (%)"] = max(
             (abs(r[f"{c}_app"] - r[f"{c}_fiji"]) / max(abs(r[f"{c}_fiji"]), 1e-9) * 100 for c in cols
              if pd.notna(r[f"{c}_app"]) and pd.notna(r[f"{c}_fiji"])), default=np.nan)
         rows.append(row)

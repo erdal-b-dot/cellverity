@@ -9,11 +9,13 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+from i18n import T
+
 FRONT = ["Group", "Experiment", "Image", "Cell", "Area_unit", "Area", "Mean", "StdDev", "Min", "Max",
          "IntDen", "RawIntDen", "BG_Mean", "CTCF", "CTCF_per_Area"]
 METRICS = {"CTCF": "CTCF (a.u.)", "CTCF_per_Area": "CTCF / Area (a.u./{unit})", "Mean": "Mean intensity",
            "IntDen": "Integrated density", "Area": "Area ({unit})"}
-PLOT_KINDS = ("Bar (ortalama ± SEM) + noktalar", "Box + noktalar", "Violin + noktalar")
+PLOT_KINDS = {"bar": "Bar (ortalama ± SEM) + noktalar", "box": "Box + noktalar", "violin": "Violin + noktalar"}
 
 
 def ordered(results: pd.DataFrame) -> pd.DataFrame:
@@ -103,7 +105,7 @@ def aggregate(results: pd.DataFrame, metric: str, level: str = "cell") -> pd.Dat
         return results[["Group", metric]].rename(columns={metric: "value"}).assign(n_cells=1).dropna()
     key = {"image": "Image_path", "experiment": "Experiment"}[level]
     if key not in results or results[key].isna().all():
-        raise ValueError("Deney sütunu yok" if level == "experiment" else "Görüntü sütunu yok")
+        raise ValueError(T("Deney sütunu yok") if level == "experiment" else T("Görüntü sütunu yok"))
     return (results.groupby(["Group", key], sort=False)[metric]
             .agg(value="mean", n_cells="count").reset_index())
 
@@ -127,9 +129,7 @@ def mixed_objectives(results: pd.DataFrame) -> str:
     if len(allv) <= 1:
         return ""
     detail = "; ".join(f"{g}: {', '.join(f'{int(v)}×' for v in sorted(vs))}" for g, vs in obj.items())
-    return (f"⚠️ Farklı objektifler karışık ({', '.join(f'{v}×' for v in allv)}) — {detail}. "
-            "Büyütme farkı floresan yoğunluğunu ve alanı etkiler; yalnızca aynı objektifle çekilmiş "
-            "görüntüleri karşılaştırın.")
+    return (T("⚠️ Farklı objektifler karışık ({0}) — {1}. Büyütme farkı floresan yoğunluğunu ve alanı etkiler; yalnızca aynı objektifle çekilmiş görüntüleri karşılaştırın.").format(', '.join(f'{v}×' for v in allv), detail))
 
 
 def compare(results: pd.DataFrame, metric: str = "CTCF", level: str = "cell", control: str | None = None,
@@ -144,54 +144,51 @@ def compare(results: pd.DataFrame, metric: str = "CTCF", level: str = "cell", co
         groups.remove(control)
         groups.insert(0, control)
     data = [agg.loc[agg["Group"] == g, "value"].to_numpy(float) for g in groups]
-    unit = {"cell": "hücre", "image": "görüntü", "experiment": "deney"}[level]
+    unit = {"cell": T("hücre"), "image": T("görüntü"), "experiment": T("deney")}[level]
     lines = ["n (" + unit + "): " + ", ".join(f"{g} = {len(d)}" for g, d in zip(groups, data))]
     pairs = []
     flat = [g for g, d in zip(groups, data) if len(d) > 1 and np.ptp(d) == 0]
     if flat:
-        lines.append(f"⚠️ Grup içi değişkenlik sıfır ({', '.join(flat)}): aynı değerler tekrar ediyor (aynı "
-                     "görüntü iki kez mi eklendi?). Test sonucu güvenilmez.")
+        lines.append(T("⚠️ Grup içi değişkenlik sıfır ({0}): aynı değerler tekrar ediyor (aynı görüntü iki kez mi eklendi?). Test sonucu güvenilmez.").format(', '.join(flat)))
     if len(groups) < 2:
-        lines.append("İstatistik için en az iki grup gerekir.")
+        lines.append(T("İstatistik için en az iki grup gerekir."))
     elif any(len(d) < 2 for d in data) or (level == "cell" and any(len(d) < 3 for d in data)):
-        lines.append(f"İstatistik için her grupta en az {3 if level == 'cell' else 2} {unit} gerekir.")
+        lines.append(T("İstatistik için her grupta en az {0} {1} gerekir.").format(3 if level == 'cell' else 2, unit))
     elif len(groups) == 2:
         t = sps.ttest_ind(*data, equal_var=False)
         u = sps.mannwhitneyu(*data)
-        lines += [f"Welch t-testi: {p_fmt(t.pvalue)} ({p_stars(t.pvalue)})",
-                  f"Mann–Whitney U: {p_fmt(u.pvalue)} ({p_stars(u.pvalue)})"]
+        lines += [T("Welch t-testi: {0} ({1})").format(p_fmt(t.pvalue), p_stars(t.pvalue)),
+                  T("Mann–Whitney U: {0} ({1})").format(p_fmt(u.pvalue), p_stars(u.pvalue))]
         pairs = [(0, 1, t.pvalue)]
     else:
         a, k = sps.f_oneway(*data), sps.kruskal(*data)
-        lines += [f"Tek yönlü ANOVA: {p_fmt(a.pvalue)} ({p_stars(a.pvalue)})",
-                  f"Kruskal–Wallis: {p_fmt(k.pvalue)} ({p_stars(k.pvalue)})", ""]
+        lines += [T("Tek yönlü ANOVA: {0} ({1})").format(p_fmt(a.pvalue), p_stars(a.pvalue)),
+                  T("Kruskal–Wallis: {0} ({1})").format(p_fmt(k.pvalue), p_stars(k.pvalue)), ""]
         if comparison == "dunnett":
             d = sps.dunnett(*data[1:], control=data[0], random_state=0)  # sabit tohum → tekrarlanabilir p
-            lines.append(f"Dunnett (kontrol = {groups[0]}):")
+            lines.append(T("Dunnett (kontrol = {0}):").format(groups[0]))
             for j, pv in enumerate(d.pvalue, 1):
                 lines.append(f"  {groups[j]} vs {groups[0]}: {p_fmt(pv)} ({p_stars(pv)})")
                 pairs.append((0, j, pv))
         else:
             tk = sps.tukey_hsd(*data)
-            lines.append("Tukey HSD (tüm çiftler):")
+            lines.append(T("Tukey HSD (tüm çiftler):"))
             for i in range(len(groups)):
                 for j in range(i + 1, len(groups)):
                     lines.append(f"  {groups[i]} vs {groups[j]}: {p_fmt(tk.pvalue[i, j])} "
                                  f"({p_stars(tk.pvalue[i, j])})")
                     pairs.append((i, j, tk.pvalue[i, j]))
     if level != "cell" and len(data) and min(len(d) for d in data) < 3:
-        lines += ["", f"ℹ️ Grup başına {min(len(d) for d in data)} {unit}: test gücü düşük; en az 3 bağımsız "
-                  "deney önerilir."]
+        lines += ["", T("ℹ️ Grup başına {0} {1}: test gücü düşük; en az 3 bağımsız deney önerilir.").format(min(len(d) for d in data), unit)]
     if level == "cell":
-        lines += ["", "⚠️ Her hücre ayrı tekrar sayıldı (yalancı tekrar riski). Yayın için 'Deney ortalaması' "
-                  "düzeyini kullanın."]
+        lines += ["", T("⚠️ Her hücre ayrı tekrar sayıldı (yalancı tekrar riski). Yayın için 'Deney ortalaması' düzeyini kullanın.")]
     warn = mixed_objectives(results)
     if warn:
         lines += ["", warn]
     return groups, data, "\n".join(lines), pairs
 
 
-def plot(results: pd.DataFrame, metric: str = "CTCF", kind: str = PLOT_KINDS[0], normalize: bool = False,
+def plot(results: pd.DataFrame, metric: str = "CTCF", kind: str = "bar", normalize: bool = False,
          fig=None, level: str = "cell", control: str | None = None, order: list[str] | None = None,
          comparison: str = "dunnett", stars: bool = True):
     """Grup grafiği + istatistik metni. fig verilirse onun üzerine çizer (Qt tuvali için).
@@ -206,7 +203,7 @@ def plot(results: pd.DataFrame, metric: str = "CTCF", kind: str = PLOT_KINDS[0],
         groups, data, txt, pairs = compare(results, metric, level, control, order, comparison)
     except ValueError as ex:
         fig.clear()
-        return fig, f"{ex}: bu düzey için tabloda 'Experiment' (deney) bilgisi gerekli."
+        return fig, T("{0}: bu düzey için tabloda 'Experiment' (deney) bilgisi gerekli.").format(ex)
     if normalize and len(data) and len(data[0]) and data[0].mean() != 0:
         ref = data[0].mean()
         data = [d / ref for d in data]
@@ -215,11 +212,11 @@ def plot(results: pd.DataFrame, metric: str = "CTCF", kind: str = PLOT_KINDS[0],
         fig.set_size_inches(max(3.5, 1.3 * len(groups) + 1.5), 4)
     ax = fig.add_subplot(111)
     x = np.arange(len(groups))
-    if kind == PLOT_KINDS[0]:
+    if kind == "bar":
         ax.bar(x, [d.mean() if len(d) else 0 for d in data],
                yerr=[d.std(ddof=1) / np.sqrt(len(d)) if len(d) > 1 else 0 for d in data],
                capsize=4, color=["#bdbdbd"] + ["#7fbf7f"] * (len(groups) - 1), edgecolor="black", width=0.6)
-    elif kind == PLOT_KINDS[1]:
+    elif kind == "box":
         ax.boxplot(data, positions=x, widths=0.5, showfliers=False)
     else:
         ok = [i for i, d in enumerate(data) if len(d) > 1]
@@ -273,14 +270,9 @@ def agreement(val: pd.DataFrame, metric: str = "CTCF") -> dict:
 
 def agreement_text(st: dict, metric: str = "CTCF") -> str:
     if st.get("n", 0) < 2:
-        return "Bland–Altman için en az 2 eşleşmiş hücre gerekir (yayın için ≥ 30 hücre, ≥ 3 görüntü önerilir)."
-    return (f"n = {st['n']} hücre, {st['n_images']} görüntü\n"
-            f"{metric}: ortalama fark (otomatik − elle) = {st['bias_%']:+.1f} %\n"
-            f"%95 uyum sınırları: {st['loa_low_%']:+.1f} % … {st['loa_high_%']:+.1f} %\n"
-            f"Pearson r = {st['pearson_r']:.3f} · Lin CCC = {st['lin_ccc']:.3f}\n"
-            f"Dice (sınır örtüşmesi): ortalama {st['dice_mean']:.3f}, en düşük {st['dice_min']:.3f}"
-            + ("\n\n⚠️ Az hücre: r ve CCC bu kadar küçük örneklemde anlamsızdır. Yayın için ≥ 30 hücre, "
-               "≥ 3 görüntü (ayrık ve değen hücreler) önerilir." if st["n"] < 30 else ""))
+        return T("Bland–Altman için en az 2 eşleşmiş hücre gerekir (yayın için ≥ 30 hücre, ≥ 3 görüntü önerilir).")
+    return (T("n = {0} hücre, {1} görüntü\n{2}: ortalama fark (otomatik − elle) = {3:+.1f} %\n%95 uyum sınırları: {4:+.1f} % … {5:+.1f} %\nPearson r = {6:.3f} · Lin CCC = {7:.3f}\nDice (sınır örtüşmesi): ortalama {8:.3f}, en düşük {9:.3f}").format(st['n'], st['n_images'], metric, st['bias_%'], st['loa_low_%'], st['loa_high_%'], st['pearson_r'], st['lin_ccc'], st['dice_mean'], st['dice_min'])
+            + (T("\n\n⚠️ Az hücre: r ve CCC bu kadar küçük örneklemde anlamsızdır. Yayın için ≥ 30 hücre, ≥ 3 görüntü (ayrık ve değen hücreler) önerilir.") if st["n"] < 30 else ""))
 
 
 def bland_altman_plot(val: pd.DataFrame, metric: str = "CTCF", fig=None):
