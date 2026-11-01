@@ -336,6 +336,25 @@ def test_exposure_metadata_and_warning():
     assert report.mixed_exposures(same) == "" and "0.649" in report.mixed_exposures(mixed)
 
 
+def test_quality_control_and_exclusions():
+    """QC bayrakları ve toplu ölçümde gerekçeli dışlama (örnek veri: 11305'te kenara değmeyen 26 hücreden 3'ü doymuş)."""
+    import batch
+    ref = (1000.0, 100.0)
+    assert core.qc_flags({"Saturated_px": 2, "Nuclei_in_cell": 1, "Nucleus_area_px": 900, "Nucleus_DAPI_mean": 100}, ref) == ["saturated"]
+    assert core.qc_flags({"Saturated_px": 0, "Nuclei_in_cell": 2}, ref) == ["multinucleate"]
+    assert core.qc_flags({"Saturated_px": 0, "Nuclei_in_cell": 1, "Nucleus_area_px": 200, "Nucleus_DAPI_mean": 100}, ref) == ["partial_nucleus"]
+    assert core.qc_flags({"Saturated_px": 0, "Nuclei_in_cell": 1, "Nucleus_area_px": 400, "Nucleus_DAPI_mean": 180}, ref) == ["pyknotic"]
+    assert core.qc_flags({"Saturated_px": 0, "Nuclei_in_cell": 1, "Nucleus_area_px": 900, "Nucleus_DAPI_mean": 110}, ref) == []
+    folder = ROOT / "examples" / "PARC_control"
+    it = next(i for i in batch.scan(folder, recursive=False) if i.fitc and i.fitc.name == "Image_11305.jpg")
+    a, cells, bg, excl = batch.measure_qc(it, core.Settings())
+    a2, all_cells, _ = batch.measure(it, core.Settings())
+    assert len(cells) + (excl["Reason"] == "saturated").sum() == len(all_cells) == 26
+    assert set(excl["Reason"].str.split(";").explode()) <= {"border", "saturated", "no_nucleus", "partial_nucleus",
+                                                            "multinucleate", "pyknotic"}
+    assert (excl["Exclusion"] == "auto").all() and cells["QC_pass"].all()
+
+
 if __name__ == "__main__":
     if not FITC.exists():
         sys.exit(f"Örnek görüntü yok: {FITC}")
@@ -354,4 +373,5 @@ if __name__ == "__main__":
     test_scale_bar_hard_cases()
     test_examples_expected_results()
     test_exposure_metadata_and_warning()
+    test_quality_control_and_exclusions()
     print("✅ Doğrulama testi geçti: hesaplamalar Fiji ile doğrulanmış değerlerle aynı.")

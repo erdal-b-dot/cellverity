@@ -274,6 +274,18 @@ The program looks for Fiji in <code>Downloads/Fiji</code>, <code>Applications/Fi
 <li><strong>Select all cells</strong> / <strong>Clear selection</strong>.</li>
 <li>Do not measure cells <strong>cut off</strong> at the image border (their area is incomplete).</li>
 </ul>
+<h3 id="641-quality-control-and-documented-exclusion">6.4.1 Quality control and documented exclusion</h3>
+<ul>
+<li><strong>Automatic quality control (QC)</strong> — <em>Exclude cells failing quality control</em> in the right panel (on by default). These cells are outlined in <strong>orange</strong> and are not selected by <em>Select all cells</em>:</li>
+<li>cells with <strong>saturated pixels</strong> (CTCF underestimated),</li>
+<li>cells with <strong>no nucleus</strong> or <strong>several nuclei</strong> (usually a segmentation error → Split/Merge),</li>
+<li><strong>partial nucleus</strong>: nuclear area inside the cell &lt; 30% of the image median (a cut-off or wrongly separated cell fragment),</li>
+<li><strong>pyknotic nucleus</strong>: nuclear area &lt; 50% of the median <strong>and</strong> DAPI intensity &gt; 1.5× the median (a <strong>heuristic</strong> criterion for apoptotic nuclei; check visually).</li>
+<li><strong>Manual exclusion</strong> — <strong>right-click</strong> a cell ▸ choose a reason: <em>apoptotic / pyknotic, mitotic, overlapping / not separable, out of focus, debris / not a cell, other</em>. The cell is outlined in <strong>red</strong>. To undo: right-click ▸ <em>Remove exclusion</em> (or click to select the cell).</li>
+<li>To measure a QC-flagged cell anyway, click to select it; its flag stays in the <code>QC_flags</code> column.</li>
+<li>Every excluded cell is written with its reason to the <strong>Excluded_cells</strong> sheet in Excel, with counts in <strong>Exclusion_summary</strong> — report as "n cells were excluded (x saturated, y apoptotic …)".</li>
+<li>Recommended approach to cell selection and sampling: predefined criteria, systematic field selection, exclusions made blind to treatment group, ≥ 3 independent experiments.</li>
+</ul>
 <h3 id="65-background">6.5 Background</h3>
 <ul>
 <li><strong>Automatic</strong> (default): <strong>3 boxes</strong> (50×50 pixels) ≥ 40 pixels away from cells, free of signal/debris, as close to the cells as possible. Size and number are set in the right panel.</li>
@@ -399,6 +411,7 @@ The program looks for Fiji in <code>Downloads/Fiji</code>, <code>Applications/Fi
 <ul>
 <li>Ticked rows are measured; untick those you do not want.</li>
 <li>In each image: <strong>all cells</strong> + <strong>automatic background</strong> (box size/number from the right panel).</li>
+<li>With <em>Exclude cells failing quality control</em> ticked, QC-flagged cells are not measured; together with border cells they are written with their reason to <strong>Excluded_cells</strong> (<code>border</code>, <code>saturated</code>, <code>no_nucleus</code>, <code>partial_nucleus</code>, <code>multinucleate</code>, <code>pyknotic</code>).</li>
 <li><strong>Cells touching the image border</strong> are excluded by default.</li>
 <li>The <strong>Selection</strong> column in Excel records <em>manual click</em> or <em>batch: all cells, edge excluded</em>.</li>
 <li>After batch measurement, check suspicious images (especially dense clusters): in the <strong>Collected results</strong> tab, <strong>hover over a row</strong> to preview the cell; <strong>click the row</strong> to open that image with its DAPI — the cells recorded in the table are selected and the clicked cell is centred. Edit boundaries (<a href="#7-editing-cell-boundaries">Section 7</a>) or <strong>Verify with Fiji</strong>, then <strong>Add to results table</strong> to replace that image's earlier rows.</li>
@@ -433,6 +446,10 @@ The program looks for Fiji in <code>Downloads/Fiji</code>, <code>Applications/Fi
 <tr>
 <td><strong>Background</strong></td>
 <td>Per-box background measurements</td>
+</tr>
+<tr>
+<td><strong>Excluded_cells</strong>, <strong>Exclusion_summary</strong></td>
+<td>Excluded cells and their reasons (automatic QC / manual)</td>
 </tr>
 <tr>
 <td><strong>Methods</strong></td>
@@ -484,6 +501,10 @@ The program looks for Fiji in <code>Downloads/Fiji</code>, <code>Applications/Fi
 <tr>
 <td>Selection, Manual_edits</td>
 <td>How cells were selected; manual boundary edits</td>
+</tr>
+<tr>
+<td>QC_flags, QC_pass, Nuclei_in_cell, Nucleus_area, Nucleus_DAPI_mean</td>
+<td>Quality-control flags and nuclear features</td>
 </tr>
 <tr>
 <td>Fiji_check</td>

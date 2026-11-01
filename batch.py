@@ -153,3 +153,26 @@ def measure(item: Item, s: core.Settings, exclude_edge: bool = True):
         ids = [i for i in ids if i not in edge]
     cells, bg, _ = core.background_and_measure(a, ids, s)
     return a, cells, bg
+
+
+def measure_qc(item: Item, s: core.Settings, exclude_edge: bool = True, qc: bool = True):
+    """measure() gibi, ama dışlananları da gerekçesiyle döndürür → (Analysis, dahil_df, bg_df, dışlanan_df).
+    Gerekçeler: 'border' (kenara değen), QC bayrakları (core.QC_REASONS)."""
+    fitc, meta = core.load_image(str(item.fitc))
+    dapi = core.load_image(str(item.dapi))[0] if item.dapi else None
+    a = core.analyze(fitc, meta, dapi, s)
+    lab = a.labels
+    edge = set()
+    if exclude_edge:
+        edge = set(np.unique(np.r_[lab[:3].ravel(), lab[-3:].ravel(), lab[:, :3].ravel(),
+                                   lab[:, -3:].ravel()])) - {0}
+    allc, bg, _ = core.background_and_measure(a, a.cell_ids, s)
+    if not len(allc):
+        return a, allc, bg, allc
+    reason = []
+    for _, r in allc.iterrows():
+        rs = (["border"] if r["Cell"] in edge else []) + ([f for f in r["QC_flags"].split(";") if f] if qc else [])
+        reason.append(";".join(rs))
+    allc = allc.assign(Reason=reason)
+    keep = allc["Reason"] == ""
+    return a, allc[keep].drop(columns="Reason"), bg, allc[~keep].assign(Exclusion="auto")

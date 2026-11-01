@@ -180,6 +180,17 @@ Known values for DP74 + cellSens: **20 µm = 138 px → 0.1449 µm/px (40×)**; 
 - **Select all cells** / **Clear selection**.
 - Do not measure cells **cut off** at the image border (their area is incomplete).
 
+### 6.4.1 Quality control and documented exclusion
+- **Automatic quality control (QC)** — *Exclude cells failing quality control* in the right panel (on by default). These cells are outlined in **orange** and are not selected by *Select all cells*:
+  - cells with **saturated pixels** (CTCF underestimated),
+  - cells with **no nucleus** or **several nuclei** (usually a segmentation error → Split/Merge),
+  - **partial nucleus**: nuclear area inside the cell < 30% of the image median (a cut-off or wrongly separated cell fragment),
+  - **pyknotic nucleus**: nuclear area < 50% of the median **and** DAPI intensity > 1.5× the median (a **heuristic** criterion for apoptotic nuclei; check visually).
+- **Manual exclusion** — **right-click** a cell ▸ choose a reason: *apoptotic / pyknotic, mitotic, overlapping / not separable, out of focus, debris / not a cell, other*. The cell is outlined in **red**. To undo: right-click ▸ *Remove exclusion* (or click to select the cell).
+- To measure a QC-flagged cell anyway, click to select it; its flag stays in the `QC_flags` column.
+- Every excluded cell is written with its reason to the **Excluded_cells** sheet in Excel, with counts in **Exclusion_summary** — report as "n cells were excluded (x saturated, y apoptotic …)".
+- Recommended approach to cell selection and sampling: predefined criteria, systematic field selection, exclusions made blind to treatment group, ≥ 3 independent experiments.
+
 ### 6.5 Background
 - **Automatic** (default): **3 boxes** (50×50 pixels) ≥ 40 pixels away from cells, free of signal/debris, as close to the cells as possible. Size and number are set in the right panel.
 - **Moving boxes:** hover over a box (hand cursor), press and drag. It is re-measured when released. Moving an automatic box switches to **Manual**; the other boxes stay in place.
@@ -250,6 +261,7 @@ Each FITC is paired with the DAPI, among those **within ±3 file numbers in the 
 ### 8.3 Measurement
 - Ticked rows are measured; untick those you do not want.
 - In each image: **all cells** + **automatic background** (box size/number from the right panel).
+- With *Exclude cells failing quality control* ticked, QC-flagged cells are not measured; together with border cells they are written with their reason to **Excluded_cells** (`border`, `saturated`, `no_nucleus`, `partial_nucleus`, `multinucleate`, `pyknotic`).
 - **Cells touching the image border** are excluded by default.
 - The **Selection** column in Excel records *manual click* or *batch: all cells, edge excluded*.
 - After batch measurement, check suspicious images (especially dense clusters): in the **Collected results** tab, **hover over a row** to preview the cell; **click the row** to open that image with its DAPI — the cells recorded in the table are selected and the clicked cell is centred. Edit boundaries ([Section 7](#7-editing-cell-boundaries)) or **Verify with Fiji**, then **Add to results table** to replace that image's earlier rows.
@@ -266,6 +278,7 @@ Each FITC is paired with the DAPI, among those **within ±3 file numbers in the 
 | **Image_means** | Image (field) means — ready to paste into GraphPad |
 | **Experiment_means** | Experiment means — the recommended statistical unit |
 | **Background** | Per-box background measurements |
+| **Excluded_cells**, **Exclusion_summary** | Excluded cells and their reasons (automatic QC / manual) |
 | **Methods** | Formulas, methods, citation |
 | **Validation**, **Validation_summary** | Manual (Fiji) vs automatic comparison and Bland–Altman summary (if present) |
 
@@ -280,6 +293,7 @@ Each FITC is paired with the DAPI, among those **within ±3 file numbers in the 
 | BG_mode, BG_box_px, BG_n | Background method |
 | Segmentation, Nucleus_method, DAPI_overlap, Touching_pairs | Cell separation details |
 | Selection, Manual_edits | How cells were selected; manual boundary edits |
+| QC_flags, QC_pass, Nuclei_in_cell, Nucleus_area, Nucleus_DAPI_mean | Quality-control flags and nuclear features |
 | Fiji_check | Result of the Fiji verification, if done |
 | App_version, Timestamp | Program version, date |
 

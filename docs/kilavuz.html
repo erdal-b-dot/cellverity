@@ -275,6 +275,18 @@ Program Fiji'yi şu yerlerde kendisi arar: <code>İndirilenler/Fiji</code>, <cod
 <li><strong>Tüm hücreleri seç</strong> / <strong>Seçimi temizle</strong>.</li>
 <li>Görüntü kenarında <strong>kesilmiş</strong> hücreleri ölçmeyin (alanları eksik ölçülür).</li>
 </ul>
+<h3 id="641-kalite-kontrol-ve-gerekceli-dislama">6.4.1 Kalite kontrol ve gerekçeli dışlama</h3>
+<ul>
+<li><strong>Otomatik kalite kontrol (QC)</strong> — sağ panelde <em>Kalite kontrolünden kalanları dışla</em> (varsayılan açık). Şu hücreler <strong>turuncu</strong> çizilir ve <em>Tüm hücreleri seç</em>te seçilmez:</li>
+<li><strong>doymuş piksel</strong> içeren (CTCF olduğundan düşük ölçülür),</li>
+<li><strong>çekirdeksiz</strong> ya da <strong>birden çok çekirdekli</strong> (çoğunlukla segmentasyon hatası → Böl/Birleştir),</li>
+<li><strong>çekirdeği kısmi</strong>: hücrenin içindeki çekirdek alanı görüntüdeki medyanın &lt; %30'u (kesik ya da yanlış ayrılmış hücre parçası),</li>
+<li><strong>piknotik çekirdek</strong>: çekirdek alanı medyanın &lt; %50'si <strong>ve</strong> DAPI parlaklığı medyanın &gt; 1.5 katı (apoptotik çekirdek için <strong>sezgisel</strong> ölçüt; gözle kontrol edin).</li>
+<li><strong>Elle dışlama</strong> — hücreye <strong>sağ tıklayın</strong> ▸ gerekçe seçin: <em>apoptotik / piknotik, mitotik, çakışık / ayrılamıyor, odak dışı, debris / hücre değil, diğer</em>. Hücre <strong>kırmızı</strong> çizilir. Geri almak için yine sağ tık ▸ <em>Dışlamayı kaldır</em> (ya da hücreye tıklayıp seçin).</li>
+<li>QC'den kalan bir hücreyi yine de ölçmek isterseniz üzerine tıklayıp seçin; bayrağı <code>QC_flags</code> sütununda kalır.</li>
+<li>Dışlanan her hücre gerekçesiyle Excel'in <strong>Excluded_cells</strong> sayfasına, sayıları <strong>Exclusion_summary</strong> sayfasına yazılır. Makalede "n hücre dışlandı (x doymuş, y apoptotik…)" diye raporlayabilirsiniz.</li>
+<li>Hücre seçimi ve örnekleme kuralları için önerilen yaklaşım: önceden tanımlı ölçüt, sistematik alan seçimi, grubu bilmeden (kör) dışlama, ≥ 3 bağımsız deney.</li>
+</ul>
 <h3 id="65-background">6.5 Background</h3>
 <ul>
 <li><strong>Otomatik</strong> (varsayılan): hücrelerden ≥ 40 piksel uzak, sinyal/debris içermeyen, hücrelere en yakın <strong>3 kutu</strong> (50×50 piksel). Boyut ve sayı sağ panelden değiştirilebilir.</li>
@@ -400,6 +412,7 @@ Program Fiji'yi şu yerlerde kendisi arar: <code>İndirilenler/Fiji</code>, <cod
 <ul>
 <li>İşaretli satırlar ölçülür; istemediklerinizin işaretini kaldırın.</li>
 <li>Her görüntüde <strong>tüm hücreler</strong> + <strong>otomatik background</strong> (sağ paneldeki kutu boyutu/sayısı).</li>
+<li><em>Kalite kontrolünden kalanları dışla</em> işaretliyse QC'den kalan hücreler ölçüme girmez; kenara değenlerle birlikte gerekçesiyle <strong>Excluded_cells</strong> sayfasına yazılır (<code>border</code>, <code>saturated</code>, <code>no_nucleus</code>, <code>partial_nucleus</code>, <code>multinucleate</code>, <code>pyknotic</code>).</li>
 <li><strong>Kenara değen (kesik) hücreler</strong> varsayılan olarak hariç tutulur.</li>
 <li>Excel'de <strong>Selection</strong> sütunu: <em>manual click</em> ya da <em>batch: all cells, edge excluded</em>.</li>
 <li>Toplu ölçümden sonra şüpheli görüntüleri kontrol edin (özellikle yoğun kümeler): <strong>Biriken sonuçlar</strong> sekmesinde bir satırın <strong>üzerine gelince</strong> hücrenin önizlemesi çıkar; <strong>satıra tıklayınca</strong> o görüntü DAPI'siyle açılır, tabloda kayıtlı hücreleri seçili gelir ve tıklanan hücre ortalanır. Sınırları düzeltip (<a href="#7-hucre-sinirlarini-elle-duzeltmek">Bölüm 7</a>) ya da <strong>Fiji ile doğrula</strong>yıp <strong>Sonuç tablosuna ekle</strong> derseniz o görüntünün eski satırlarının yerine geçer.</li>
@@ -434,6 +447,10 @@ Program Fiji'yi şu yerlerde kendisi arar: <code>İndirilenler/Fiji</code>, <cod
 <tr>
 <td><strong>Background</strong></td>
 <td>Kutu başına background ölçümleri</td>
+</tr>
+<tr>
+<td><strong>Excluded_cells</strong>, <strong>Exclusion_summary</strong></td>
+<td>Dışlanan hücreler ve gerekçeleri (otomatik QC / elle)</td>
 </tr>
 <tr>
 <td><strong>Methods</strong></td>
@@ -485,6 +502,10 @@ Program Fiji'yi şu yerlerde kendisi arar: <code>İndirilenler/Fiji</code>, <cod
 <tr>
 <td>Selection, Manual_edits</td>
 <td>Hücrelerin nasıl seçildiği, elle düzeltmeler</td>
+</tr>
+<tr>
+<td>QC_flags, QC_pass, Nuclei_in_cell, Nucleus_area, Nucleus_DAPI_mean</td>
+<td>Kalite kontrol bayrakları ve çekirdek özellikleri</td>
 </tr>
 <tr>
 <td>Fiji_check</td>

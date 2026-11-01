@@ -382,8 +382,49 @@ def measure_backgrounds(img: np.ndarray, boxes, px_area: float, sat_value) -> pd
     return pd.DataFrame(rows)
 
 
+# Otomatik kalite kontrol (QC) eşikleri — sezgiseldir; dışlanan hücreler gerekçesiyle kaydedilir ve gözle
+# kontrol edilmelidir. Piknotik (apoptotik) çekirdek: küçük VE yoğun (parlak).
+QC_PYKNOTIC_AREA = 0.5        # çekirdek alanı < görüntüdeki çekirdek medyanının %50'si
+QC_PYKNOTIC_INTENSITY = 1.5   # VE DAPI parlaklığı > medyanın 1.5 katı
+QC_PARTIAL_NUCLEUS = 0.3      # hücrenin içindeki çekirdek alanı medyanın < %30'u → hücre parçası/yanlış bölme
+QC_REASONS = {"saturated": "doymuş piksel", "no_nucleus": "çekirdek yok", "multinucleate": "birden çok çekirdek",
+              "partial_nucleus": "çekirdek kısmi (hücre parçası?)", "pyknotic": "piknotik çekirdek",
+              "border": "görüntü kenarı"}
+# Elle dışlama gerekçeleri (Excel'e İngilizce kod olarak yazılır)
+MANUAL_REASONS = {"apoptotic": "apoptotik / piknotik", "mitotic": "mitotik", "overlapping": "çakışık / ayrılamıyor",
+                  "out_of_focus": "odak dışı", "debris": "debris / hücre değil", "other": "diğer"}
+
+
+def nucleus_reference(nuclei: np.ndarray | None, dapi: np.ndarray | None) -> tuple[float, float] | None:
+    """Görüntüdeki çekirdeklerin medyan alanı (piksel) ve medyan DAPI parlaklığı — QC'nin karşılaştırma ölçeği."""
+    if nuclei is None or dapi is None or not nuclei.any():
+        return None
+    props = measure.regionprops(nuclei, intensity_image=dapi)
+    return float(np.median([p.area for p in props])), float(np.median([p.intensity_mean for p in props]))
+
+
+def qc_flags(row: dict, ref: tuple[float, float] | None) -> list[str]:
+    flags = []
+    if row.get("Saturated_px", 0) > 0:
+        flags.append("saturated")
+    n = row.get("Nuclei_in_cell")
+    if n is not None:
+        if n == 0:
+            flags.append("no_nucleus")
+        elif n >= 2:
+            flags.append("multinucleate")
+    if ref and n == 1 and row.get("Nucleus_area_px"):
+        if row["Nucleus_area_px"] < QC_PARTIAL_NUCLEUS * ref[0]:
+            flags.append("partial_nucleus")
+        elif (row.get("Nucleus_DAPI_mean") is not None and row["Nucleus_area_px"] < QC_PYKNOTIC_AREA * ref[0]
+              and row["Nucleus_DAPI_mean"] > QC_PYKNOTIC_INTENSITY * ref[1]):
+            flags.append("pyknotic")
+    return flags
+
+
 def measure_cells(img: np.ndarray, labels: np.ndarray, cell_ids, bg_mean: float,
-                  um_per_px: float | None, sat_value, nuclei: np.ndarray | None = None) -> pd.DataFrame:
+                  um_per_px: float | None, sat_value, nuclei: np.ndarray | None = None,
+                  dapi: np.ndarray | None = None, nuc_ref: tuple[float, float] | None = None) -> pd.DataFrame:
     px_area = um_per_px ** 2 if um_per_px else 1.0
     rows = []
     for cid in cell_ids:
@@ -400,6 +441,14 @@ def measure_cells(img: np.ndarray, labels: np.ndarray, cell_ids, bg_mean: float,
                "Centroid_x": round(props.centroid[1], 1), "Centroid_y": round(props.centroid[0], 1)}
         if nuclei is not None:
             row["Nuclei_in_cell"] = int(len(np.setdiff1d(np.unique(nuclei[m]), [0])))
+            nm = m & (nuclei > 0)
+            row["Nucleus_area_px"] = int(nm.sum())
+            row["Nucleus_area"] = float(nm.sum() * px_area)
+            if dapi is not None:
+                row["Nucleus_DAPI_mean"] = float(dapi[nm].mean()) if nm.any() else np.nan
+        flags = qc_flags(row, nuc_ref)
+        row["QC_flags"] = ";".join(flags)
+        row["QC_pass"] = not flags
         rows.append(row)
     df = pd.DataFrame(rows)
     if len(df):
@@ -513,7 +562,8 @@ def background_and_measure(a: Analysis, cell_ids, s: Settings | None = None, box
     sat = a.meta["max_value"]
     bg = measure_backgrounds(a.fitc_ch, boxes, (a.um_per_px or 1) ** 2, sat)
     bg_mean = float(bg["Mean"].mean()) if len(bg) else 0.0
-    cells = measure_cells(a.fitc_ch, a.labels, cell_ids, bg_mean, a.um_per_px, sat, a.nuclei)
+    cells = measure_cells(a.fitc_ch, a.labels, cell_ids, bg_mean, a.um_per_px, sat, a.nuclei, a.dapi_ch,
+                          nucleus_reference(a.nuclei, a.dapi_ch))
     return cells, bg, boxes
 
 
@@ -527,7 +577,7 @@ def to_display(arr: np.ndarray, gain: float = 1.0) -> np.ndarray:
 
 def overlay(display_rgb: np.ndarray, labels: np.ndarray, selected: set[int],
             bg_boxes, nuclei: np.ndarray | None = None, font_scale: int = 2,
-            nucleus_color=(0, 160, 255), nucleus_width: int = 0) -> Image.Image:
+            nucleus_color=(0, 160, 255), nucleus_width: int = 0, colors: dict | None = None) -> Image.Image:
     from PIL import ImageDraw, ImageFont
     out = display_rgb.copy()
     if nuclei is not None and nuclei.max() > 0:
@@ -538,7 +588,7 @@ def overlay(display_rgb: np.ndarray, labels: np.ndarray, selected: set[int],
     for cid in np.setdiff1d(np.unique(labels), [0]):
         b = segmentation.find_boundaries(labels == cid, mode="inner")
         b = ndi.binary_dilation(b, morphology.disk(1))
-        out[b] = (255, 220, 0) if cid in selected else (150, 150, 150)
+        out[b] = (colors or {}).get(cid) or ((255, 220, 0) if cid in selected else (150, 150, 150))
     im = Image.fromarray(out)
     dr = ImageDraw.Draw(im)
     font = None

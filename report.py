@@ -68,7 +68,7 @@ def methods_table(version: str) -> pd.DataFrame:
 
 
 def write_excel(path: str | Path, results: pd.DataFrame, bg_results: pd.DataFrame, version: str,
-                validation: pd.DataFrame | None = None):
+                validation: pd.DataFrame | None = None, excluded: pd.DataFrame | None = None):
     with pd.ExcelWriter(path, engine="openpyxl") as xw:
         ordered(results).to_excel(xw, sheet_name="Cells", index=False)
         group_summary(results).to_excel(xw, sheet_name="Group_summary", index=False)
@@ -85,6 +85,12 @@ def write_excel(path: str | Path, results: pd.DataFrame, bg_results: pd.DataFram
              .reset_index().to_excel(xw, sheet_name="Experiment_means", index=False))
         bg_results.to_excel(xw, sheet_name="Background", index=False)
         methods_table(version).to_excel(xw, sheet_name="Methods", index=False)
+        if excluded is not None and len(excluded):  # dışlanan her hücre gerekçesiyle (QC otomatik / elle)
+            front = [c for c in ("Group", "Experiment", "Image", "Cell", "Exclusion", "Reason") if c in excluded]
+            excluded[front + [c for c in excluded.columns if c not in front]].to_excel(
+                xw, sheet_name="Excluded_cells", index=False)
+            (excluded.groupby(["Group", "Reason"]).size().rename("n").reset_index()
+             .to_excel(xw, sheet_name="Exclusion_summary", index=False))
         if validation is not None and len(validation):  # elle (Fiji) vs otomatik — yöntem doğrulaması
             validation.to_excel(xw, sheet_name="Validation", index=False)
             pd.DataFrame([agreement(validation)]).to_excel(xw, sheet_name="Validation_summary", index=False)

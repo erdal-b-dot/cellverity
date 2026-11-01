@@ -356,6 +356,25 @@ EN = {
     "Pozlama": "Exposure",
     "⚠️ Bu klasörde farklı pozlama süreleri var ({0}). Farklı pozlamayla çekilmiş görüntülerin CTCF değerleri karşılaştırılamaz; yalnızca aynı ayarla çekilenleri işaretli bırakın.":
         "⚠️ This folder contains different exposure times ({0}). CTCF values of images acquired with different exposures cannot be compared; keep only those acquired with the same settings ticked.",
+    # ---- kalite kontrol / dışlama
+    "Kalite kontrolünden kalanları dışla": "Exclude cells failing quality control",
+    "Doymuş pikselli, çekirdeksiz, çok çekirdekli, çekirdeği kısmi (hücre parçası) ya da piknotik çekirdekli hücreler 'Tüm hücreleri seç'te seçilmez ve gerekçesiyle Excel'in Excluded_cells sayfasına yazılır. Turuncu çizgiyle gösterilir.":
+        "Cells with saturated pixels, no nucleus, several nuclei, only part of a nucleus (cell fragment) or a pyknotic nucleus are not selected by 'Select all cells' and are written with their reason to the Excluded_cells sheet in Excel. They are outlined in orange.",
+    "Sağ tık: hücreyi gerekçesiyle dışla (kırmızı).": "Right-click: exclude a cell with a reason (red).",
+    "Hücre {0}": "Cell {0}",
+    "Dışlamayı kaldır ({0})": "Remove exclusion ({0})",
+    "Dışla: {0}": "Exclude: {0}",
+    "QC: {0}": "QC: {0}",
+    "<span style='color:#d07000'>QC: {0} hücre</span> · <span style='color:#c22'>elle dışlanan: {1}</span>":
+        "<span style='color:#d07000'>QC: {0} cells</span> · <span style='color:#c22'>manually excluded: {1}</span>",
+    "Kalite kontrolünden kalanları dışla (doymuş, çekirdeksiz, çok/kısmi çekirdekli, piknotik)":
+        "Exclude cells failing quality control (saturated, no/several/partial nucleus, pyknotic)",
+    "Dışlanan her hücre gerekçesiyle Excel'in Excluded_cells sayfasına yazılır.": "Every excluded cell is written with its reason to the Excluded_cells sheet in Excel.",
+    "doymuş piksel": "saturated pixels", "çekirdek yok": "no nucleus", "birden çok çekirdek": "several nuclei",
+    "çekirdek kısmi (hücre parçası?)": "partial nucleus (cell fragment?)", "piknotik çekirdek": "pyknotic nucleus",
+    "görüntü kenarı": "image border",
+    "apoptotik / piknotik": "apoptotic / pyknotic", "mitotik": "mitotic", "çakışık / ayrılamıyor": "overlapping / not separable",
+    "odak dışı": "out of focus", "debris / hücre değil": "debris / not a cell", "diğer": "other",
     # ---- dil
     "Dil / Language": "Language / Dil",
     "Dil değişikliği program yeniden başlatılınca geçerli olur. Şimdi yeniden başlatılsın mı?":

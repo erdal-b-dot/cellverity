@@ -182,6 +182,17 @@ DP74 + cellSens için bilinen değerler: **20 µm = 138 px → 0.1449 µm/px (40
 - **Tüm hücreleri seç** / **Seçimi temizle**.
 - Görüntü kenarında **kesilmiş** hücreleri ölçmeyin (alanları eksik ölçülür).
 
+### 6.4.1 Kalite kontrol ve gerekçeli dışlama
+- **Otomatik kalite kontrol (QC)** — sağ panelde *Kalite kontrolünden kalanları dışla* (varsayılan açık). Şu hücreler **turuncu** çizilir ve *Tüm hücreleri seç*te seçilmez:
+  - **doymuş piksel** içeren (CTCF olduğundan düşük ölçülür),
+  - **çekirdeksiz** ya da **birden çok çekirdekli** (çoğunlukla segmentasyon hatası → Böl/Birleştir),
+  - **çekirdeği kısmi**: hücrenin içindeki çekirdek alanı görüntüdeki medyanın < %30'u (kesik ya da yanlış ayrılmış hücre parçası),
+  - **piknotik çekirdek**: çekirdek alanı medyanın < %50'si **ve** DAPI parlaklığı medyanın > 1.5 katı (apoptotik çekirdek için **sezgisel** ölçüt; gözle kontrol edin).
+- **Elle dışlama** — hücreye **sağ tıklayın** ▸ gerekçe seçin: *apoptotik / piknotik, mitotik, çakışık / ayrılamıyor, odak dışı, debris / hücre değil, diğer*. Hücre **kırmızı** çizilir. Geri almak için yine sağ tık ▸ *Dışlamayı kaldır* (ya da hücreye tıklayıp seçin).
+- QC'den kalan bir hücreyi yine de ölçmek isterseniz üzerine tıklayıp seçin; bayrağı `QC_flags` sütununda kalır.
+- Dışlanan her hücre gerekçesiyle Excel'in **Excluded_cells** sayfasına, sayıları **Exclusion_summary** sayfasına yazılır. Makalede "n hücre dışlandı (x doymuş, y apoptotik…)" diye raporlayabilirsiniz.
+- Hücre seçimi ve örnekleme kuralları için önerilen yaklaşım: önceden tanımlı ölçüt, sistematik alan seçimi, grubu bilmeden (kör) dışlama, ≥ 3 bağımsız deney.
+
 ### 6.5 Background
 - **Otomatik** (varsayılan): hücrelerden ≥ 40 piksel uzak, sinyal/debris içermeyen, hücrelere en yakın **3 kutu** (50×50 piksel). Boyut ve sayı sağ panelden değiştirilebilir.
 - **Kutuları taşımak:** kutunun üzerine gelin (el imleci), basılı tutup sürükleyin. Bıraktığınız anda yeniden ölçülür. Otomatik bir kutuyu taşırsanız mod **Elle**'ye geçer, diğer kutular yerinde kalır.
@@ -252,6 +263,7 @@ Her FITC, **aynı klasörde ±3 numara içindeki** DAPI'ler arasından, **çekir
 ### 8.3 Ölçüm
 - İşaretli satırlar ölçülür; istemediklerinizin işaretini kaldırın.
 - Her görüntüde **tüm hücreler** + **otomatik background** (sağ paneldeki kutu boyutu/sayısı).
+- *Kalite kontrolünden kalanları dışla* işaretliyse QC'den kalan hücreler ölçüme girmez; kenara değenlerle birlikte gerekçesiyle **Excluded_cells** sayfasına yazılır (`border`, `saturated`, `no_nucleus`, `partial_nucleus`, `multinucleate`, `pyknotic`).
 - **Kenara değen (kesik) hücreler** varsayılan olarak hariç tutulur.
 - Excel'de **Selection** sütunu: *manual click* ya da *batch: all cells, edge excluded*.
 - Toplu ölçümden sonra şüpheli görüntüleri kontrol edin (özellikle yoğun kümeler): **Biriken sonuçlar** sekmesinde bir satırın **üzerine gelince** hücrenin önizlemesi çıkar; **satıra tıklayınca** o görüntü DAPI'siyle açılır, tabloda kayıtlı hücreleri seçili gelir ve tıklanan hücre ortalanır. Sınırları düzeltip ([Bölüm 7](#7-hucre-sinirlarini-elle-duzeltmek)) ya da **Fiji ile doğrula**yıp **Sonuç tablosuna ekle** derseniz o görüntünün eski satırlarının yerine geçer.
@@ -268,6 +280,7 @@ Her FITC, **aynı klasörde ±3 numara içindeki** DAPI'ler arasından, **çekir
 | **Image_means** | Görüntü (alan) ortalamaları — GraphPad'e yapıştırmaya hazır |
 | **Experiment_means** | Deney ortalamaları — yayın istatistiği için önerilen birim |
 | **Background** | Kutu başına background ölçümleri |
+| **Excluded_cells**, **Exclusion_summary** | Dışlanan hücreler ve gerekçeleri (otomatik QC / elle) |
 | **Methods** | Formüller, yöntemler, atıf |
 | **Validation**, **Validation_summary** | Elle (Fiji) vs otomatik karşılaştırma ve Bland–Altman özeti (varsa) |
 
@@ -282,6 +295,7 @@ Her FITC, **aynı klasörde ±3 numara içindeki** DAPI'ler arasından, **çekir
 | BG_mode, BG_box_px, BG_n | Background yöntemi |
 | Segmentation, Nucleus_method, DAPI_overlap, Touching_pairs | Hücre ayırma bilgisi |
 | Selection, Manual_edits | Hücrelerin nasıl seçildiği, elle düzeltmeler |
+| QC_flags, QC_pass, Nuclei_in_cell, Nucleus_area, Nucleus_DAPI_mean | Kalite kontrol bayrakları ve çekirdek özellikleri |
 | Fiji_check | Fiji ile doğrulandıysa sonuç |
 | App_version, Timestamp | Program sürümü, tarih |
 

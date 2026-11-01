@@ -91,7 +91,7 @@ VIEW_MODES = ("FITC", "DAPI", T("Birleşik (FITC + DAPI)"))
 NUCLEUS_COLOR = (255, 0, 255)  # mor: hem yeşil hem mavi zeminde görünür
 TABLE_COLS = [("Cell", T("Hücre"), 0), ("Area", T("Alan"), 2), ("Mean", "Mean", 3), ("StdDev", "StdDev", 3),
               ("Min", "Min", 0), ("Max", "Max", 0), ("IntDen", "IntDen", 1), ("RawIntDen", "RawIntDen", 0),
-              ("CTCF", "CTCF", 1), ("Saturated_px", T("Doymuş px"), 0)]
+              ("CTCF", "CTCF", 1), ("Saturated_px", T("Doymuş px"), 0), ("QC_flags", "QC", None)]
 RES_COLS = [("Group", T("Grup"), None), ("Experiment", T("Deney"), None), ("Image", T("Görüntü"), None), ("Cell", T("Hücre"), 0), ("Area", T("Alan"), 2),
             ("Mean", "Mean", 3), ("IntDen", "IntDen", 1), ("BG_Mean", "BG Mean", 3), ("CTCF", "CTCF", 1),
             ("Objective", T("Objektif"), 0)]
@@ -153,6 +153,7 @@ class ImageView(QGraphicsView):
     clicked = Signal(int, int)
     box_moved = Signal(int, int, int)
     path_drawn = Signal(list)          # çizim/bölme modunda fareyle çizilen yol [(x, y), …]
+    context = Signal(int, int, object)  # sağ tık: (y, x, ekran konumu)
     DRAW_MODES = ("split", "draw")
     BOX_COLOR = QColor(255, 60, 60)
 
@@ -231,6 +232,12 @@ class ImageView(QGraphicsView):
         self.viewport().setCursor(Qt.CursorShape.CrossCursor if mode != "select" else Qt.CursorShape.ArrowCursor)
 
     def mousePressEvent(self, e):
+        if e.button() == Qt.MouseButton.RightButton:
+            pt = self.mapToScene(e.position().toPoint())
+            pm = self.item.pixmap()
+            if not pm.isNull() and 0 <= pt.x() < pm.width() and 0 <= pt.y() < pm.height():
+                self.context.emit(int(pt.y()), int(pt.x()), e.globalPosition().toPoint())
+            return
         self._press = e.position().toPoint()
         alt = bool(e.modifiers() & Qt.KeyboardModifier.AltModifier)
         if self.mode in self.DRAW_MODES and e.button() == Qt.MouseButton.LeftButton and not alt:
@@ -371,6 +378,18 @@ class InfoPanel(QWidget):
         sl.addLayout(row)
         self.sel_info = QLabel(T("Seçili: —"))
         sl.addWidget(self.sel_info)
+        self.qc_auto = QCheckBox(T("Kalite kontrolünden kalanları dışla"))
+        self.qc_auto.setChecked(True)
+        self.qc_auto.setToolTip(T("Doymuş pikselli, çekirdeksiz, çok çekirdekli, çekirdeği kısmi (hücre parçası) ya da "
+                                  "piknotik çekirdekli hücreler 'Tüm hücreleri seç'te seçilmez ve gerekçesiyle "
+                                  "Excel'in Excluded_cells sayfasına yazılır. Turuncu çizgiyle gösterilir."))
+        sl.addWidget(self.qc_auto)
+        hint = QLabel(T("Sağ tık: hücreyi gerekçesiyle dışla (kırmızı)."))
+        hint.setStyleSheet("color:#666;")
+        sl.addWidget(hint)
+        self.qc_info = QLabel()
+        self.qc_info.setWordWrap(True)
+        sl.addWidget(self.qc_info)
         lay.addWidget(sel)
 
         bg = QGroupBox("Background")
@@ -489,15 +508,15 @@ class BatchWorker(QObject):
                 self.finished.emit(batch.scan(folder, recursive,
                                               lambda i, n, k, f: self.progress.emit(i, n, T(labels[k]).format(f))))
             else:
-                items, s, edge = self.payload
+                items, s, edge, qc = self.payload
                 errors = []
                 for k, it in enumerate(items):
                     if self.stop:
                         break
                     self.progress.emit(k, len(items), T("Ölçülüyor: {0}").format(it.fitc.name))
                     try:
-                        a, cells, bg = batch.measure(it, s, edge)
-                        self.item_done.emit(it, a, cells, bg)
+                        a, cells, bg, excluded = batch.measure_qc(it, s, edge, qc)
+                        self.item_done.emit(it, a, (cells, excluded), bg)
                     except Exception as ex:  # bir görüntü bozuksa diğerleri sürsün
                         errors.append(f"{it.fitc.name}: {type(ex).__name__}: {ex}")
                 self.finished.emit(errors)
@@ -551,6 +570,10 @@ class BatchDialog(QDialog):
         self.edge.setChecked(True)
         self.edge.setToolTip(T("Kenarda kesilmiş hücrenin alanı ve IntDen'i eksik ölçülür; genellikle hariç tutulur."))
         lay.addWidget(self.edge)
+        self.qc = QCheckBox(T("Kalite kontrolünden kalanları dışla (doymuş, çekirdeksiz, çok/kısmi çekirdekli, piknotik)"))
+        self.qc.setChecked(main.panel.qc_auto.isChecked())
+        self.qc.setToolTip(T("Dışlanan her hücre gerekçesiyle Excel'in Excluded_cells sayfasına yazılır."))
+        lay.addWidget(self.qc)
         self.bar = QProgressBar()
         self.bar.hide()
         self.status = QLabel()
@@ -658,15 +681,17 @@ class BatchDialog(QDialog):
         p = self.main.panel
         self.settings = core.Settings(bg_size=p.bg_size.value(), bg_n=p.bg_n.value())
         self.n_cells = 0
-        self._start("measure", (todo, self.settings, self.edge.isChecked()), self.on_measured)
+        self._start("measure", (todo, self.settings, self.edge.isChecked(), self.qc.isChecked()), self.on_measured)
 
     def on_item(self, it, a, cells, bg):
+        cells, excluded = cells
         if cells is None or not len(cells):
             return
         meta = result_meta(a, it.fitc, it.dapi, it.group, "auto", self.settings.bg_size, len(bg),
-                           "batch: all cells" + (", edge excluded" if self.edge.isChecked() else ""),
+                           "batch: all cells" + (", edge excluded" if self.edge.isChecked() else "")
+                           + (", QC filter" if self.qc.isChecked() else ""),
                            it.experiment)
-        self.main.add_measurement(cells, bg, meta)
+        self.main.add_measurement(cells, bg, meta, excluded)
         self.n_cells += len(cells)
 
     def on_measured(self, errors):
@@ -886,6 +911,9 @@ class MainWindow(QMainWindow):
         self.selected: set[int] = set()
         self.undo_stack, self.redo_stack = [], []   # (labels, selected, edit_log) anlık görüntüleri
         self.edit_log: list[str] = []
+        self.exclusions: dict[int, str] = {}   # elle dışlanan hücre → gerekçe kodu (core.MANUAL_REASONS)
+        self.qc_cells = None                   # açık görüntünün tüm hücreleri için QC bilgisi
+        self.excluded_results = pd.DataFrame()
         self._merge_first = None
         self.manual_boxes: list[tuple[int, int, int, int]] = []
         self.boxes: list[tuple[int, int, int, int]] = []
@@ -899,6 +927,8 @@ class MainWindow(QMainWindow):
         self.view.clicked.connect(self.on_click)
         self.view.box_moved.connect(self.on_box_moved)
         self.view.path_drawn.connect(self.on_path)
+        self.view.context.connect(self.on_context)
+        self.panel.qc_auto.toggled.connect(lambda _: self.update_measure())
         p = self.panel
         p.btn_all.clicked.connect(self.select_all)
         p.btn_none.clicked.connect(self.select_none)
@@ -933,6 +963,7 @@ class MainWindow(QMainWindow):
         self._thumbs = {}       # (görüntü yolu, hücre) → küçük resim dosyası
         self._img_cache = {}    # görüntü yolu → dizi (son birkaç görüntü)
         self._after_analysis = None
+        self._fresh_image = True
         self.sum_table = make_table(SUM_COLS)
         self.tabs.addTab(self.table, T("Hücreler"))
         self.tabs.addTab(self.bg_table, T("Background kutuları"))
@@ -1140,6 +1171,7 @@ class MainWindow(QMainWindow):
             if self.fitc is None or self.fitc[0] != path:
                 self.analysis = None
                 self.selected, self.manual_boxes = set(), []
+                self.exclusions, self._fresh_image = {}, True
                 self.panel.bar_um.setValue(0)  # yeni görüntü → etiketten oku
                 if self.fitc is not None and self.dapi is not None:  # önceki alanın DAPI'si yanlış ayırır
                     self.dapi = None
@@ -1223,6 +1255,10 @@ class MainWindow(QMainWindow):
         p.set(T("Hücre sayısı"), f"{len(a.cell_ids)}")
         p.set(T("Çekirdek sayısı"), f"{int(a.nuclei.max())}" if a.nuclei is not None else T("— (DAPI yok)"))
         p.set_mode(a)
+        if first or self._fresh_image:
+            self.exclusions = {}
+        self._fresh_image = False
+        self.compute_qc()
         self.selected &= set(a.cell_ids)
         self.update_measure(redraw=False)
         self.redraw(fit=first)
@@ -1248,8 +1284,11 @@ class MainWindow(QMainWindow):
         else:
             disp = core.to_display(a.fitc_arr, gain)
         nuclei = a.nuclei if self.a_nuc.isChecked() else None
+        colors = {cid: (255, 140, 0) for cid in self.qc_failed() if cid not in self.selected}
+        colors.update({cid: (255, 40, 40) for cid in self.exclusions})
         self.view.set_pixmap(to_pixmap(core.overlay(disp, a.labels, self.selected, [], nuclei,
-                                                    nucleus_color=NUCLEUS_COLOR, nucleus_width=1)), fit)
+                                                    nucleus_color=NUCLEUS_COLOR, nucleus_width=1,
+                                                    colors=colors)), fit)
         self.view.set_boxes(self.boxes)
 
     # ------------------------------------------------------ seçim / ölçüm
@@ -1282,6 +1321,8 @@ class MainWindow(QMainWindow):
                 return
         cid = int(a.labels[y, x])
         if cid:
+            if cid in self.exclusions:
+                del self.exclusions[cid]
             self.selected ^= {cid}
         elif self.panel.bg_manual.isChecked():
             box = core.box_at(y, x, self.panel.bg_size.value(), a.labels.shape)
@@ -1359,6 +1400,7 @@ class MainWindow(QMainWindow):
     def _set_labels(self, labels):
         self.analysis = core.relabeled(self.analysis, labels)
         self.selected &= set(self.analysis.cell_ids)
+        self.compute_qc()
         self.panel.set(T("Hücre sayısı"), f"{len(self.analysis.cell_ids)}"
                        + (T(" (elle düzeltildi)") if self.edit_log or self.undo_stack else ""))
         self.update_measure()
@@ -1386,9 +1428,65 @@ class MainWindow(QMainWindow):
         self.a_redo.setEnabled(bool(self.redo_stack))
         self.edit_info.setText(T("{0} elle düzeltme").format(len(self.edit_log)) if self.edit_log else "")
 
+    # ---------------------------------------------- kalite kontrol / gerekçeli dışlama
+    def compute_qc(self):
+        a = self.analysis
+        if a is None:
+            self.qc_cells = None
+            return
+        ref = core.nucleus_reference(a.nuclei, a.dapi_ch)
+        self.qc_cells = core.measure_cells(a.fitc_ch, a.labels, a.cell_ids, 0.0, a.um_per_px, a.meta["max_value"],
+                                           a.nuclei, a.dapi_ch, ref)
+        self.exclusions = {c: r for c, r in self.exclusions.items() if c in a.cell_ids}
+
+    def qc_failed(self) -> dict[int, str]:
+        q = self.qc_cells
+        if q is None or not len(q) or not self.panel.qc_auto.isChecked():
+            return {}
+        bad = q[~q["QC_pass"]]
+        return dict(zip(bad["Cell"].astype(int), bad["QC_flags"]))
+
+    def excluded_ids(self) -> dict[int, tuple[str, str]]:
+        """Dışlanan hücre → (tür, gerekçe): ('manual', 'apoptotic') ya da ('auto', 'saturated;no_nucleus')."""
+        out = {c: ("auto", f) for c, f in self.qc_failed().items()}
+        out.update({c: ("manual", r) for c, r in self.exclusions.items()})
+        return out
+
+    def on_context(self, y, x, gpos):
+        a = self.analysis
+        if a is None:
+            return
+        cid = int(a.labels[y, x])
+        if not cid:
+            return
+        from PySide6.QtWidgets import QMenu
+        menu = QMenu(self)
+        menu.addSection(T("Hücre {0}").format(cid))
+        if cid in self.exclusions:
+            undo = menu.addAction(T("Dışlamayı kaldır ({0})").format(T(core.MANUAL_REASONS[self.exclusions[cid]])))
+            undo.triggered.connect(lambda: self._set_exclusion(cid, None))
+        else:
+            for code, label in core.MANUAL_REASONS.items():
+                act_ = menu.addAction(T("Dışla: {0}").format(T(label)))
+                act_.triggered.connect(lambda _=False, c=code: self._set_exclusion(cid, c))
+        qc = self.qc_failed().get(cid)
+        if qc:
+            menu.addSeparator()
+            info = menu.addAction(T("QC: {0}").format(", ".join(T(core.QC_REASONS.get(f, f)) for f in qc.split(";"))))
+            info.setEnabled(False)
+        menu.exec(gpos)
+
+    def _set_exclusion(self, cid, code):
+        if code is None:
+            self.exclusions.pop(cid, None)
+        else:
+            self.exclusions[cid] = code
+            self.selected.discard(cid)
+        self.update_measure()
+
     def select_all(self):
         if self.analysis:
-            self.selected = set(self.analysis.cell_ids)
+            self.selected = set(self.analysis.cell_ids) - set(self.excluded_ids())
             self.update_measure()
 
     def select_none(self):
@@ -1415,6 +1513,10 @@ class MainWindow(QMainWindow):
             self.boxes = list(self.manual_boxes)
         p.btn_bg_clear.setEnabled(p.bg_manual.isChecked() and bool(self.manual_boxes))
         p.sel_info.setText(T("Seçili: {0} / {1} hücre").format(len(self.selected), len(a.cell_ids)))
+        n_qc, n_man = len(self.qc_failed()), len(self.exclusions)
+        p.qc_info.setText(T("<span style='color:#d07000'>QC: {0} hücre</span> · "
+                            "<span style='color:#c22'>elle dışlanan: {1}</span>").format(n_qc, n_man)
+                          if (n_qc or n_man) else "")
         if self.boxes:
             cells, bg, _ = core.background_and_measure(a, sorted(self.selected), s, self.boxes)
             msg = T("Background ortalaması: <b>{0:.3f}</b>  (n = {1} kutu, {2}×{3} px)").format(bg['Mean'].mean(), len(bg), s.bg_size, s.bg_size)
@@ -1457,13 +1559,28 @@ class MainWindow(QMainWindow):
                            self.panel.bg_size.value(), len(self.cur_bg), "manual click",
                            self.panel.experiment.text().strip(), "; ".join(self.edit_log), self.fiji_check)
         replaced = len(self.results) and (self.results["Image_path"] == str(fpath)).any()
-        self.add_measurement(cells, self.cur_bg, meta)
+        excl = self.excluded_ids()
+        ex_ids = [c for c in excl if c not in self.selected]
+        ex_df = None
+        if ex_ids:
+            s_ = core.Settings(bg_size=self.panel.bg_size.value(), bg_n=self.panel.bg_n.value())
+            ex_df, _, _ = core.background_and_measure(a, ex_ids, s_, self.boxes)
+            ex_df = ex_df.assign(Exclusion=[excl[c][0] for c in ex_df["Cell"]],
+                                 Reason=[excl[c][1] for c in ex_df["Cell"]])
+        self.add_measurement(cells, self.cur_bg, meta, ex_df)
         self.tabs.setCurrentIndex(2)
         self.statusBar().showMessage(T("{0} hücre '{1}' grubuna eklendi").format(len(cells), group)
                                      + (T(" (bu görüntünün önceki ölçümünün yerine).") if replaced else "."), 6000)
 
-    def add_measurement(self, cells, bg, meta):
+    def add_measurement(self, cells, bg, meta, excluded=None):
         self.results = report.add_image(self.results, cells, meta)
+        er = self.excluded_results
+        if len(er):  # bu görüntünün önceki dışlama kayıtlarını değiştir
+            er = er[er["Image_path"] != meta["Image_path"]]
+        if excluded is not None and len(excluded):
+            add = excluded.assign(**{k: meta[k] for k in ("Group", "Experiment", "Image", "Image_path", "App_version")})
+            er = pd.concat([er, add], ignore_index=True) if len(er) else add
+        self.excluded_results = er
         self.bg_results = report.add_background(self.bg_results, bg, meta["Image"], meta["Image_path"],
                                                 meta["Group"])
         self._dirty = True
@@ -1474,7 +1591,8 @@ class MainWindow(QMainWindow):
         """Her eklemeden sonra Belgeler/ICC CTCF Olcer/otomatik_kayit.xlsx — çökme/elektrik kesintisine karşı."""
         try:
             AUTOSAVE.parent.mkdir(parents=True, exist_ok=True)
-            report.write_excel(AUTOSAVE, self.results, self.bg_results, VERSION, self.validation)
+            report.write_excel(AUTOSAVE, self.results, self.bg_results, VERSION, self.validation,
+                               self.excluded_results)
         except Exception as ex:  # otomatik kayıt başarısızlığı ölçümü durdurmasın
             self.statusBar().showMessage(T("Otomatik kayıt yapılamadı: {0}").format(ex), 6000)
 
@@ -1494,6 +1612,15 @@ class MainWindow(QMainWindow):
                 bg = pd.DataFrame()
             try:
                 self.validation = pd.read_excel(path, sheet_name="Validation")
+            except ValueError:
+                pass
+            try:
+                ex = pd.read_excel(path, sheet_name="Excluded_cells")
+                ex["Reason"] = ex["Reason"].fillna("")
+                old = self.excluded_results
+                if len(old) and "Image_path" in ex:
+                    ex = pd.concat([old[~old["Image_path"].isin(set(ex["Image_path"]))], ex], ignore_index=True)
+                self.excluded_results = ex
             except ValueError:
                 pass
         except Exception as ex:
@@ -1648,7 +1775,8 @@ class MainWindow(QMainWindow):
             return False
         try:
             if fmt == "xlsx":
-                report.write_excel(path, self.results, self.bg_results, VERSION, self.validation)
+                report.write_excel(path, self.results, self.bg_results, VERSION, self.validation,
+                                   self.excluded_results)
             else:
                 report.write_csv(path, self.results)
         except Exception as ex:
@@ -1687,6 +1815,7 @@ class MainWindow(QMainWindow):
                                          + (T("\n\nKaydedilmemiş sonuçlar kaybolur.") if self._dirty else ""),
                                          ask=True):
             self.results, self.bg_results, self._dirty = pd.DataFrame(), pd.DataFrame(), False
+            self.excluded_results = pd.DataFrame()
             AUTOSAVE.unlink(missing_ok=True)
             self.refresh_results()
 
