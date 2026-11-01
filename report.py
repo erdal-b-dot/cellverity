@@ -52,7 +52,7 @@ def methods_table(version: str) -> pd.DataFrame:
         "Software", "CTCF", "IntDen", "StdDev", "ROI rule", "Background", "Cell segmentation",
         "Nucleus segmentation", "Calibration", "Reference"],
         "Description": [
-            f"ICC CTCF Ölçer {version}",
+            f"ICC CTCF Ölçer {version} (Balcan, 2026; https://doi.org/10.5281/zenodo.23860020)",
             "CTCF = IntDen − (Area × Mean_background)",
             "IntDen = Area × Mean (calibrated units); RawIntDen = sum of pixel values (ImageJ definitions)",
             "Sample SD (n − 1), as in ImageJ",

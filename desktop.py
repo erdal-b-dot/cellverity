@@ -1749,7 +1749,9 @@ class MainWindow(QMainWindow):
         message(self, "info",
                 f"<b>{APP_NAME} {VERSION}</b><br>Immunositokimya görüntülerinde CTCF ölçümü.<br><br>"
                           "CTCF = IntDen − (Area × Mean background)<br>McCloy et al., 2014, <i>Cell Cycle</i><br><br>"
-                          "Ölçümler ImageJ/Fiji ile birebir aynıdır.<br>© Erdal Balcan, MIT lisansı")
+                          "Ölçümler ImageJ/Fiji ile birebir aynıdır.<br>"
+                "Atıf: <a href='https://doi.org/10.5281/zenodo.23860020'>doi:10.5281/zenodo.23860020</a> (v2.0.0: 10.5281/zenodo.23860021)<br>"
+                "© Erdal Balcan, MIT lisansı")
 
 
 def resource(rel: str) -> Path:

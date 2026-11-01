@@ -1,6 +1,8 @@
 # ICC CTCF Ölçer 2 — Kullanım Kılavuzu
 
-*Sürüm 2.0.0 · Erdal Balcan, Manisa Celal Bayar Üniversitesi · MIT lisansı*
+*Sürüm 2.0.0 · Erdal Balcan, Manisa Celal Bayar Üniversitesi · MIT lisansı · DOI: [10.5281/zenodo.23860021](https://doi.org/10.5281/zenodo.23860021)*
+
+Kaynak kod ve indirmeler: https://github.com/erdal-b-dot/icc-ctcf-olcer
 
 ---
 
@@ -68,6 +70,8 @@ Görüntüleriniz bilgisayarınızdan dışarı **hiçbir yere gönderilmez**; p
 1. Zip'e sağ tıklayın ▸ **Tümünü ayıkla**. Klasörü örneğin `Belgeler` içine koyun (zip'in içinden çalıştırmayın).
 2. `ICC CTCF Olcer.exe`'ye çift tıklayın. "Windows bilgisayarınızı korudu" çıkarsa **Ek bilgi ▸ Yine de çalıştır**.
 3. Masaüstü kısayolu: exe'ye sağ tıklayın ▸ Gönder ▸ Masaüstü (kısayol oluştur).
+
+**İndirme adresi:** https://github.com/erdal-b-dot/icc-ctcf-olcer/releases (en yeni sürüm en üstte).
 
 **Başka bir bilgisayara aktarmak:** paket dosyasını Google Drive paylaşım bağlantısı, USB bellek ya da e-postayla (≈100 MB) gönderin. Paketler: Drive ▸ `ARASTIRMA_KASAM/01_Projeler/ICC_CTCF_Olcer/kurulum_paketleri/`. Yeni paket üretmek: kaynak kod klasöründe `./build_mac.sh` (Mac) / `build_windows.bat` (Windows).
 
@@ -402,12 +406,22 @@ Programın otomatik sınırlarının elle çizime ne kadar yakın olduğunu öl�
 
 **Örnek yöntem metni (İngilizce, kendi ayarlarınıza göre düzenleyin):**
 
-> Corrected total cell fluorescence (CTCF) was quantified as CTCF = integrated density − (cell area × mean background fluorescence) (McCloy et al., 2014) using ICC CTCF Ölçer v2.0.0 (Balcan, 2026), a custom Python tool whose measurements are identical to ImageJ/Fiji for the same regions of interest (verified with Fiji 1.54p). FITC fluorescence was measured on the green channel of unprocessed Olympus DP74 images (40× objective, 0.145 µm/pixel; calibration read from the embedded scale bar). Cells were segmented from the FITC channel (Li threshold) and touching cells were separated by watershed seeded with DAPI-stained nuclei. Background was the mean of three 50 × 50 pixel cell-free regions per field. Cells touching the image border were excluded. Automatic boundaries were compared with manual Fiji tracing in n = … cells from … images (Bland–Altman bias …%, 95% limits of agreement … to …%; mean Dice …). Statistics were performed on the means of N = … independent experiments using one-way ANOVA followed by Dunnett's test versus control.
+> Corrected total cell fluorescence (CTCF) was quantified as CTCF = integrated density − (cell area × mean background fluorescence) (McCloy et al., 2014) using ICC CTCF Ölçer v2.0.0 (Balcan, 2026; https://doi.org/10.5281/zenodo.23860021), an open-source tool whose measurements are identical to ImageJ/Fiji for the same regions of interest (verified with Fiji 1.54p). FITC fluorescence was measured on the green channel of unprocessed Olympus DP74 images (40× objective, 0.145 µm/pixel; calibration read from the embedded scale bar). Cells were segmented from the FITC channel (Li threshold) and touching cells were separated by watershed seeded with DAPI-stained nuclei. Background was the mean of three 50 × 50 pixel cell-free regions per field. Cells touching the image border were excluded. Automatic boundaries were compared with manual Fiji tracing in n = … cells from … images (Bland–Altman bias …%, 95% limits of agreement … to …%; mean Dice …). Statistics were performed on the means of N = … independent experiments using one-way ANOVA followed by Dunnett's test versus control.
 
 Excel'deki **Methods** sayfası ve **Cells** sayfasındaki *App_version, Nucleus_method, Scale_source, BG_box_px, BG_n, Selection, Manual_edits, Fiji_check* sütunları bu metni doldurmak için gereken bilgileri içerir.
 
-**Atıf:** Programın kaynak kodu GitHub'dadır; atıf bilgisi `CITATION.cff` dosyasında. Yayın öncesi depo herkese açılıp Zenodo DOI'si alınacaktır.
+**Atıf (kaynakçaya):**
 
+> Balcan E. (2026). *ICC CTCF Ölçer: per-cell corrected total cell fluorescence (CTCF) quantification for immunocytochemistry images* (Version 2.0.0) [Computer software]. Zenodo. https://doi.org/10.5281/zenodo.23860021
+
+| DOI | Ne zaman kullanılır |
+|---|---|
+| **10.5281/zenodo.23860021** | Makalede kullandığınız **bu sürüm** (2.0.0) — önerilen; tekrarlanabilirlik için sürüm belli olur |
+| 10.5281/zenodo.23860020 | Programın **tüm sürümleri** (concept DOI; her zaman en yeni sürüme yönlendirir) |
+
+Ölçümde kullanılan sürüm Excel'deki **App_version** sütununda yazar; yeni bir sürümle ölçtüyseniz o sürümün DOI'sini Zenodo sayfasından alın (https://doi.org/10.5281/zenodo.23860020 → "Versions").
+
+Ayrıca CTCF yöntemi için: McCloy RA, Rogers S, Caldon CE, Lorca T, Castro A, Burgess A. (2014). Partial inhibition of Cdk1 in G2 phase overrides the SAC and decouples mitotic events. *Cell Cycle* 13(9):1400–1412. https://doi.org/10.4161/cc.28401
 ---
 
 ## 14. Sorun giderme

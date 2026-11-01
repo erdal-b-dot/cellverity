@@ -15,7 +15,8 @@ body{max-width:none;font-size:10.5pt;padding:0}a{color:inherit;text-decoration:n
 h1+p+hr+h2{break-before:avoid}table{display:table;break-inside:auto}tr,blockquote,pre{break-inside:avoid}
 @page{size:A4;margin:16mm 14mm}}
 </style></head><body><h1 id="icc-ctcf-olcer-2-kullanim-kilavuzu">ICC CTCF Ölçer 2 — Kullanım Kılavuzu</h1>
-<p><em>Sürüm 2.0.0 · Erdal Balcan, Manisa Celal Bayar Üniversitesi · MIT lisansı</em></p>
+<p><em>Sürüm 2.0.0 · Erdal Balcan, Manisa Celal Bayar Üniversitesi · MIT lisansı · DOI: <a href="https://doi.org/10.5281/zenodo.23860021">10.5281/zenodo.23860021</a></em></p>
+<p>Kaynak kod ve indirmeler: https://github.com/erdal-b-dot/icc-ctcf-olcer</p>
 <hr />
 <h2 id="icindekiler">İçindekiler</h2>
 <ol>
@@ -113,6 +114,7 @@ Monterey'de Apple Silicon paketi için <strong>macOS 12.3 veya üstü</strong> g
 1. Zip'e sağ tıklayın ▸ <strong>Tümünü ayıkla</strong>. Klasörü örneğin <code>Belgeler</code> içine koyun (zip'in içinden çalıştırmayın).
 2. <code>ICC CTCF Olcer.exe</code>'ye çift tıklayın. "Windows bilgisayarınızı korudu" çıkarsa <strong>Ek bilgi ▸ Yine de çalıştır</strong>.
 3. Masaüstü kısayolu: exe'ye sağ tıklayın ▸ Gönder ▸ Masaüstü (kısayol oluştur).</p>
+<p><strong>İndirme adresi:</strong> https://github.com/erdal-b-dot/icc-ctcf-olcer/releases (en yeni sürüm en üstte).</p>
 <p><strong>Başka bir bilgisayara aktarmak:</strong> paket dosyasını Google Drive paylaşım bağlantısı, USB bellek ya da e-postayla (≈100 MB) gönderin. Paketler: Drive ▸ <code>ARASTIRMA_KASAM/01_Projeler/ICC_CTCF_Olcer/kurulum_paketleri/</code>. Yeni paket üretmek: kaynak kod klasöründe <code>./build_mac.sh</code> (Mac) / <code>build_windows.bat</code> (Windows).</p>
 <h3 id="22-gelistirici-kurulumu-kaynak-koddan">2.2 Geliştirici kurulumu (kaynak koddan)</h3>
 <p>Python ortamıyla çalıştırmak isterseniz (güncellemeleri <code>git pull</code> ile almak için):
@@ -791,11 +793,33 @@ Program Fiji'yi şu yerlerde kendisi arar: <code>İndirilenler/Fiji</code>, <cod
 <h2 id="13-makale-icin-yontem-metni-ve-atif">13. Makale için: yöntem metni ve atıf</h2>
 <p><strong>Örnek yöntem metni (İngilizce, kendi ayarlarınıza göre düzenleyin):</strong></p>
 <blockquote>
-<p>Corrected total cell fluorescence (CTCF) was quantified as CTCF = integrated density − (cell area × mean background fluorescence) (McCloy et al., 2014) using ICC CTCF Ölçer v2.0.0 (Balcan, 2026), a custom Python tool whose measurements are identical to ImageJ/Fiji for the same regions of interest (verified with Fiji 1.54p). FITC fluorescence was measured on the green channel of unprocessed Olympus DP74 images (40× objective, 0.145 µm/pixel; calibration read from the embedded scale bar). Cells were segmented from the FITC channel (Li threshold) and touching cells were separated by watershed seeded with DAPI-stained nuclei. Background was the mean of three 50 × 50 pixel cell-free regions per field. Cells touching the image border were excluded. Automatic boundaries were compared with manual Fiji tracing in n = … cells from … images (Bland–Altman bias …%, 95% limits of agreement … to …%; mean Dice …). Statistics were performed on the means of N = … independent experiments using one-way ANOVA followed by Dunnett's test versus control.</p>
+<p>Corrected total cell fluorescence (CTCF) was quantified as CTCF = integrated density − (cell area × mean background fluorescence) (McCloy et al., 2014) using ICC CTCF Ölçer v2.0.0 (Balcan, 2026; https://doi.org/10.5281/zenodo.23860021), an open-source tool whose measurements are identical to ImageJ/Fiji for the same regions of interest (verified with Fiji 1.54p). FITC fluorescence was measured on the green channel of unprocessed Olympus DP74 images (40× objective, 0.145 µm/pixel; calibration read from the embedded scale bar). Cells were segmented from the FITC channel (Li threshold) and touching cells were separated by watershed seeded with DAPI-stained nuclei. Background was the mean of three 50 × 50 pixel cell-free regions per field. Cells touching the image border were excluded. Automatic boundaries were compared with manual Fiji tracing in n = … cells from … images (Bland–Altman bias …%, 95% limits of agreement … to …%; mean Dice …). Statistics were performed on the means of N = … independent experiments using one-way ANOVA followed by Dunnett's test versus control.</p>
 </blockquote>
 <p>Excel'deki <strong>Methods</strong> sayfası ve <strong>Cells</strong> sayfasındaki <em>App_version, Nucleus_method, Scale_source, BG_box_px, BG_n, Selection, Manual_edits, Fiji_check</em> sütunları bu metni doldurmak için gereken bilgileri içerir.</p>
-<p><strong>Atıf:</strong> Programın kaynak kodu GitHub'dadır; atıf bilgisi <code>CITATION.cff</code> dosyasında. Yayın öncesi depo herkese açılıp Zenodo DOI'si alınacaktır.</p>
-<hr />
+<p><strong>Atıf (kaynakçaya):</strong></p>
+<blockquote>
+<p>Balcan E. (2026). <em>ICC CTCF Ölçer: per-cell corrected total cell fluorescence (CTCF) quantification for immunocytochemistry images</em> (Version 2.0.0) [Computer software]. Zenodo. https://doi.org/10.5281/zenodo.23860021</p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>DOI</th>
+<th>Ne zaman kullanılır</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>10.5281/zenodo.23860021</strong></td>
+<td>Makalede kullandığınız <strong>bu sürüm</strong> (2.0.0) — önerilen; tekrarlanabilirlik için sürüm belli olur</td>
+</tr>
+<tr>
+<td>10.5281/zenodo.23860020</td>
+<td>Programın <strong>tüm sürümleri</strong> (concept DOI; her zaman en yeni sürüme yönlendirir)</td>
+</tr>
+</tbody>
+</table>
+<p>Ölçümde kullanılan sürüm Excel'deki <strong>App_version</strong> sütununda yazar; yeni bir sürümle ölçtüyseniz o sürümün DOI'sini Zenodo sayfasından alın (https://doi.org/10.5281/zenodo.23860020 → "Versions").</p>
+<h2 id="ayrica-ctcf-yontemi-icin-mccloy-ra-rogers-s-caldon-ce-lorca-t-castro-a-burgess-a-2014-partial-inhibition-of-cdk1-in-g2-phase-overrides-the-sac-and-decouples-mitotic-events-cell-cycle-13914001412-httpsdoiorg104161cc28401">Ayrıca CTCF yöntemi için: McCloy RA, Rogers S, Caldon CE, Lorca T, Castro A, Burgess A. (2014). Partial inhibition of Cdk1 in G2 phase overrides the SAC and decouples mitotic events. <em>Cell Cycle</em> 13(9):1400–1412. https://doi.org/10.4161/cc.28401</h2>
 <h2 id="14-sorun-giderme">14. Sorun giderme</h2>
 <table>
 <thead>

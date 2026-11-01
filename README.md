@@ -1,5 +1,7 @@
 # ICC CTCF Ölçer
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23860020.svg)](https://doi.org/10.5281/zenodo.23860020)
+
 Immunositokimya (ICC) floresan görüntülerinde hücre başına **CTCF (Corrected Total Cell Fluorescence)** ölçümü
 için yerel, tarayıcı tabanlı araç. ImageJ/Fiji'deki elle yapılan iş akışını otomatikleştirir; ölçüm tanımları
 ImageJ ile birebir aynıdır (Fiji ile doğrulandı).
@@ -83,4 +85,10 @@ Durdurmak için: macOS `./stop.sh`; Windows'ta küçültülmüş "ICC CTCF Olcer
 - `tests/test_core.py` — doğrulama testi (Fiji ile doğrulanmış değerler); `.venv/bin/python tests/test_core.py`
 
 ## Atıf
-Bu aracı bir yayında kullanırsanız `CITATION.cff` dosyasındaki bilgilerle atıf yapın.
+Balcan E. (2026). *ICC CTCF Ölçer: per-cell corrected total cell fluorescence (CTCF) quantification for immunocytochemistry images* (Version 2.0.0) [Computer software]. Zenodo. https://doi.org/10.5281/zenodo.23860021
+
+- Bu sürüm (2.0.0): [10.5281/zenodo.23860021](https://doi.org/10.5281/zenodo.23860021)
+- Tüm sürümler (her zaman en yeniye gider): [10.5281/zenodo.23860020](https://doi.org/10.5281/zenodo.23860020)
+- İndirme (Mac/Windows paketleri, kılavuz PDF): [GitHub Releases](https://github.com/erdal-b-dot/icc-ctcf-olcer/releases)
+
+Ayrıntı: `CITATION.cff`.
