@@ -26,7 +26,10 @@ table{border-collapse:collapse;width:100%;margin:1em 0;font-size:.94em;display:b
 th,td{border:1px solid var(--line);padding:6px 9px;vertical-align:top;text-align:left}th{background:var(--code)}
 blockquote{margin:1em 0;padding:.6em 1em;border-left:4px solid var(--warn);background:var(--code);border-radius:0 6px 6px 0}
 hr{border:0;border-top:1px solid var(--line);margin:2em 0}
-@media print{body{max-width:none;font-size:11pt}a{color:inherit}h2{page-break-before:auto}table{display:table}}
+@media print{:root{--bg:#fff;--fg:#000;--muted:#444;--line:#bbb;--code:#f2f2f2;--accent:#1f5f22;--warn:#8a5000}
+body{max-width:none;font-size:10.5pt;padding:0}a{color:inherit;text-decoration:none}h2{break-before:page}
+h1+p+hr+h2{break-before:avoid}table{display:table;break-inside:auto}tr,blockquote,pre{break-inside:avoid}
+@page{size:A4;margin:16mm 14mm}}
 """
 
 
@@ -44,6 +47,28 @@ def build():
     return len(html), broken
 
 
+def build_pdf() -> Path | None:
+    """kilavuz.html → KULLANIM_KILAVUZU.pdf (Chrome/Edge başsız yazdırma; yoksa atlanır)."""
+    import shutil
+    import subprocess
+    here = Path(__file__).parent
+    for exe in ("/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+                "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge",
+                shutil.which("google-chrome") or "", shutil.which("chromium") or "",
+                r"C:\Program Files\Google\Chrome\Application\chrome.exe",
+                r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe"):
+        if exe and Path(exe).exists():
+            out = here / "KULLANIM_KILAVUZU.pdf"
+            subprocess.run([exe, "--headless=new", "--disable-gpu", "--no-pdf-header-footer",
+                            "--force-prefers-color-scheme=light", f"--print-to-pdf={out}",
+                            (here / "kilavuz.html").resolve().as_uri()],
+                           check=True, capture_output=True, timeout=120)
+            return out
+    return None
+
+
 if __name__ == "__main__":
     n, broken = build()
     print(f"kilavuz.html: {n // 1024} KB; kırık iç bağlantı: {broken or 'yok'}")
+    pdf = build_pdf()
+    print(f"PDF: {pdf} ({pdf.stat().st_size // 1024} KB)" if pdf else "PDF: Chrome/Edge bulunamadı, atlandı")
