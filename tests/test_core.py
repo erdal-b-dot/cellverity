@@ -323,6 +323,19 @@ def test_examples_expected_results():
         assert abs(cells.CTCF.median() - e.CTCF_median) < 1, (cells.CTCF.median(), e.CTCF_median)
 
 
+def test_exposure_metadata_and_warning():
+    """Pozlama süresi EXIF'ten okunur; farklı pozlamalar bir aradaysa uyarı verilir (samples: 0.5 s ve 0.649 s)."""
+    import pandas as pd
+    import report
+    folder = ROOT / "examples" / "PARC_control"
+    e1 = core.load_image(str(folder / "Image_11305.jpg"))[1].get("exposure_s")
+    e2 = core.load_image(str(folder / "Image_11319.jpg"))[1].get("exposure_s")
+    assert e1 == 0.5 and abs(e2 - 0.649) < 1e-6, (e1, e2)
+    same = pd.DataFrame({"Group": ["A", "B"], "Image_path": ["x", "y"], "Exposure_s": [0.5, 0.5]})
+    mixed = pd.DataFrame({"Group": ["A", "B"], "Image_path": ["x", "y"], "Exposure_s": [0.5, 0.649]})
+    assert report.mixed_exposures(same) == "" and "0.649" in report.mixed_exposures(mixed)
+
+
 if __name__ == "__main__":
     if not FITC.exists():
         sys.exit(f"Örnek görüntü yok: {FITC}")
@@ -340,4 +353,5 @@ if __name__ == "__main__":
     test_chance_corrected_pairing()
     test_scale_bar_hard_cases()
     test_examples_expected_results()
+    test_exposure_metadata_and_warning()
     print("✅ Doğrulama testi geçti: hesaplamalar Fiji ile doğrulanmış değerlerle aynı.")

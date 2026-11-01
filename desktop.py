@@ -54,7 +54,8 @@ def result_meta(a: core.Analysis, fitc: Path, dapi: Path | None, group: str, bg_
                 bg_n: int, note: str = "", experiment: str = "", edits: str = "", fiji_check: str = "") -> dict:
     """Her hücre satırına yazılan bağlam (yöntem bölümü ve tekrarlanabilirlik için)."""
     return {"Group": group, "Experiment": experiment, "Image": fitc.name, "Image_path": str(fitc), "DAPI_image": dapi.name if dapi else "",
-            "Channel": "G", "um_per_px": a.um_per_px or np.nan, "Scale_bar_um": a.bar_um,
+            "Channel": "G", "Exposure_s": a.meta.get("exposure_s", np.nan), "ISO": a.meta.get("iso", np.nan),
+            "um_per_px": a.um_per_px or np.nan, "Scale_bar_um": a.bar_um,
             "Scale_source": a.bar_um_source, "Objective": a.objective[0] if a.objective else np.nan,
             "BG_mode": bg_mode, "BG_box_px": bg_size, "BG_n": bg_n,
             "Segmentation": a.segmentation_mode,
@@ -519,7 +520,7 @@ def status_text(it) -> str:
 
 
 class BatchDialog(QDialog):
-    COLS = [T("Ölç"), T("Grup"), T("Deney"), "FITC", "DAPI", T("Örtüşme"), T("Durum")]
+    COLS = [T("Ölç"), T("Grup"), T("Deney"), "FITC", "DAPI", T("Örtüşme"), T("Pozlama"), T("Durum")]
 
     def __init__(self, main):
         super().__init__(main)
@@ -543,7 +544,7 @@ class BatchDialog(QDialog):
         self.table.setHorizontalHeaderLabels(self.COLS)
         hh = self.table.horizontalHeader()
         hh.setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
-        hh.setSectionResizeMode(6, QHeaderView.ResizeMode.Stretch)
+        hh.setSectionResizeMode(7, QHeaderView.ResizeMode.Stretch)
         self.table.verticalHeader().setVisible(False)
         lay.addWidget(self.table, 1)
         self.edge = QCheckBox(T("Görüntü kenarına değen (kesik) hücreleri hariç tut"))
@@ -626,10 +627,10 @@ class BatchDialog(QDialog):
             self.table.setItem(r, 2, QTableWidgetItem(it.experiment))
             for c, txt in ((3, it.fitc.name if it.fitc else "—"), (4, it.dapi.name if it.dapi else "—"),
                            (5, T("%{0:.0f}").format(100 * it.overlap) if it.overlap is not None else "—"),
-                           (6, status_text(it))):
+                           (6, f"{it.exposure:g} s" if it.exposure else "—"), (7, status_text(it))):
                 cell = QTableWidgetItem(txt)
                 cell.setFlags(Qt.ItemFlag.ItemIsEnabled)
-                if c == 6:
+                if c == 7:
                     color = {"ready": "#2a7", "no_dapi": "#c80"}.get(it.status, "#999")
                     cell.setForeground(QColor(color))
                 self.table.setItem(r, c, cell)
@@ -638,6 +639,12 @@ class BatchDialog(QDialog):
         skip = sum(it.status == "skipped" for it in items)
         self.status.setText(T("<b>{0}</b> çift hazır · <span style='color:#c80'>{1} FITC'nin DAPI'si bulunamadı</span> (yalnız şekle göre ayrılır) · <span style='color:#999'>{2} dosya atlandı</span> (merge, işlenmiş, eşleşmeyen DAPI). Ölçülmesini istemediklerinizin işaretini kaldırın.").format(ready, nod, skip))
         self.btn_run.setEnabled(any(it.use for it in items))
+        expos = sorted({round(it.exposure, 4) for it in items if it.use and it.exposure})
+        if len(expos) > 1:
+            self.status.setText(self.status.text() + "<br><span style='color:#b22'>" + T(
+                "⚠️ Bu klasörde farklı pozlama süreleri var ({0}). Farklı pozlamayla çekilmiş görüntülerin CTCF "
+                "değerleri karşılaştırılamaz; yalnızca aynı ayarla çekilenleri işaretli bırakın.").format(
+                ", ".join(f"{v:g} s" for v in expos)) + "</span>")
 
     def run(self):
         todo = []
@@ -1204,7 +1211,12 @@ class MainWindow(QMainWindow):
             else:
                 p.calib_warn.hide()
             obj, raw = a.objective
-            p.set(T("Objektif"), T("{0}×  (hesaplanan {1:.1f}×)").format(obj, raw))
+            if a.meta.get("exposure_s"):
+                raw_txt = f"{a.meta['exposure_s']:g} s"
+            else:
+                raw_txt = ""
+            p.set(T("Objektif"), T("{0}×  (hesaplanan {1:.1f}×)").format(obj, raw)
+                  + (T(" · pozlama {0}").format(raw_txt) if raw_txt else ""))
         else:
             p.set(T("Kalibrasyon"), T("Ölçek çubuğu bulunamadı — piksel birimi"))
             p.set(T("Objektif"), "—")
@@ -1612,8 +1624,8 @@ class MainWindow(QMainWindow):
         self.tabs.setTabText(2, T("Biriken sonuçlar ({0})").format(len(r)))
         self.panel.res_info.setText(T("Biriken: <b>{0}</b> hücre, {1} görüntü, {2} grup").format(len(r), n_img, n_grp)
                                     + (T("  <span style='color:#a60'>(kaydedilmedi)</span>") if self._dirty else "")
-                                    + (f"<br><span style='color:#b22'>{report.mixed_objectives(r)}</span>"
-                                       if len(r) and report.mixed_objectives(r) else ""))
+                                    + "".join(f"<br><span style='color:#b22'>{w}</span>" for w in
+                                              (report.mixed_objectives(r), report.mixed_exposures(r)) if len(r) and w))
         for w in (self.panel.btn_excel, self.panel.btn_plot):
             w.setEnabled(len(r) > 0)
         for a_ in (self.a_xlsx, self.a_csv, self.a_plot, self.a_reset):

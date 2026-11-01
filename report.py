@@ -132,6 +132,21 @@ def mixed_objectives(results: pd.DataFrame) -> str:
     return (T("⚠️ Farklı objektifler karışık ({0}) — {1}. Büyütme farkı floresan yoğunluğunu ve alanı etkiler; yalnızca aynı objektifle çekilmiş görüntüleri karşılaştırın.").format(', '.join(f'{v}×' for v in allv), detail))
 
 
+def mixed_exposures(results: pd.DataFrame) -> str:
+    """Farklı pozlama süreleriyle çekilmiş görüntüler bir arada ise uyarı metni (yoksa boş). Floresan sinyali
+    pozlamayla orantılı arttığı için bu görüntülerin CTCF değerleri karşılaştırılamaz (2026-11-01: samples
+    klasöründe 0.33–1.0 s arası beş farklı pozlama)."""
+    if "Exposure_s" not in results:
+        return ""
+    e = results.drop_duplicates("Image_path" if "Image_path" in results else "Image")["Exposure_s"].dropna()
+    vals = sorted({round(float(v), 4) for v in e})
+    if len(vals) <= 1:
+        return ""
+    return T("⚠️ Görüntüler farklı pozlama süreleriyle çekilmiş ({0}). Floresan sinyali pozlamayla orantılı arttığı "
+             "için bu görüntülerin CTCF değerleri birbiriyle karşılaştırılamaz; aynı pozlama, kazanç ve lamba "
+             "ayarıyla çekilmiş görüntüleri karşılaştırın.").format(", ".join(f"{v:g} s" for v in vals))
+
+
 def compare(results: pd.DataFrame, metric: str = "CTCF", level: str = "cell", control: str | None = None,
             order: list[str] | None = None, comparison: str = "dunnett"):
     """Gruplar arası test. → (groups, data, txt, pairs) ; pairs = [(i, j, p)] grafikte yıldız için."""
@@ -182,9 +197,9 @@ def compare(results: pd.DataFrame, metric: str = "CTCF", level: str = "cell", co
         lines += ["", T("ℹ️ Grup başına {0} {1}: test gücü düşük; en az 3 bağımsız deney önerilir.").format(min(len(d) for d in data), unit)]
     if level == "cell":
         lines += ["", T("⚠️ Her hücre ayrı tekrar sayıldı (yalancı tekrar riski). Yayın için 'Deney ortalaması' düzeyini kullanın.")]
-    warn = mixed_objectives(results)
-    if warn:
-        lines += ["", warn]
+    for warn in (mixed_objectives(results), mixed_exposures(results)):
+        if warn:
+            lines += ["", warn]
     return groups, data, "\n".join(lines), pairs
 
 

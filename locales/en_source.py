@@ -350,6 +350,12 @@ EN = {
     "Görüntü bulunamadı (taşınmış ya da disk bağlı değil):\n{0}": "Image not found (moved, or the disk is not connected):\n{0}",
     "{0} açıldı: tablodaki {1} hücre seçili, hücre {2} ortada. Düzeltip 'Sonuç tablosuna ekle' derseniz eski satırların yerine geçer.":
         "{0} opened: {1} cells from the table selected, cell {2} centred. After editing, 'Add to results table' replaces the earlier rows.",
+    " · pozlama {0}": " · exposure {0}",
+    "⚠️ Görüntüler farklı pozlama süreleriyle çekilmiş ({0}). Floresan sinyali pozlamayla orantılı arttığı için bu görüntülerin CTCF değerleri birbiriyle karşılaştırılamaz; aynı pozlama, kazanç ve lamba ayarıyla çekilmiş görüntüleri karşılaştırın.":
+        "⚠️ The images were acquired with different exposure times ({0}). Fluorescence signal increases with exposure, so CTCF values of these images cannot be compared with each other; compare only images acquired with the same exposure, gain and lamp settings.",
+    "Pozlama": "Exposure",
+    "⚠️ Bu klasörde farklı pozlama süreleri var ({0}). Farklı pozlamayla çekilmiş görüntülerin CTCF değerleri karşılaştırılamaz; yalnızca aynı ayarla çekilenleri işaretli bırakın.":
+        "⚠️ This folder contains different exposure times ({0}). CTCF values of images acquired with different exposures cannot be compared; keep only those acquired with the same settings ticked.",
     # ---- dil
     "Dil / Language": "Language / Dil",
     "Dil değişikliği program yeniden başlatılınca geçerli olur. Şimdi yeniden başlatılsın mı?":

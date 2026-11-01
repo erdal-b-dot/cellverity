@@ -130,7 +130,7 @@ The program looks for Fiji in <code>Downloads/Fiji</code>, <code>Applications/Fi
 <p>However good the program is, the validity of the measurement depends on the image.</p>
 <p><strong>Required:</strong>
 - <strong>Raw, single-channel images.</strong> The FITC image saved directly by the microscope software (cellSens etc.). Images that went through Photoshop, had brightness/contrast adjusted, or were <strong>merged</strong> <strong>cannot be used</strong> for CTCF — the program detects these and warns you.
-- <strong>All compared images acquired with identical settings:</strong> same objective, exposure time, gain, lamp power, white balance.
+- <strong>All compared images acquired with identical settings:</strong> same objective, <strong>exposure time</strong>, gain, lamp power, white balance. Fluorescence signal scales with exposure: a cell in a 1 s image looks ~2× brighter than in a 0.5 s image. Turn off auto-exposure in cellSens. The program reads the exposure time from the image (EXIF), shows it in the panel and in Excel, and warns when exposures are mixed.
 - <strong>Same objective.</strong> Do not compare 20× with 40× images — the program warns if objectives are mixed.
 - <strong>No saturated pixels.</strong> The number of saturated pixels is reported for every cell ("Saturated px" column).</p>
 <p><strong>Recommended:</strong>
@@ -371,7 +371,7 @@ The program looks for Fiji in <code>Downloads/Fiji</code>, <code>Applications/Fi
 <tbody>
 <tr>
 <td>🟢 <strong>ready</strong></td>
-<td>Pair found (percentage in the Overlap column)</td>
+<td>Pair found (percentage in the Overlap column; the <strong>Exposure</strong> column shows the FITC exposure time — a red warning appears below if exposures differ within the folder)</td>
 </tr>
 <tr>
 <td>🟠 <strong>no DAPI</strong></td>
@@ -468,6 +468,10 @@ The program looks for Fiji in <code>Downloads/Fiji</code>, <code>Applications/Fi
 <tr>
 <td>um_per_px, Scale_bar_um, Scale_source, Objective</td>
 <td>Calibration and its source (label / user / default)</td>
+</tr>
+<tr>
+<td>Exposure_s, ISO</td>
+<td>Exposure time and gain (from the image EXIF; must be identical across compared images)</td>
 </tr>
 <tr>
 <td>BG_mode, BG_box_px, BG_n</td>
@@ -737,6 +741,11 @@ The program looks for Fiji in <code>Downloads/Fiji</code>, <code>Applications/Fi
 <td>⚠️ <em>Different objectives are mixed (20×, 40×)</em></td>
 <td>Groups acquired at different magnifications</td>
 <td>Compare only images from the same objective</td>
+</tr>
+<tr>
+<td>⚠️ <em>The images were acquired with different exposure times</em></td>
+<td>Exposure differs (e.g. 0.5 s and 1 s) → CTCF values are not comparable</td>
+<td>Compare only images with identical exposure/gain/lamp settings; untick the others in batch mode</td>
 </tr>
 <tr>
 <td>⚠️ <em>Zero within-group variability</em></td>

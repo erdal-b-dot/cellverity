@@ -131,7 +131,7 @@ Program Fiji'yi şu yerlerde kendisi arar: <code>İndirilenler/Fiji</code>, <cod
 <p>Program ne kadar iyi olursa olsun, ölçümün geçerliliği görüntüye bağlıdır.</p>
 <p><strong>Mutlaka:</strong>
 - <strong>Ham, tek kanal görüntü.</strong> Mikroskobun (cellSens vb.) doğrudan kaydettiği FITC görüntüsü. Photoshop'tan geçmiş, parlaklık/kontrast ayarlanmış ya da kanalları birleştirilmiş (<strong>merge</strong>) görüntüler CTCF için <strong>kullanılamaz</strong> — program bunları tanır ve uyarır.
-- <strong>Karşılaştırılan tüm görüntüler aynı ayarla çekilmiş olmalı:</strong> aynı objektif, pozlama süresi, kazanç (gain), lamba gücü, beyaz dengesi.
+- <strong>Karşılaştırılan tüm görüntüler aynı ayarla çekilmiş olmalı:</strong> aynı objektif, <strong>pozlama süresi</strong>, kazanç (gain), lamba gücü, beyaz dengesi. Floresan sinyali pozlamayla orantılı artar: 1 s'lik görüntüdeki hücre 0.5 s'liktekinden ~2 kat parlak görünür. cellSens'te otomatik pozlamayı kapatın. Program pozlama süresini görüntüden (EXIF) okur, panelde ve Excel'de gösterir, farklı pozlamalar karışırsa uyarır.
 - <strong>Aynı objektif.</strong> 20× ile 40× görüntüleri birbiriyle karşılaştırmayın — program karışık objektif görürse uyarır.
 - <strong>Doymuş (saturated) piksel olmamalı.</strong> Program doymuş piksel sayısını her hücre için raporlar ("Doymuş px" sütunu).</p>
 <p><strong>Önerilir:</strong>
@@ -372,7 +372,7 @@ Program Fiji'yi şu yerlerde kendisi arar: <code>İndirilenler/Fiji</code>, <cod
 <tbody>
 <tr>
 <td>🟢 <strong>hazır</strong></td>
-<td>Çift bulundu (Örtüşme sütununda yüzde)</td>
+<td>Çift bulundu (Örtüşme sütununda yüzde; <strong>Pozlama</strong> sütununda FITC'nin pozlama süresi — klasörde farklı pozlamalar varsa altta kırmızı uyarı çıkar)</td>
 </tr>
 <tr>
 <td>🟠 <strong>DAPI yok</strong></td>
@@ -469,6 +469,10 @@ Program Fiji'yi şu yerlerde kendisi arar: <code>İndirilenler/Fiji</code>, <cod
 <tr>
 <td>um_per_px, Scale_bar_um, Scale_source, Objective</td>
 <td>Kalibrasyon ve kaynağı (label / user / default)</td>
+</tr>
+<tr>
+<td>Exposure_s, ISO</td>
+<td>Pozlama süresi ve kazanç (görüntünün EXIF bilgisinden; karşılaştırılan görüntülerde aynı olmalı)</td>
 </tr>
 <tr>
 <td>BG_mode, BG_box_px, BG_n</td>
@@ -738,6 +742,11 @@ Program Fiji'yi şu yerlerde kendisi arar: <code>İndirilenler/Fiji</code>, <cod
 <td>⚠️ <em>Farklı objektifler karışık (20×, 40×)</em></td>
 <td>Gruplar farklı büyütmede çekilmiş</td>
 <td>Yalnız aynı objektifle çekilmiş görüntüleri karşılaştırın</td>
+</tr>
+<tr>
+<td>⚠️ <em>Görüntüler farklı pozlama süreleriyle çekilmiş</em></td>
+<td>Pozlama (ör. 0.5 s ve 1 s) farklı → CTCF değerleri karşılaştırılamaz</td>
+<td>Aynı pozlama/kazanç/lamba ayarıyla çekilmiş görüntüleri karşılaştırın; toplu ölçümde farklı olanların işaretini kaldırın</td>
 </tr>
 <tr>
 <td>⚠️ <em>Grup içi değişkenlik sıfır</em></td>

@@ -97,7 +97,7 @@ Program ne kadar iyi olursa olsun, ölçümün geçerliliği görüntüye bağl�
 
 **Mutlaka:**
 - **Ham, tek kanal görüntü.** Mikroskobun (cellSens vb.) doğrudan kaydettiği FITC görüntüsü. Photoshop'tan geçmiş, parlaklık/kontrast ayarlanmış ya da kanalları birleştirilmiş (**merge**) görüntüler CTCF için **kullanılamaz** — program bunları tanır ve uyarır.
-- **Karşılaştırılan tüm görüntüler aynı ayarla çekilmiş olmalı:** aynı objektif, pozlama süresi, kazanç (gain), lamba gücü, beyaz dengesi.
+- **Karşılaştırılan tüm görüntüler aynı ayarla çekilmiş olmalı:** aynı objektif, **pozlama süresi**, kazanç (gain), lamba gücü, beyaz dengesi. Floresan sinyali pozlamayla orantılı artar: 1 s'lik görüntüdeki hücre 0.5 s'liktekinden ~2 kat parlak görünür. cellSens'te otomatik pozlamayı kapatın. Program pozlama süresini görüntüden (EXIF) okur, panelde ve Excel'de gösterir, farklı pozlamalar karışırsa uyarır.
 - **Aynı objektif.** 20× ile 40× görüntüleri birbiriyle karşılaştırmayın — program karışık objektif görürse uyarır.
 - **Doymuş (saturated) piksel olmamalı.** Program doymuş piksel sayısını her hücre için raporlar ("Doymuş px" sütunu).
 
@@ -242,7 +242,7 @@ Her FITC, **aynı klasörde ±3 numara içindeki** DAPI'ler arasından, **çekir
 
 | Durum | Anlamı |
 |---|---|
-| 🟢 **hazır** | Çift bulundu (Örtüşme sütununda yüzde) |
+| 🟢 **hazır** | Çift bulundu (Örtüşme sütununda yüzde; **Pozlama** sütununda FITC'nin pozlama süresi — klasörde farklı pozlamalar varsa altta kırmızı uyarı çıkar) |
 | 🟠 **DAPI yok** | Uygun DAPI bulunamadı; hücreler yalnız şekle göre ayrılacak |
 | ⚪ **atlandı: kamera bilgisi yok** | Merge ya da yeniden kaydedilmiş görüntü |
 | ⚪ **atlandı: işlenmiş görüntü** | Photoshop vb. ile kaydedilmiş |
@@ -278,6 +278,7 @@ Her FITC, **aynı klasörde ±3 numara içindeki** DAPI'ler arasından, **çekir
 | BG_Mean, CTCF, CTCF_per_Area | Background ortalaması, CTCF, CTCF/alan (= Mean − BG_Mean) |
 | Saturated_px | Doymuş piksel sayısı (0 olmalı) |
 | um_per_px, Scale_bar_um, Scale_source, Objective | Kalibrasyon ve kaynağı (label / user / default) |
+| Exposure_s, ISO | Pozlama süresi ve kazanç (görüntünün EXIF bilgisinden; karşılaştırılan görüntülerde aynı olmalı) |
 | BG_mode, BG_box_px, BG_n | Background yöntemi |
 | Segmentation, Nucleus_method, DAPI_overlap, Touching_pairs | Hücre ayırma bilgisi |
 | Selection, Manual_edits | Hücrelerin nasıl seçildiği, elle düzeltmeler |
@@ -391,6 +392,7 @@ Programın otomatik sınırlarının elle çizime ne kadar yakın olduğunu öl�
 |---|---|---|
 | ⚠️ *Her hücre ayrı tekrar sayıldı (yalancı tekrar riski)* | n = hücre sayısı | Yayında **Deney ortalaması** birimini kullanın |
 | ⚠️ *Farklı objektifler karışık (20×, 40×)* | Gruplar farklı büyütmede çekilmiş | Yalnız aynı objektifle çekilmiş görüntüleri karşılaştırın |
+| ⚠️ *Görüntüler farklı pozlama süreleriyle çekilmiş* | Pozlama (ör. 0.5 s ve 1 s) farklı → CTCF değerleri karşılaştırılamaz | Aynı pozlama/kazanç/lamba ayarıyla çekilmiş görüntüleri karşılaştırın; toplu ölçümde farklı olanların işaretini kaldırın |
 | ⚠️ *Grup içi değişkenlik sıfır* | Aynı değerler tekrar ediyor (aynı görüntü iki kez?) | Tabloyu kontrol edin; test güvenilmez |
 | ℹ️ *Grup başına 2 deney: test gücü düşük* | n < 3 | En az 3 bağımsız deney |
 | *İstatistik için her grupta en az … gerekir* | Yetersiz veri | Daha çok görüntü/deney ekleyin |

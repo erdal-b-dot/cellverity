@@ -95,7 +95,7 @@ However good the program is, the validity of the measurement depends on the imag
 
 **Required:**
 - **Raw, single-channel images.** The FITC image saved directly by the microscope software (cellSens etc.). Images that went through Photoshop, had brightness/contrast adjusted, or were **merged** **cannot be used** for CTCF — the program detects these and warns you.
-- **All compared images acquired with identical settings:** same objective, exposure time, gain, lamp power, white balance.
+- **All compared images acquired with identical settings:** same objective, **exposure time**, gain, lamp power, white balance. Fluorescence signal scales with exposure: a cell in a 1 s image looks ~2× brighter than in a 0.5 s image. Turn off auto-exposure in cellSens. The program reads the exposure time from the image (EXIF), shows it in the panel and in Excel, and warns when exposures are mixed.
 - **Same objective.** Do not compare 20× with 40× images — the program warns if objectives are mixed.
 - **No saturated pixels.** The number of saturated pixels is reported for every cell ("Saturated px" column).
 
@@ -240,7 +240,7 @@ Each FITC is paired with the DAPI, among those **within ±3 file numbers in the 
 
 | Status | Meaning |
 |---|---|
-| 🟢 **ready** | Pair found (percentage in the Overlap column) |
+| 🟢 **ready** | Pair found (percentage in the Overlap column; the **Exposure** column shows the FITC exposure time — a red warning appears below if exposures differ within the folder) |
 | 🟠 **no DAPI** | No matching DAPI; cells will be separated by shape only |
 | ⚪ **skipped: no camera information** | Merged or re-saved image |
 | ⚪ **skipped: processed image** | Saved by Photoshop etc. |
@@ -276,6 +276,7 @@ Each FITC is paired with the DAPI, among those **within ±3 file numbers in the 
 | BG_Mean, CTCF, CTCF_per_Area | Background mean, CTCF, CTCF/area (= Mean − BG_Mean) |
 | Saturated_px | Saturated pixel count (should be 0) |
 | um_per_px, Scale_bar_um, Scale_source, Objective | Calibration and its source (label / user / default) |
+| Exposure_s, ISO | Exposure time and gain (from the image EXIF; must be identical across compared images) |
 | BG_mode, BG_box_px, BG_n | Background method |
 | Segmentation, Nucleus_method, DAPI_overlap, Touching_pairs | Cell separation details |
 | Selection, Manual_edits | How cells were selected; manual boundary edits |
@@ -389,6 +390,7 @@ To quantify how close the automatic boundaries are to manual tracing (recommende
 |---|---|---|
 | ⚠️ *Each cell was counted as a replicate (risk of pseudoreplication)* | n = number of cells | Use the **Experiment mean** unit for publication |
 | ⚠️ *Different objectives are mixed (20×, 40×)* | Groups acquired at different magnifications | Compare only images from the same objective |
+| ⚠️ *The images were acquired with different exposure times* | Exposure differs (e.g. 0.5 s and 1 s) → CTCF values are not comparable | Compare only images with identical exposure/gain/lamp settings; untick the others in batch mode |
 | ⚠️ *Zero within-group variability* | Identical values repeat (same image added twice?) | Check the table; the test is not reliable |
 | ℹ️ *2 experiments per group: low statistical power* | n < 3 | At least 3 independent experiments |
 | *Statistics require at least … per group* | Not enough data | Add more images/experiments |

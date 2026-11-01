@@ -34,6 +34,15 @@ def load_image(file) -> tuple[np.ndarray, dict]:
         meta["make"] = exif.get(271, "")
         meta["model"] = exif.get(272, "")
         meta["software"] = exif.get(305, "")
+        try:  # pozlama süresi (s) ve kazanç/ISO: karşılaştırılan görüntülerde aynı olmalı
+            sub = exif.get_ifd(0x8769)
+            if 0x829A in sub:
+                meta["exposure_s"] = float(sub[0x829A])
+            if 0x8827 in sub:
+                v = sub[0x8827]
+                meta["iso"] = float(v[0] if isinstance(v, (tuple, list)) else v)
+        except Exception:
+            pass
         arr = np.asarray(im.convert("RGB") if im.mode not in ("L", "I;16", "I") else im)
     if arr.ndim == 3:
         arr = arr[..., :3]

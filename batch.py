@@ -69,6 +69,7 @@ class Item:
     status: str = ""      # dilden bağımsız kod: "ready" | "no_dapi" | "skipped"
     reason: str = ""      # skipped: "unreadable" | "processed" | "no_exif" | "unknown_kind" | "unpaired_dapi"
     detail: str = ""      # ek bilgi (yazılım adı, hata türü)
+    exposure: float | None = None  # FITC pozlama süresi (s, EXIF)
     use: bool = True
 
 
@@ -106,12 +107,12 @@ def scan(folder: Path, recursive: bool = True, progress=None) -> list[Item]:
             skip = "no_exif"
         elif kind is None:
             skip = "unknown_kind"
-        info[p] = (kind, arr, skip)
-    dapis = [p for p, (k, _, s) in info.items() if k == "DAPI" and not s]
+        info[p] = (kind, arr, skip, meta.get("exposure_s"))
+    dapis = [p for p, (k, _, s, _e) in info.items() if k == "DAPI" and not s]
     used = set()
-    fitcs = [p for p, (k, _, s) in info.items() if k == "FITC" or s]
+    fitcs = [p for p, (k, _, s, _e) in info.items() if k == "FITC" or s]
     for i, p in enumerate(fitcs):
-        kind, arr, skip = info[p]
+        kind, arr, skip, expo = info[p]
         group, exp = group_experiment(p, folder)
         if skip:
             reason, _, detail = skip.partition(":")
@@ -127,9 +128,9 @@ def scan(folder: Path, recursive: bool = True, progress=None) -> list[Item]:
         if scored and scored[0][0] >= MIN_OVERLAP:
             ov, d = scored[0]
             used.add(d)
-            items.append(Item(p, d, ov, group, exp, "ready"))
+            items.append(Item(p, d, ov, group, exp, "ready", exposure=expo))
         else:
-            items.append(Item(p, None, scored[0][0] if scored else None, group, exp, "no_dapi"))
+            items.append(Item(p, None, scored[0][0] if scored else None, group, exp, "no_dapi", exposure=expo))
     for d in dapis:
         if d not in used:
             g, e = group_experiment(d, folder)
