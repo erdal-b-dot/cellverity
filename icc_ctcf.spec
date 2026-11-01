@@ -23,5 +23,8 @@ exe = EXE(pyz, a.scripts, [], exclude_binaries=True, name="ICC CTCF Olcer", cons
 coll = COLLECT(exe, a.binaries, a.datas, name="ICC CTCF Olcer")
 if sys.platform == "darwin":
     app = BUNDLE(coll, name="ICC CTCF Ölçer.app", icon="assets/icon.icns", bundle_identifier="tr.edu.cbu.icc-ctcf",
-                 info_plist={"CFBundleShortVersionString": "2.0.0", "NSHighResolutionCapable": True,
+                 # Dil beyanı olmazsa macOS paketlenmiş uygulamaya sistem dili Türkçe olsa da İngilizce bildirir
+                 info_plist={"CFBundleShortVersionString": "2.1.0", "NSHighResolutionCapable": True,
+                             "CFBundleDevelopmentRegion": "tr", "CFBundleLocalizations": ["tr", "en"],
+                             "CFBundleAllowMixedLocalizations": True,
                              "LSMinimumSystemVersion": "12.0", "NSHumanReadableCopyright": "© Erdal Balcan, MIT"})

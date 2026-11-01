@@ -1889,7 +1889,8 @@ def selftest(fitc: str, dapi: str) -> int:
     i18n.set_language(cur)
     out = json.dumps({"version": VERSION, "bar_um": a.bar_um, "um_per_px": a.um_per_px, "cells": len(a.cell_ids),
                       "nuclei": int(a.nuclei.max()), "area": cells["Area"].round(2).tolist(),
-                      "ctcf": cells["CTCF"].round(1).tolist(), "excel": ok_xlsx, "english": en_ok},
+                      "ctcf": cells["CTCF"].round(1).tolist(), "excel": ok_xlsx, "english": en_ok,
+                      "system_language": i18n.system_language()},
                      ensure_ascii=False)
     Path("selftest_result.json").write_text(out, encoding="utf-8")  # Windows'ta pencereli .exe'nin konsolu yok
     if sys.stdout is not None:
