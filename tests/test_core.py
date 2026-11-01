@@ -209,6 +209,24 @@ def test_manual_edits():
     assert a2.cell_ids == [1, 2, 3] and a2.labels is S
 
 
+def test_fiji_bridge():
+    """Fiji kuruluysa: aynı ROI'leri Fiji'nin kendi Measure motoru (Analyzer) ölçer → birebir aynı olmalı."""
+    import tempfile
+    import fiji
+    exe = fiji.find_fiji()
+    if exe is None:
+        print("  (Fiji bulunamadı — Fiji köprüsü testi atlandı)")
+        return
+    fitc_arr, meta = core.load_image(open(FITC, "rb"))
+    a = core.analyze(fitc_arr, meta, core.load_image(open(DAPI, "rb"))[0])
+    cells, bg, boxes = core.background_and_measure(a, a.cell_ids)
+    with tempfile.TemporaryDirectory() as d:
+        tif, rois = fiji.write_package(Path(d), a, a.cell_ids, boxes, "t")
+        df, ver = fiji.measure_in_fiji(exe, tif, rois, a.um_per_px)
+    cmp = fiji.compare(cells, bg, df)
+    assert len(cmp) == 5 and not cmp.isna().any().any() and cmp["Max fark (%)"].max() < 1e-3, cmp
+
+
 if __name__ == "__main__":
     if not FITC.exists():
         sys.exit(f"Örnek görüntü yok: {FITC}")
@@ -221,4 +239,5 @@ if __name__ == "__main__":
     test_batch_pairing()
     test_group_statistics()
     test_manual_edits()
+    test_fiji_bridge()
     print("✅ Doğrulama testi geçti: hesaplamalar Fiji ile doğrulanmış değerlerle aynı.")

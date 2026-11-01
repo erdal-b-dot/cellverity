@@ -65,7 +65,8 @@ def methods_table(version: str) -> pd.DataFrame:
             "McCloy et al., 2014, Cell Cycle 13(9):1400–1412, doi:10.4161/cc.28401"]})
 
 
-def write_excel(path: str | Path, results: pd.DataFrame, bg_results: pd.DataFrame, version: str):
+def write_excel(path: str | Path, results: pd.DataFrame, bg_results: pd.DataFrame, version: str,
+                validation: pd.DataFrame | None = None):
     with pd.ExcelWriter(path, engine="openpyxl") as xw:
         ordered(results).to_excel(xw, sheet_name="Cells", index=False)
         group_summary(results).to_excel(xw, sheet_name="Group_summary", index=False)
@@ -82,6 +83,9 @@ def write_excel(path: str | Path, results: pd.DataFrame, bg_results: pd.DataFram
              .reset_index().to_excel(xw, sheet_name="Experiment_means", index=False))
         bg_results.to_excel(xw, sheet_name="Background", index=False)
         methods_table(version).to_excel(xw, sheet_name="Methods", index=False)
+        if validation is not None and len(validation):  # elle (Fiji) vs otomatik — yöntem doğrulaması
+            validation.to_excel(xw, sheet_name="Validation", index=False)
+            pd.DataFrame([agreement(validation)]).to_excel(xw, sheet_name="Validation_summary", index=False)
 
 
 def write_csv(path: str | Path, results: pd.DataFrame):
@@ -245,3 +249,70 @@ def plot(results: pd.DataFrame, metric: str = "CTCF", kind: str = PLOT_KINDS[0],
     if fig.get_layout_engine() is None:
         fig.tight_layout()
     return fig, txt
+
+
+# ------------------------------------------------- Yöntem doğrulaması (elle vs otomatik)
+def agreement(val: pd.DataFrame, metric: str = "CTCF") -> dict:
+    """Elle (Fiji'de çizilmiş) ve otomatik ölçüm uyumu: Bland–Altman yanlılığı ve %95 uyum sınırları
+    (yüzde fark olarak; CTCF değerleri hücreden hücreye çok değiştiği için), Pearson r, Lin CCC, Dice."""
+    d = val.dropna(subset=[f"Manual_{metric}", f"Auto_{metric}"])
+    m, a = d[f"Manual_{metric}"].to_numpy(float), d[f"Auto_{metric}"].to_numpy(float)
+    if len(d) < 2:
+        return {"n": len(d)}
+    mean = (m + a) / 2
+    pdiff = 100 * (a - m) / mean
+    bias, sd = pdiff.mean(), pdiff.std(ddof=1)
+    r = np.corrcoef(m, a)[0, 1]
+    ccc = 2 * np.cov(m, a, ddof=1)[0, 1] / (m.var(ddof=1) + a.var(ddof=1) + (m.mean() - a.mean()) ** 2)
+    return {"n": len(d), "n_images": d["Image"].nunique() if "Image" in d else np.nan,
+            "bias_%": bias, "sd_%": sd, "loa_low_%": bias - 1.96 * sd, "loa_high_%": bias + 1.96 * sd,
+            "pearson_r": r, "lin_ccc": ccc,
+            "dice_mean": d["Dice"].mean() if "Dice" in d else np.nan,
+            "dice_min": d["Dice"].min() if "Dice" in d else np.nan}
+
+
+def agreement_text(st: dict, metric: str = "CTCF") -> str:
+    if st.get("n", 0) < 2:
+        return "Bland–Altman için en az 2 eşleşmiş hücre gerekir (yayın için ≥ 30 hücre, ≥ 3 görüntü önerilir)."
+    return (f"n = {st['n']} hücre, {st['n_images']} görüntü\n"
+            f"{metric}: ortalama fark (otomatik − elle) = {st['bias_%']:+.1f} %\n"
+            f"%95 uyum sınırları: {st['loa_low_%']:+.1f} % … {st['loa_high_%']:+.1f} %\n"
+            f"Pearson r = {st['pearson_r']:.3f} · Lin CCC = {st['lin_ccc']:.3f}\n"
+            f"Dice (sınır örtüşmesi): ortalama {st['dice_mean']:.3f}, en düşük {st['dice_min']:.3f}"
+            + ("\n\n⚠️ Az hücre: r ve CCC bu kadar küçük örneklemde anlamsızdır. Yayın için ≥ 30 hücre, "
+               "≥ 3 görüntü (ayrık ve değen hücreler) önerilir." if st["n"] < 30 else ""))
+
+
+def bland_altman_plot(val: pd.DataFrame, metric: str = "CTCF", fig=None):
+    import matplotlib
+    own = fig is None
+    if own:
+        matplotlib.use("Agg")
+        import matplotlib.pyplot as plt
+        fig = plt.figure(figsize=(9, 4), dpi=150)
+    fig.clear()
+    d = val.dropna(subset=[f"Manual_{metric}", f"Auto_{metric}"])
+    st = agreement(val, metric)
+    ax1, ax2 = fig.subplots(1, 2)
+    if len(d) >= 2:
+        m, a = d[f"Manual_{metric}"].to_numpy(float), d[f"Auto_{metric}"].to_numpy(float)
+        lim = [0, max(m.max(), a.max()) * 1.05]
+        ax1.scatter(m, a, s=18, color="black", alpha=0.7)
+        ax1.plot(lim, lim, "--", color="grey", lw=1)
+        ax1.set_xlim(lim); ax1.set_ylim(lim)
+        ax1.set_xlabel(f"Manual {metric} (Fiji)"); ax1.set_ylabel(f"Automatic {metric}")
+        ax1.set_title(f"r = {st['pearson_r']:.3f}, CCC = {st['lin_ccc']:.3f}", fontsize=9)
+        mean = (m + a) / 2
+        pd_ = 100 * (a - m) / mean
+        ax2.scatter(mean, pd_, s=18, color="black", alpha=0.7)
+        for y, ls in ((st["bias_%"], "-"), (st["loa_low_%"], "--"), (st["loa_high_%"], "--")):
+            ax2.axhline(y, color="#c33" if ls == "-" else "grey", ls=ls, lw=1)
+        ax2.axhline(0, color="black", lw=0.5)
+        ax2.set_xlabel(f"Mean of methods ({metric})"); ax2.set_ylabel("Difference, auto − manual (%)")
+        ax2.set_title(f"bias {st['bias_%']:+.1f} %, LoA {st['loa_low_%']:+.1f} … {st['loa_high_%']:+.1f} %",
+                      fontsize=9)
+    for ax in (ax1, ax2):
+        ax.spines[["top", "right"]].set_visible(False)
+    if fig.get_layout_engine() is None:
+        fig.tight_layout()
+    return fig, agreement_text(st, metric)

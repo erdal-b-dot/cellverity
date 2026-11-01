@@ -12,7 +12,7 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-from PySide6.QtCore import QObject, QRectF, Qt, QThread, Signal
+from PySide6.QtCore import QObject, QRectF, QSettings, Qt, QThread, Signal
 from PySide6.QtGui import (QAction, QActionGroup, QBrush, QColor, QFont, QImage, QKeySequence, QPainter,
                            QPainterPath, QPen, QPixmap)
 from PySide6.QtWidgets import (QAbstractItemView, QApplication, QButtonGroup, QCheckBox, QComboBox, QDialog,
@@ -26,6 +26,7 @@ from PySide6.QtWidgets import (QAbstractItemView, QApplication, QButtonGroup, QC
 
 import batch
 import core
+import fiji
 import report
 from batch import guess_kind
 
@@ -36,7 +37,7 @@ AUTOSAVE = Path.home() / "Documents" / "ICC CTCF Olcer" / "otomatik_kayit.xlsx"
 
 
 def result_meta(a: core.Analysis, fitc: Path, dapi: Path | None, group: str, bg_mode: str, bg_size: int,
-                bg_n: int, note: str = "", experiment: str = "", edits: str = "") -> dict:
+                bg_n: int, note: str = "", experiment: str = "", edits: str = "", fiji_check: str = "") -> dict:
     """Her hücre satırına yazılan bağlam (yöntem bölümü ve tekrarlanabilirlik için)."""
     return {"Group": group, "Experiment": experiment, "Image": fitc.name, "Image_path": str(fitc), "DAPI_image": dapi.name if dapi else "",
             "Channel": "G", "um_per_px": a.um_per_px or np.nan, "Scale_bar_um": a.bar_um,
@@ -48,7 +49,7 @@ def result_meta(a: core.Analysis, fitc: Path, dapi: Path | None, group: str, bg_
             "Touching_pairs": "; ".join(f"{i}-{j}" for i, j in a.touching),
             "Cells_in_field": len(a.cell_ids),
             "Nuclei_in_field": int(a.nuclei.max()) if a.nuclei is not None else np.nan,
-            "Selection": note, "Manual_edits": edits, "App_version": VERSION, "Timestamp": datetime.now().strftime("%Y-%m-%d %H:%M")}
+            "Selection": note, "Manual_edits": edits, "Fiji_check": fiji_check, "App_version": VERSION, "Timestamp": datetime.now().strftime("%Y-%m-%d %H:%M")}
 
 
 def is_dapi_like(arr: np.ndarray) -> bool:
@@ -100,9 +101,10 @@ def fill(table: QTableWidget, cols, df):
     if df is None or not len(df):
         return
     table.setRowCount(len(df))
-    for r, row in enumerate(df.itertuples(index=False)):
+    names = [c[0] for c in cols]
+    for r, row in enumerate(df.reindex(columns=names).itertuples(index=False, name=None)):
         for c, (col, _, dec) in enumerate(cols):
-            v = getattr(row, col)
+            v = row[c]  # sütun adında boşluk/parantez olabilir → konumla eriş
             if dec is None or isinstance(v, str):
                 txt = str(v)
             elif v != v:  # NaN
@@ -661,6 +663,81 @@ class BatchDialog(QDialog):
             super().reject()
 
 
+# ------------------------------------------------------------- Fiji köprüsü
+class FijiWorker(QObject):
+    finished = Signal(object, str)
+    failed = Signal(str)
+
+    def __init__(self, exe, tif, rois, upp):
+        super().__init__()
+        self.args = exe, tif, rois, upp
+
+    def run(self):
+        try:
+            df, ver = fiji.measure_in_fiji(*self.args)
+            self.finished.emit(df, ver)
+        except Exception as ex:
+            self.failed.emit(str(ex))
+
+
+class TableDialog(QDialog):
+    """Bir tabloyu (ve isteğe bağlı grafiği) gösterir; CSV/Excel olarak kaydedilebilir."""
+
+    def __init__(self, parent, title, df, header_html="", fig_fn=None, extra_buttons=()):
+        super().__init__(parent)
+        self.df = df
+        self.setWindowTitle(title)
+        self.resize(1100, 640 if fig_fn else 480)
+        lay = QVBoxLayout(self)
+        head = QLabel(header_html)
+        head.setWordWrap(True)
+        head.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        lay.addWidget(head)
+        if fig_fn is not None:
+            from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
+            from matplotlib.figure import Figure
+            self.fig = Figure(dpi=100, layout="constrained")
+            fig_fn(self.fig)
+            lay.addWidget(FigureCanvasQTAgg(self.fig), 3)
+        cols = [(c, c, None if df[c].dtype == object else (0 if str(df[c].dtype).startswith("int") else 4))
+                for c in df.columns]
+        t = make_table(cols)
+        t.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
+        fill(t, [(c, c, d) for c, _, d in cols], df.rename(columns=lambda c: c))
+        lay.addWidget(t, 2)
+        row = QHBoxLayout()
+        for text, fn in extra_buttons:
+            b = QPushButton(text)
+            b.clicked.connect(fn)
+            row.addWidget(b)
+        row.addStretch()
+        b = QPushButton("Kaydet (Excel)…")
+        b.clicked.connect(self.save)
+        row.addWidget(b)
+        if fig_fn is not None:
+            b = QPushButton("Grafiği kaydet (PNG 600 dpi)…")
+            b.clicked.connect(self.save_fig)
+            row.addWidget(b)
+        b = QPushButton("Kapat")
+        b.clicked.connect(self.accept)
+        row.addWidget(b)
+        lay.addLayout(row)
+
+    def save(self):
+        stamp = datetime.now().strftime("%Y%m%d_%H%M")
+        path, _ = QFileDialog.getSaveFileName(self, "Kaydet", str(Path.home() / f"{self.windowTitle()}_{stamp}.xlsx"),
+                                              "Excel (*.xlsx)")
+        if path:
+            self.df.to_excel(path, index=False)
+
+    def save_fig(self):
+        stamp = datetime.now().strftime("%Y%m%d_%H%M")
+        path, _ = QFileDialog.getSaveFileName(self, "Grafiği kaydet", str(Path.home() / f"Bland_Altman_{stamp}.png"),
+                                              "PNG (*.png);;PDF (*.pdf);;SVG (*.svg)")
+        if path:
+            self.fig.savefig(path, dpi=600, bbox_inches="tight")
+
+
 # ------------------------------------------------------------- Grafik penceresi
 class PlotDialog(QDialog):
     """GraphPad tarzı: kontrol grubu, grup sırası, istatistik düzeyi (hücre/görüntü/deney), Dunnett/Tukey."""
@@ -782,6 +859,9 @@ class MainWindow(QMainWindow):
         self.bg_results = pd.DataFrame()
         self.cur_cells = self.cur_bg = None
         self._dirty = False               # kaydedilmemiş sonuç var mı
+        self.fiji_check = ""
+        self.validation = pd.DataFrame()  # elle (Fiji) vs otomatik ROI karşılaştırmaları (yöntem doğrulaması)
+        self.settings_store = QSettings("ErdalBalcan", "ICC CTCF Olcer")
         self.analysis: core.Analysis | None = None
         self._thread = None
         self._pending = False  # analiz sürerken yeni görüntü gelirse bitince yeniden çalıştır
@@ -910,6 +990,19 @@ class MainWindow(QMainWindow):
         self.a_redo = act("Yinele", self.redo, QKeySequence.StandardKey.Redo)
         self.a_undo.setEnabled(False)
         self.a_redo.setEnabled(False)
+        self.a_fiji_verify = act("Fiji ile doğrula", self.fiji_verify, "Ctrl+Shift+F")
+        self.a_fiji_verify.setToolTip("Seçili hücreleri ve background kutularını Fiji'nin kendi 'Measure' motoruna "
+                                      "arka planda ölçtürür ve sonuçları programınkilerle yan yana koyar.")
+        self.a_fiji_open = act("Fiji'de aç (görüntü + ROI'ler + Measure)", self.fiji_open)
+        self.a_manual = act("Fiji'de elle çizilmiş ROI'lerle karşılaştır (RoiSet.zip)…", self.manual_compare)
+        self.a_valid = act("Yöntem doğrulama tablosu ve Bland–Altman…", self.show_validation)
+        self.a_fiji_path = act("Fiji konumunu seç…", self.choose_fiji)
+        m = self.menuBar().addMenu("Fiji")
+        m.addActions([self.a_fiji_verify, self.a_fiji_open])
+        m.addSeparator()
+        m.addActions([self.a_manual, self.a_valid])
+        m.addSeparator()
+        m.addAction(self.a_fiji_path)
         m = self.menuBar().addMenu("Düzelt")
         m.addActions(list(self.edit_acts.values()))
         m.addSeparator()
@@ -944,6 +1037,8 @@ class MainWindow(QMainWindow):
         tb2.addSeparator()
         tb2.addWidget(QLabel(" Sonuçlar: "))
         tb2.addActions([self.a_add, self.a_batch, self.a_xlsx, self.a_plot])
+        tb2.addSeparator()
+        tb2.addAction(self.a_fiji_verify)
 
     # ---------------------------------------------------------- dosya açma
     def close_images(self):
@@ -1305,6 +1400,7 @@ class MainWindow(QMainWindow):
                               + (" Görüntüye tıklayarak kutu ekleyin." if p.bg_manual.isChecked() else
                                  " Kutu boyutunu küçültün."))
         self.cur_cells, self.cur_bg = cells, bg
+        self.fiji_check = ""  # seçim/kutu/sınır değişti → önceki Fiji doğrulaması geçersiz
         p.btn_add.setEnabled(cells is not None and len(cells) > 0)
         self.fill_table(cells)
         fill(self.bg_table, BG_COLS, bg)
@@ -1330,7 +1426,7 @@ class MainWindow(QMainWindow):
         meta = result_meta(a, fpath, self.dapi[0] if self.dapi else None, group,
                            "auto" if self.panel.bg_auto.isChecked() else "manual",
                            self.panel.bg_size.value(), len(self.cur_bg), "manual click",
-                           self.panel.experiment.text().strip(), "; ".join(self.edit_log))
+                           self.panel.experiment.text().strip(), "; ".join(self.edit_log), self.fiji_check)
         replaced = len(self.results) and (self.results["Image_path"] == str(fpath)).any()
         self.add_measurement(cells, self.cur_bg, meta)
         self.tabs.setCurrentIndex(2)
@@ -1349,7 +1445,7 @@ class MainWindow(QMainWindow):
         """Her eklemeden sonra Belgeler/ICC CTCF Olcer/otomatik_kayit.xlsx — çökme/elektrik kesintisine karşı."""
         try:
             AUTOSAVE.parent.mkdir(parents=True, exist_ok=True)
-            report.write_excel(AUTOSAVE, self.results, self.bg_results, VERSION)
+            report.write_excel(AUTOSAVE, self.results, self.bg_results, VERSION, self.validation)
         except Exception as ex:  # otomatik kayıt başarısızlığı ölçümü durdurmasın
             self.statusBar().showMessage(f"Otomatik kayıt yapılamadı: {ex}", 6000)
 
@@ -1367,6 +1463,10 @@ class MainWindow(QMainWindow):
                 bg = pd.read_excel(path, sheet_name="Background")
             except ValueError:
                 bg = pd.DataFrame()
+            try:
+                self.validation = pd.read_excel(path, sheet_name="Validation")
+            except ValueError:
+                pass
         except Exception as ex:
             message(self, "warning", f"{path.name} okunamadı:\n{ex}\n\nBu programın kaydettiği Excel olmalı "
                     "('Cells' sayfası).")
@@ -1437,7 +1537,7 @@ class MainWindow(QMainWindow):
             return False
         try:
             if fmt == "xlsx":
-                report.write_excel(path, self.results, self.bg_results, VERSION)
+                report.write_excel(path, self.results, self.bg_results, VERSION, self.validation)
             else:
                 report.write_csv(path, self.results)
         except Exception as ex:
@@ -1492,6 +1592,148 @@ class MainWindow(QMainWindow):
                     e.ignore()
                     return
         e.accept()
+
+    # ---------------------------------------------------------- Fiji
+    def fiji_exe(self, ask=True):
+        exe = fiji.find_fiji(self.settings_store.value("fiji_path", "") or None)
+        if exe is None and ask:
+            message(self, "info", "Fiji bulunamadı. Bir sonraki pencerede Fiji klasörünü (ya da Fiji.app'i) "
+                    "seçin.\n\nFiji yüklü değilse: https://imagej.net/software/fiji/downloads")
+            exe = self.choose_fiji()
+        return exe
+
+    def choose_fiji(self):
+        d = QFileDialog.getExistingDirectory(self, "Fiji klasörünü seçin (Fiji / Fiji.app)", str(Path.home()))
+        if not d:
+            return None
+        exe = fiji.resolve(d)
+        if exe is None:
+            message(self, "warning", f"{d} içinde Fiji başlatıcısı bulunamadı.")
+            return None
+        self.settings_store.setValue("fiji_path", str(exe))
+        self.statusBar().showMessage(f"Fiji: {exe}", 6000)
+        return exe
+
+    def _fiji_package(self, folder: Path):
+        a = self.analysis
+        ids = sorted(self.selected) or list(a.cell_ids)
+        return fiji.write_package(folder, a, ids, self.boxes, self.fitc[0].stem), ids
+
+    def fiji_verify(self):
+        a = self.analysis
+        if a is None or self._thread is not None:
+            return
+        exe = self.fiji_exe()
+        if exe is None:
+            return
+        import tempfile
+        self._fiji_tmp = tempfile.TemporaryDirectory()
+        (tif, rois), ids = self._fiji_package(Path(self._fiji_tmp.name))
+        cells, bg, _ = core.background_and_measure(a, ids, core.Settings(bg_size=self.panel.bg_size.value(),
+                                                                         bg_n=self.panel.bg_n.value()), self.boxes)
+        self._fiji_app = (cells, bg)
+        self.statusBar().showMessage(f"Fiji arka planda ölçüyor ({len(ids)} hücre + {len(self.boxes)} kutu)…")
+        QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
+        self._thread = QThread(self)
+        self._worker = FijiWorker(exe, tif, rois, a.um_per_px)
+        self._worker.moveToThread(self._thread)
+        self._thread.started.connect(self._worker.run)
+        self._worker.finished.connect(self.on_fiji_done)
+        self._worker.failed.connect(self.on_fiji_fail)
+        self._thread.start()
+
+    def on_fiji_fail(self, msg):
+        self._stop_thread()
+        self._fiji_tmp.cleanup()
+        self.statusBar().showMessage("Fiji ölçümü başarısız.", 6000)
+        message(self, "critical", msg)
+
+    def on_fiji_done(self, df, ver):
+        self._stop_thread()
+        self._fiji_tmp.cleanup()
+        cells, bg = self._fiji_app
+        cmp = fiji.compare(cells, bg, df)
+        worst = cmp["Max fark (%)"].max()
+        missing = int(cmp.isna().any(axis=1).sum())
+        ok = worst < 1e-3 and not missing
+        self.fiji_check = f"OK ({ver}, max fark {worst:.1e} %)" if ok else f"FARK VAR (max {worst:.3g} %)"
+        head = (f"<b>{'✅ Birebir aynı' if ok else '⚠️ Fark var'}</b> — {len(cmp)} ROI ({len(cells)} hücre, "
+                f"{len(bg)} background kutusu), Fiji {ver}. En büyük fark: <b>{worst:.2g} %</b>"
+                + (f", eşleşmeyen ROI: {missing}" if missing else "")
+                + "<br>Fiji, programın dışa aktardığı TIFF ve RoiSet.zip'i kendi <i>Measure</i> motoruyla ölçtü "
+                  "(Area, Mean, StdDev, Min, Max, IntDen, RawIntDen). Bu sonuç, görüntü sonuç tablosuna "
+                  "eklendiğinde Excel'de <i>Fiji_check</i> sütununa yazılır.")
+        self.statusBar().showMessage(f"Fiji doğrulaması: {self.fiji_check}", 10000)
+        TableDialog(self, "Fiji doğrulaması", cmp, head).exec()
+
+    def fiji_open(self):
+        a = self.analysis
+        if a is None:
+            return
+        exe = self.fiji_exe()
+        if exe is None:
+            return
+        folder = AUTOSAVE.parent / "Fiji" / self.fitc[0].stem
+        (tif, rois), ids = self._fiji_package(folder)
+        fiji.open_in_fiji(exe, tif, rois, a.scale_bar.bar_px, a.bar_um)
+        self.statusBar().showMessage(f"Fiji açılıyor: {len(ids)} hücre + {len(self.boxes)} kutu, ölçek "
+                                     f"{a.scale_bar.bar_px} px = {a.bar_um:g} µm. Dosyalar: {folder}", 10000)
+
+    def manual_compare(self):
+        a = self.analysis
+        if a is None:
+            self.statusBar().showMessage("Önce FITC (ve DAPI) görüntüsünü açın.", 5000)
+            return
+        fn, _ = QFileDialog.getOpenFileName(self, "Fiji'de elle çizilmiş ROI'ler (RoiSet.zip / .roi)",
+                                            str(self.fitc[0].parent), "ImageJ ROI (*.zip *.roi)")
+        if not fn:
+            return
+        try:
+            man = core.read_imagej_rois(Path(fn).read_bytes(), a.labels.shape)
+        except Exception as ex:
+            message(self, "warning", f"ROI dosyası okunamadı:\n{ex}")
+            return
+        man = [(n, m) for n, m in man if not n.upper().startswith("BG")]
+        bg_mean = float(self.cur_bg["Mean"].mean()) if self.cur_bg is not None and len(self.cur_bg) else 0.0
+        cmp = core.compare_manual(a.fitc_ch, a.labels, man, bg_mean, a.um_per_px)
+        if not len(cmp):
+            message(self, "warning", "Dosyada hücre ROI'si bulunamadı.")
+            return
+        cmp.insert(0, "Image", self.fitc[0].name)
+        cmp.insert(1, "Group", self.panel.group.text().strip())
+        cmp["Nucleus_method"] = a.nuc_method
+        cmp["Manual_edits"] = "; ".join(self.edit_log)
+        cmp["Image_path"] = str(self.fitc[0])
+
+        def add():
+            v = self.validation
+            if len(v):
+                v = v[v["Image_path"] != str(self.fitc[0])]
+            self.validation = pd.concat([v, cmp], ignore_index=True)
+            if len(self.results):
+                self.autosave()
+            self.statusBar().showMessage(f"Doğrulama tablosu: {len(self.validation)} hücre, "
+                                         f"{self.validation['Image'].nunique()} görüntü.", 6000)
+            dlg.accept()
+            self.show_validation()
+
+        head = (f"<b>{len(cmp)} elle çizilmiş ROI</b> ↔ otomatik hücreler (aynı background: {bg_mean:.3f}). "
+                f"Ortalama Dice {cmp['Dice'].mean():.3f}; CTCF farkı ortalama {cmp['CTCF_diff_%'].mean():+.1f} %.<br>"
+                "Birden çok görüntüde yapıp <b>doğrulama tablosuna ekleyin</b> → Bland–Altman analizi.")
+        dlg = TableDialog(self, "Elle vs otomatik", cmp.drop(columns=["Image_path"]), head,
+                          extra_buttons=[("➕ Doğrulama tablosuna ekle", add)])
+        dlg.exec()
+
+    def show_validation(self):
+        v = self.validation
+        if not len(v):
+            message(self, "info", "Doğrulama tablosu boş. Fiji ▸ 'Elle çizilmiş ROI'lerle karşılaştır' ile "
+                    "görüntü ekleyin.")
+            return
+        st = report.agreement(v)
+        TableDialog(self, "Yöntem doğrulaması (elle vs otomatik)", v.drop(columns=["Image_path"]),
+                    report.agreement_text(st).replace("\n", "<br>"),
+                    fig_fn=lambda f: report.bland_altman_plot(v, fig=f)).exec()
 
     def about(self):
         message(self, "info",
