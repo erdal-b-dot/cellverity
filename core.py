@@ -78,30 +78,59 @@ class ScaleBar:
 
 
 def detect_scale_bar(arr: np.ndarray) -> ScaleBar:
-    """Sağ alt köşedeki beyaz kutu içinde koyu ölçek çizgisini bulur (Olympus cellSens stili)."""
+    """Sağ alt köşedeki cellSens ölçek kutusu. Önce siyah çubuk aranır (≥ 20 px, 2–25 px kalın, üstünde ve altında
+    beyaz), sonra kutu çubuğun solundaki beyaz kenar boşluğu izlenerek ölçülür (cellSens ayarına göre çubuk 3–10 px,
+    kutu 31–68 px yükseklikte olabiliyor). 'En büyük beyaz alan' yaklaşımı köşedeki doymuş beyaz hücreleri ya da
+    kutuya değen parlak hücreleri kutu sanıyordu (2026-11-01, 3888 görüntülük arşivde 13 görüntü; hepsi düzeldi,
+    diğer 3220 görüntünün sonucu değişmedi)."""
     if arr.ndim != 3:
         return ScaleBar(False)
     h, w = arr.shape[:2]
     y0, x0 = int(h * 0.80), int(w * 0.70)
     sub = arr[y0:, x0:].astype(int)
-    white = (sub.min(axis=-1) > 200)
-    if white.sum() < 500:
+    white = sub.min(axis=-1) > 200
+    dark = sub.sum(axis=-1) < 200
+    H = sub.shape[0]
+    best = None  # (uzunluk, satır, başlangıç, bitiş)
+    for r in range(3, H - 8):
+        row = dark[r]
+        if row.sum() < 20:
+            continue
+        d = np.diff(np.concatenate([[0], row.view(np.int8), [0]]))
+        for s, e in zip(np.where(d == 1)[0], np.where(d == -1)[0]):
+            n = e - s
+            if n < 20 or (best and n <= best[0]):
+                continue
+            mid = slice(s + n // 10, e - n // 10)  # uçlardaki dikey çentikleri hariç tut
+            if white[r - 2, mid].mean() < 0.9:       # üstü beyaz (kutunun içi)
+                continue
+            k = 1
+            while r + k < H and dark[r + k, mid].mean() > 0.9:
+                k += 1                               # çubuk kalınlığı
+            if not 2 <= k <= 25 or r + k + 2 >= H:
+                continue
+            if white[r + k + 1, mid].mean() < 0.8:   # altı da beyaz (kutunun alt kenarı/zemin değil)
+                continue
+            best = (int(n), r, int(s), int(e))
+    if best is None:
         return ScaleBar(False)
-    lab = measure.label(white)
-    reg = max(measure.regionprops(lab), key=lambda r: r.area)
-    by0, bx0, by1, bx1 = reg.bbox
-    box = sub[by0:by1, bx0:bx1].sum(axis=-1)
-    best = 0
-    for row in box:
-        dark = row < 200
-        # en uzun kesintisiz koyu dizi
-        runs = np.diff(np.concatenate([[0], dark.view(np.int8), [0]]))
-        starts, ends = np.where(runs == 1)[0], np.where(runs == -1)[0]
-        if len(starts):
-            best = max(best, int((ends - starts).max()))
+    n, r, s, e = best
+    c = max(s - 2, 0)  # kenar boşluğu sütunu: kutu boyunca beyaz, kutu dışında değil
+    top = r
+    while top > 0 and white[top - 1, c]:
+        top -= 1
+    bot = r
+    while bot + 1 < H and white[bot + 1, c]:
+        bot += 1
+    left = c
+    while left > 0 and white[top:bot + 1, left - 1].mean() > 0.6:
+        left -= 1
+    right = e
+    while right < sub.shape[1] and white[top:bot + 1, right].mean() > 0.6:
+        right += 1
     pad = 4
-    bbox = (max(y0 + by0 - pad, 0), min(y0 + by1 + pad, h), max(x0 + bx0 - pad, 0), min(x0 + bx1 + pad, w))
-    return ScaleBar(best > 20, bbox, best if best > 20 else None)
+    bbox = (max(y0 + top - pad, 0), min(y0 + bot + 1 + pad, h), max(x0 + left - pad, 0), min(x0 + right + pad, w))
+    return ScaleBar(True, bbox, n)
 
 
 # cellSens ölçek etiketi rakamları (24×16 ikili şablon, satır başına 4 hex). Gerçek DP74/cellSens
@@ -124,6 +153,9 @@ def read_scale_label(arr: np.ndarray, sb: ScaleBar) -> float | None:
         return None
     y0, y1, x0, x1 = sb.bbox
     sub = arr[y0:y1, x0:x1].astype(int)
+    inner = np.ones(sub.shape[:2], bool)
+    inner[6:-6, 6:-6] = False
+    sub[inner] = 255  # yalnızca kutunun içi: kutuya değen parlak hücreler okumaya karışmasın
     ys, xs = np.where(sub.min(-1) > 200)
     if len(ys) == 0:
         return None

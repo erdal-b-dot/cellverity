@@ -294,6 +294,19 @@ def test_chance_corrected_pairing():
     assert items["Image_11322.jpg"].reason == "unpaired_dapi"
 
 
+def test_scale_bar_hard_cases():
+    """Köşede kutudan büyük doymuş beyaz hücre (Image_10841; eski yöntem 65 px buldu) ve kutuya değen parlak hücre
+    (Image_14164; etiket okunamıyordu): ikisinde de 20 µm / 137 px okunmalı. Bu arşivde kutu daha büyük
+    (çubuk ~9 px, kutu 68 px) — Image_392'deki küçük kutu (3 px / 31 px) da aynı kodla okunur."""
+    for name in ("Image_10841.jpg", "Image_14164.jpg"):
+        p = ROOT / "ornek" / name
+        if not p.exists():
+            continue
+        a, _ = core.load_image(str(p))
+        sb = core.detect_scale_bar(a)
+        assert sb.bar_px == 137 and core.read_scale_label(a, sb) == 20.0, (name, sb)
+
+
 if __name__ == "__main__":
     if not FITC.exists():
         sys.exit(f"Örnek görüntü yok: {FITC}")
@@ -309,4 +322,5 @@ if __name__ == "__main__":
     test_fiji_bridge()
     test_translations()
     test_chance_corrected_pairing()
+    test_scale_bar_hard_cases()
     print("✅ Doğrulama testi geçti: hesaplamalar Fiji ile doğrulanmış değerlerle aynı.")
