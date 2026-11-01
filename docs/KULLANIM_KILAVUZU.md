@@ -51,15 +51,15 @@ Görüntüleriniz bilgisayarınızdan dışarı **hiçbir yere gönderilmez**; p
 
 | Bilgisayar | İndirilecek dosya | En düşük sistem |
 |---|---|---|
-| Apple Silicon Mac (M1/M2/M3/M4) | `ICC_CTCF_Olcer_2.0.0_mac_AppleSilicon.zip` | macOS 12.3 |
-| Intel Mac (ör. eski iMac) | `ICC_CTCF_Olcer_2.0.0_mac_Intel.zip` | macOS 12.0 (Monterey) |
+| Apple Silicon Mac (M1/M2/M3/M4) | `ICC_CTCF_Olcer_2.0.0_mac_AppleSilicon.dmg` | macOS 12.3 |
+| Intel Mac (ör. eski iMac) | `ICC_CTCF_Olcer_2.0.0_mac_Intel.dmg` | macOS 12.0 (Monterey) |
 | Windows 10/11 (64-bit) | `ICC_CTCF_Olcer_2.0.0_Windows.zip` | Windows 10 |
 
 > Mac'inizin işlemcisini öğrenmek için: Apple menüsü ▸ **Bu Mac Hakkında**. "Çip: Apple M…" yazıyorsa Apple Silicon, "İşlemci: Intel…" yazıyorsa Intel paketini kullanın.
 > Monterey'de Apple Silicon paketi için **macOS 12.3 veya üstü** gerekir: Sistem Tercihleri ▸ Yazılım Güncelleme.
 
 **Mac'te:**
-1. Zip'e çift tıklayın → `ICC CTCF Ölçer.app` çıkar. **Uygulamalar** klasörüne sürükleyin.
+1. `.dmg` dosyasına çift tıklayın → açılan pencerede **ICC CTCF Ölçer** simgesini yandaki **Uygulamalar** klasörüne sürükleyin. Sonra pencereyi kapatıp Finder kenar çubuğundaki diski çıkarın (⏏).
 2. **İlk açılışta** çift tıklamayın: uygulamaya **sağ tıklayın ▸ Aç ▸ Aç**. (Program Apple'a ücretli imzalatılmadığı için macOS "tanınmayan geliştirici" uyarısı verir; bu bir kez yapılır.)
 3. "Hasarlı, Çöp Sepeti'ne taşıyın" uyarısı çıkarsa (internetten indirilen dosyalarda olur), Terminal'de bir kez şunu çalıştırın:
    `xattr -cr "/Applications/ICC CTCF Ölçer.app"`
@@ -68,6 +68,8 @@ Görüntüleriniz bilgisayarınızdan dışarı **hiçbir yere gönderilmez**; p
 1. Zip'e sağ tıklayın ▸ **Tümünü ayıkla**. Klasörü örneğin `Belgeler` içine koyun (zip'in içinden çalıştırmayın).
 2. `ICC CTCF Olcer.exe`'ye çift tıklayın. "Windows bilgisayarınızı korudu" çıkarsa **Ek bilgi ▸ Yine de çalıştır**.
 3. Masaüstü kısayolu: exe'ye sağ tıklayın ▸ Gönder ▸ Masaüstü (kısayol oluştur).
+
+**Başka bir bilgisayara aktarmak:** paket dosyasını Google Drive paylaşım bağlantısı, USB bellek ya da e-postayla (≈100 MB) gönderin. Paketler: Drive ▸ `ARASTIRMA_KASAM/01_Projeler/ICC_CTCF_Olcer/kurulum_paketleri/`. Yeni paket üretmek: kaynak kod klasöründe `./build_mac.sh` (Mac) / `build_windows.bat` (Windows).
 
 ### 2.2 Geliştirici kurulumu (kaynak koddan)
 Python ortamıyla çalıştırmak isterseniz (güncellemeleri `git pull` ile almak için):

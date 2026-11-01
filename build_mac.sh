@@ -25,3 +25,6 @@ else
   echo "Rosetta yok: Intel paketi atlandı (softwareupdate --install-rosetta)."
 fi
 ls -lh dist/*.zip
+
+# Sürükle-bırak kurulum paketleri (.dmg)
+./make_dmg.sh
