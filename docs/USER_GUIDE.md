@@ -456,7 +456,7 @@ Questions and bug reports: https://github.com/erdal-b-dot/icc-ctcf-olcer/issues
 - ROI rule: a pixel belongs to the ROI if its centre lies inside the polygon
 - CTCF = IntDen − Area × BG_Mean; CTCF_per_Area = Mean − BG_Mean
 
-**Calibration:** the length of the cellSens scale bar (white box, lower right) is measured in pixels; the number below it is read with digit templates (all 301 images of the development data set, Olympus DP74/cellSens, read correctly: 157 × 50 µm, 144 × 20 µm). Objective = camera pixel size (DP74: 5.86 µm) ÷ µm/pixel.
+**Calibration:** the length of the cellSens scale bar (white box, lower right) is measured in pixels; the bar is located first (a thin black line with white above and below), the box is measured from the bar's white margin, and the number below it is read with digit templates. Tested on 3,534 fluorescence images (author's archive 3,233 + development set 301; two cellSens box styles): all read correctly. Objective = camera pixel size (DP74: 5.86 µm) ÷ µm/pixel.
 
 **Cell segmentation:** FITC (G channel) Gaussian smoothing → Li threshold → closing, hole filling, small-object removal (< 50 µm²) → watershed seeded with DAPI nuclei (distance transform if no DAPI).
 

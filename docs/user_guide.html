@@ -893,7 +893,7 @@ The program looks for Fiji in <code>Downloads/Fiji</code>, <code>Applications/Fi
 - StdDev = sample standard deviation (n − 1)
 - ROI rule: a pixel belongs to the ROI if its centre lies inside the polygon
 - CTCF = IntDen − Area × BG_Mean; CTCF_per_Area = Mean − BG_Mean</p>
-<p><strong>Calibration:</strong> the length of the cellSens scale bar (white box, lower right) is measured in pixels; the number below it is read with digit templates (all 301 images of the development data set, Olympus DP74/cellSens, read correctly: 157 × 50 µm, 144 × 20 µm). Objective = camera pixel size (DP74: 5.86 µm) ÷ µm/pixel.</p>
+<p><strong>Calibration:</strong> the length of the cellSens scale bar (white box, lower right) is measured in pixels; the bar is located first (a thin black line with white above and below), the box is measured from the bar's white margin, and the number below it is read with digit templates. Tested on 3,534 fluorescence images (author's archive 3,233 + development set 301; two cellSens box styles): all read correctly. Objective = camera pixel size (DP74: 5.86 µm) ÷ µm/pixel.</p>
 <p><strong>Cell segmentation:</strong> FITC (G channel) Gaussian smoothing → Li threshold → closing, hole filling, small-object removal (&lt; 50 µm²) → watershed seeded with DAPI nuclei (distance transform if no DAPI).</p>
 <p><strong>Nucleus detection (Nucleus_method):</strong>
 | Method | Version | Description |

@@ -37,7 +37,7 @@ Windows: extract the zip, run `ICC CTCF Olcer.exe`; if SmartScreen appears: **Mo
 
 ## Validation
 - **Identical to Fiji 1.54p** for the same ROIs (Area, Mean, StdDev, Min, Max, IntDen, RawIntDen; largest difference < 0.00001 %), checked automatically by the test suite when Fiji is installed.
-- Scale-bar labels read correctly in all 301 images of the development data set (Olympus DP74 / cellSens).
+- Scale bar and its label read correctly in **all 3,534 fluorescence images** tested: the author's own 2018–2021 archive (3,233 images; MDM2/P53/PARC ICC, doxorubicin and tunicamycin dose series) and the development data set (301 images); two cellSens box styles (20/50 µm). FITC–DAPI pairing by chance-corrected overlap: 1,807 pairs matched automatically in the archive; non-fluorescence images (e.g. Giemsa) are recognised and skipped.
 - Agreement with manual tracing (preliminary, 1 image, 2 touching cells): Dice 0.943 / 0.938, CTCF difference +2.3 % / +3.7 %. A larger validation study is in progress; the app contains the tools to run your own (Fiji ▸ Compare with manually traced ROIs).
 
 **Scope:** developed and validated with images acquired by the author on an **Olympus BX43** fluorescence microscope with an **Olympus DP74** colour camera and **cellSens Entry** software (FITC + DAPI). Measurements work on other images; if the scale-bar label cannot be read, the program warns you and asks for the value.
