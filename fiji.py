@@ -102,7 +102,7 @@ def resolve(path: str | Path) -> Path | None:
 def write_package(folder: Path, a: core.Analysis, cell_ids, boxes, base: str) -> tuple[Path, Path]:
     """Ölçülen kanal (TIFF) + ROI'ler (RoiSet.zip) → klasöre. → (tif, roiset)."""
     folder.mkdir(parents=True, exist_ok=True)
-    data = core.imagej_export_zip(a.fitc_ch, a.labels, cell_ids, boxes, base)
+    data = core.imagej_export_zip(a.fitc_ch, a.labels, cell_ids, boxes, base, (a.scale_bar.bar_px, a.bar_um))
     zipfile.ZipFile(io.BytesIO(data)).extractall(folder)
     return folder / f"{base}_measured_channel.tif", folder / f"{base}_RoiSet.zip"
 

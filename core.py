@@ -510,7 +510,7 @@ def overlay(display_rgb: np.ndarray, labels: np.ndarray, selected: set[int],
 
 
 # ------------------------------------------------------------ ImageJ aktarımı
-def imagej_export_zip(channel: np.ndarray, labels: np.ndarray, cell_ids, bg_boxes, base: str) -> bytes:
+def imagej_export_zip(channel: np.ndarray, labels: np.ndarray, cell_ids, bg_boxes, base: str, scale: tuple | None = None) -> bytes:
     """ImageJ/Fiji karşılaştırması için zip: ölçülen kanal (TIFF) + RoiSet.zip (hücre poligonları + BG kutuları).
 
     Fiji'de: TIFF'i aç → ROI Manager → Open RoiSet.zip → Measure. Değerler bu uygulamayla aynı olmalı."""
@@ -547,13 +547,22 @@ def imagej_export_zip(channel: np.ndarray, labels: np.ndarray, cell_ids, bg_boxe
     with zipfile.ZipFile(out, "w") as zf:
         zf.writestr(f"{base}_measured_channel.tif", tif_buf.getvalue())
         zf.writestr(f"{base}_RoiSet.zip", roi_buf.getvalue())
+        px = str(scale[0]) if scale and scale[0] else "<cubuk px / bar px>"
+        um = f"{scale[1]:g}" if scale and scale[0] else "<etiket um / label um>"
         zf.writestr("NASIL_KULLANILIR.txt",
                     "1. Fiji'de *_measured_channel.tif dosyasini acin (uygulamanin olctugu kanal).\n"
                     "2. Analyze > Set Measurements: Area, Mean, Std.Dev, Min&Max, Integrated Density isaretli.\n"
-                    "3. Analyze > Set Scale: Distance in pixels=<cubuk px>, Known distance=20, Unit=um\n"
+                    f"3. Analyze > Set Scale: Distance in pixels={px}, Known distance={um}, Unit=um\n"
                     "4. Analyze > Tools > ROI Manager > More > Open... > *_RoiSet.zip\n"
                     "5. ROI Manager'da tumunu secin (Cmd+A) > Measure.\n"
                     "6. CTCF = IntDen - Area x ortalama(BG Mean).\n")
+        zf.writestr("HOW_TO_USE.txt",
+                    "1. In Fiji, open *_measured_channel.tif (the channel measured by the program).\n"
+                    "2. Analyze > Set Measurements: tick Area, Mean, Std.Dev, Min&Max, Integrated Density.\n"
+                    f"3. Analyze > Set Scale: Distance in pixels={px}, Known distance={um}, Unit=um\n"
+                    "4. Analyze > Tools > ROI Manager > More > Open... > *_RoiSet.zip\n"
+                    "5. Select all in ROI Manager (Cmd/Ctrl+A) > Measure.\n"
+                    "6. CTCF = IntDen - Area x mean(BG Mean).\n")
     return out.getvalue()
 
 

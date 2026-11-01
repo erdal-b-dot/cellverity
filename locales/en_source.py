@@ -341,6 +341,9 @@ EN = {
         "n = {0} cells, {1} images\n{2}: mean difference (automatic − manual) = {3:+.1f} %\n95% limits of agreement: {4:+.1f} % … {5:+.1f} %\nPearson r = {6:.3f} · Lin's CCC = {7:.3f}\nDice (boundary overlap): mean {8:.3f}, minimum {9:.3f}",
     "\n\n⚠️ Az hücre: r ve CCC bu kadar küçük örneklemde anlamsızdır. Yayın için ≥ 30 hücre, ≥ 3 görüntü (ayrık ve değen hücreler) önerilir.":
         "\n\n⚠️ Few cells: r and CCC are meaningless for such a small sample. ≥ 30 cells and ≥ 3 images (separate and touching cells) are recommended for publication.",
+    "Hata:\n{0}": "Error:\n{0}",
+    "<b>Kaydet</b>": "<b>Save</b>",
+    "%{0:.0f}": "{0:.0f}%",
     # ---- dil
     "Dil / Language": "Language / Dil",
     "Dil değişikliği program yeniden başlatılınca geçerli olur. Şimdi yeniden başlatılsın mı?":

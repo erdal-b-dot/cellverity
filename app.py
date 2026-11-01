@@ -250,7 +250,7 @@ if not sel:
 else:
     base = f_fitc.name.rsplit(".", 1)[0]
     st.download_button(f"⬇️ ImageJ/Fiji karşılaştırma paketi — {len(sel)} hücre + {len(bg_boxes)} BG (ZIP)",
-                       core.imagej_export_zip(fitc_ch, labels, sel, bg_boxes, base),
+                       core.imagej_export_zip(fitc_ch, labels, sel, bg_boxes, base, (int(bar_px), bar_um)),
                        f"ImageJ_{base}.zip", "application/zip", type="primary")
     st.caption("ZIP içinde: ölçülen kanal (TIFF) + aynı ROI'ler (RoiSet.zip) + NASIL_KULLANILIR.txt. "
                f"Fiji'de Set Scale: {bar_px} piksel = {bar_um:g} µm.  ·  Hücre ayırma: {seg_mode}.")

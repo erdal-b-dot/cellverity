@@ -600,7 +600,7 @@ class BatchDialog(QDialog):
 
     def on_fail(self, msg):
         self._stop()
-        message(self, "critical", f"Hata:\n{msg}")
+        message(self, "critical", T("Hata:\n{0}").format(msg))
 
     def choose(self, folder: str | None = None):
         if not folder:
@@ -625,7 +625,7 @@ class BatchDialog(QDialog):
             self.table.setItem(r, 1, QTableWidgetItem(it.group))
             self.table.setItem(r, 2, QTableWidgetItem(it.experiment))
             for c, txt in ((3, it.fitc.name if it.fitc else "—"), (4, it.dapi.name if it.dapi else "—"),
-                           (5, f"%{100 * it.overlap:.0f}" if it.overlap is not None else "—"),
+                           (5, T("%{0:.0f}").format(100 * it.overlap) if it.overlap is not None else "—"),
                            (6, status_text(it))):
                 cell = QTableWidgetItem(txt)
                 cell.setFlags(Qt.ItemFlag.ItemIsEnabled)
@@ -821,7 +821,7 @@ class PlotDialog(QDialog):
         b.setToolTip(T("İstatistik sonucunu .txt olarak kaydet"))
         b.clicked.connect(self.save_txt)
         row.addWidget(b)
-        side.addWidget(QLabel("<b>Kaydet</b>"))
+        side.addWidget(QLabel(T("<b>Kaydet</b>")))
         side.addLayout(row)
         lay.addLayout(side, 2)
         for w in (self.control_box, self.metric_box, self.level_box, self.cmp_box, self.kind_box):
@@ -1570,7 +1570,8 @@ class MainWindow(QMainWindow):
         base = self.fitc[0].stem
         path = self._save_path(T("ImageJ/Fiji paketini kaydet"), f"ImageJ_{base}.zip", "ZIP (*.zip)")
         if path:
-            path.write_bytes(core.imagej_export_zip(a.fitc_ch, a.labels, sorted(self.selected), self.boxes, base))
+            path.write_bytes(core.imagej_export_zip(a.fitc_ch, a.labels, sorted(self.selected), self.boxes, base,
+                                                    (a.scale_bar.bar_px, a.bar_um)))
             message(self, "info", T("Kaydedildi: {0}\n\nFiji'de: TIFF'i açın → Analyze ▸ Set Scale: {1} piksel = {2:g} µm → ROI Manager ▸ Open: RoiSet.zip → Measure.\nAyrıntılar ZIP içindeki NASIL_KULLANILIR.txt dosyasında.").format(path.name, a.scale_bar.bar_px, a.bar_um))
 
     def reset_results(self):

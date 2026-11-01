@@ -227,6 +227,55 @@ def test_fiji_bridge():
     assert len(cmp) == 5 and not cmp.isna().any().any() and cmp["Max diff (%)"].max() < 1e-3, cmp
 
 
+def test_translations():
+    """İngilizce arayüz: koddaki her T("…") metninin çevirisi var, yer tutucular iki dilde aynı, ve T() dışında
+    Türkçe arayüz metni kalmamış (ürün adı ve kontrol grubu anahtar kelimesi hariç)."""
+    import ast
+    import json
+    import re
+    import i18n
+    en = json.loads((ROOT / "locales" / "en.json").read_text(encoding="utf-8"))
+    ph = re.compile(r"\{[^{}]*\}")
+    trc = re.compile(r"[çğıöşüÇĞİÖŞÜ]")
+    allowed = {"ICC CTCF Ölçer", "ICC CTCF Ölçer ", "ilaçsız"}
+    missing, leftover = [], []
+    for f in ("desktop.py", "report.py", "fiji.py"):
+        tree = ast.parse((ROOT / f).read_text(encoding="utf-8"))
+        inside, docs = set(), set()
+        for n in ast.walk(tree):
+            if isinstance(n, (ast.Module, ast.FunctionDef, ast.ClassDef)) and n.body and \
+                    isinstance(n.body[0], ast.Expr) and isinstance(getattr(n.body[0], "value", None), ast.Constant):
+                docs.add(id(n.body[0].value))
+            if isinstance(n, ast.Call) and getattr(n.func, "id", "") == "T":
+                for m in ast.walk(n):
+                    inside.add(id(m))
+                if n.args and isinstance(n.args[0], ast.Constant) and n.args[0].value not in en:
+                    missing.append(n.args[0].value[:60])
+            if isinstance(n, ast.Assign) and any(getattr(t, "id", "") in ("LEVELS", "COMPARISONS", "PLOT_KINDS")
+                                                  for t in n.targets):
+                for v in getattr(n.value, "values", []):  # yalnızca etiketler; anahtarlar iç kod
+                    if isinstance(v, ast.Constant) and v.value not in en:
+                        missing.append(v.value[:60])
+                for m in ast.walk(n.value):
+                    inside.add(id(m))
+            if isinstance(n, ast.Assign) and any(getattr(t, "id", "") in ("MEASURE_GROOVY", "OPEN_MACRO")
+                                                  for t in n.targets):
+                for m in ast.walk(n.value):
+                    inside.add(id(m))
+        for n in ast.walk(tree):
+            if isinstance(n, ast.Constant) and isinstance(n.value, str) and id(n) not in inside | docs \
+                    and trc.search(n.value) and n.value not in allowed:
+                leftover.append(f"{f}:{n.lineno} {n.value[:50]}")
+    bad_ph = [k[:50] for k, v in en.items() if sorted(ph.findall(k)) != sorted(ph.findall(v))]
+    assert not missing, f"çevirisi yok: {missing}"
+    assert not leftover, f"T() dışında Türkçe metin: {leftover}"
+    assert not bad_ph, f"yer tutucu uyuşmazlığı: {bad_ph}"
+    i18n.set_language("en")
+    assert i18n.T("Hücre sayısı") == "Cell count"
+    i18n.set_language("tr")
+    assert i18n.T("Hücre sayısı") == "Hücre sayısı"
+
+
 if __name__ == "__main__":
     if not FITC.exists():
         sys.exit(f"Örnek görüntü yok: {FITC}")
@@ -240,4 +289,5 @@ if __name__ == "__main__":
     test_group_statistics()
     test_manual_edits()
     test_fiji_bridge()
+    test_translations()
     print("✅ Doğrulama testi geçti: hesaplamalar Fiji ile doğrulanmış değerlerle aynı.")
