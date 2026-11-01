@@ -171,8 +171,13 @@ THRESH = {"Otsu": filters.threshold_otsu, "Li": filters.threshold_li,
 
 def segment_nuclei(dapi: np.ndarray, um_per_px: float, exclude: np.ndarray,
                    min_area_um2: float = 15.0, nucleus_diam_um: float = 10.0,
-                   method: str = "Otsu", split: bool = True, bright_core: bool = False) -> np.ndarray:
+                   method: str = "Otsu", split: bool = True, bright_core: bool = False,
+                   local: bool = False, local_frac: float = 0.5) -> np.ndarray:
     """Çekirdek etiketleri.
+
+    local=True (v2 varsayılanı, 2026-11-01): Otsu maskesi → yumuşatılmış DAPI tepelerinden watershed →
+    her çekirdek kendi tepe parlaklığının yarısında (arka plan üstü) kırpılır. Sönük ve parlak
+    çekirdekler birlikte bulunur (20× kümelerde 4 → 47 çekirdek), çevredeki loş hale dışarıda kalır.
 
     bright_core=False (v1.0.0): Otsu eşiği; DAPI çevresindeki loş mavi haleyi de çekirdeğe katar.
     bright_core=True  (v2): yalnızca parlak çekirdek gövdesi (3 sınıflı Otsu'nun üst eşiği) ve
@@ -180,6 +185,26 @@ def segment_nuclei(dapi: np.ndarray, um_per_px: float, exclude: np.ndarray,
     """
     sm = filters.gaussian(dapi, sigma=max(1.0, 0.5 / um_per_px), preserve_range=True)
     sm[exclude] = 0
+    if local:
+        mask = sm > filters.threshold_otsu(sm[~exclude])
+        mask = ndi.binary_fill_holes(
+            morphology.remove_small_objects(mask, max_size=max(1, int(min_area_um2 / um_per_px ** 2))))
+        smooth = filters.gaussian(dapi, sigma=0.25 * nucleus_diam_um / um_per_px, preserve_range=True)
+        peaks = feature.peak_local_max(smooth, min_distance=max(3, int(0.35 * nucleus_diam_um / um_per_px)),
+                                       labels=measure.label(mask), exclude_border=False)
+        markers = np.zeros(mask.shape, int)
+        markers[tuple(peaks.T)] = np.arange(1, len(peaks) + 1)
+        lab = segmentation.watershed(-smooth, markers, mask=mask)
+        bg = float(np.median(sm[~mask & ~exclude])) if (~mask & ~exclude).any() else 0.0
+        out = np.zeros_like(lab)
+        min_px = min_area_um2 / um_per_px ** 2
+        for r in measure.regionprops(lab, intensity_image=sm):
+            sl = r.slice
+            keep = (lab[sl] == r.label) & (sm[sl] > bg + local_frac * (r.intensity_max - bg))
+            keep = ndi.binary_fill_holes(keep)
+            if keep.sum() >= min_px:
+                out[sl][keep] = r.label
+        return segmentation.relabel_sequential(out)[0]
     if bright_core:
         th = filters.threshold_multiotsu(sm[~exclude], classes=3)[-1]
         mask = sm > th
@@ -353,7 +378,7 @@ class Settings:
     thresh_factor: float = 1.0
     min_cell_um2: float = 50.0
     nuc_split: bool = True
-    nuc_bright_core: bool = True       # v2 varsayılanı; False = v1.0.0 çekirdek algılaması
+    nuc_method: str = "local"          # "local" (v2, 2026-11-01) | "bright_core" (v2 ilk) | "otsu" (v1.0.0)
     nuc_diam_um: float = 10.0
     min_nuc_um2: float = 15.0
     bg_size: int = 50
@@ -378,6 +403,7 @@ class Analysis:
     bar_um: float = 20.0
     bar_um_source: str = "default"     # "label" (okundu) | "user" | "default" (okunamadı → 20 varsayıldı)
     dapi_overlap: float | None = None  # çekirdek alanının hücre maskesi içindeki oranı (aynı alan mı?)
+    nuc_method: str = ""
 
     @property
     def segmentation_mode(self) -> str:
@@ -409,7 +435,7 @@ def analyze(fitc_arr: np.ndarray, meta: dict, dapi_arr: np.ndarray | None = None
     nuclei = None
     if dapi_ch is not None:
         nuclei = segment_nuclei(dapi_ch, upp or 1.0, exclude, s.min_nuc_um2, s.nuc_diam_um, split=s.nuc_split,
-                                bright_core=s.nuc_bright_core)
+                                bright_core=s.nuc_method == "bright_core", local=s.nuc_method == "local")
     labels, th = segment_cells(fitc_ch, upp or 1.0, exclude, nuclei, s.thresh_method, s.thresh_factor,
                                s.min_cell_um2)
     ids = [int(i) for i in np.setdiff1d(np.unique(labels), [0])]
@@ -417,7 +443,8 @@ def analyze(fitc_arr: np.ndarray, meta: dict, dapi_arr: np.ndarray | None = None
     if nuclei is not None and nuclei.any():
         overlap = float((labels[nuclei > 0] > 0).mean())
     return Analysis(fitc_arr, meta, sb, upp, exclude, fitc_ch, dapi_ch, nuclei, labels, th, ids,
-                    touching_pairs(labels), s.camera_pixel_um, bar_um, src, overlap)
+                    touching_pairs(labels), s.camera_pixel_um, bar_um, src, overlap,
+                    s.nuc_method if nuclei is not None else "")
 
 
 def background_and_measure(a: Analysis, cell_ids, s: Settings | None = None, boxes=None):

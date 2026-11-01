@@ -59,7 +59,8 @@ def methods_table(version: str) -> pd.DataFrame:
             "A pixel belongs to an ROI if its centre lies inside it (ImageJ polygon rule)",
             "Mean of square cell-free boxes (size/number per image in Cells sheet: BG_box_px, BG_n, BG_mode)",
             "Li threshold on the measured channel; touching cells split by watershed seeded with DAPI nuclei",
-            "Bright nuclear body (upper threshold of 3-class Otsu) split by smoothed DAPI intensity maxima (v2)",
+            "DAPI Otsu mask split by watershed from smoothed-intensity maxima; each nucleus trimmed at half of "
+            "its own peak intensity above background (v2 'local'; Nucleus_method column)",
             "Scale bar length detected automatically; its µm value read from the label (Scale_source column)",
             "McCloy et al., 2014, Cell Cycle 13(9):1400–1412, doi:10.4161/cc.28401"]})
 

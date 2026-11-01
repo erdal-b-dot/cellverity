@@ -42,7 +42,7 @@ def result_meta(a: core.Analysis, fitc: Path, dapi: Path | None, group: str, bg_
             "Scale_source": a.bar_um_source, "Objective": a.objective[0] if a.objective else np.nan,
             "BG_mode": bg_mode, "BG_box_px": bg_size, "BG_n": bg_n,
             "Segmentation": a.segmentation_mode,
-            "Nucleus_method": "bright_core (v2)" if a.nuclei is not None else "",
+            "Nucleus_method": a.nuc_method,
             "DAPI_overlap": a.dapi_overlap if a.dapi_overlap is not None else np.nan,
             "Touching_pairs": "; ".join(f"{i}-{j}" for i, j in a.touching),
             "Cells_in_field": len(a.cell_ids),
