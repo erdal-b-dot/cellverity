@@ -7,12 +7,15 @@ parlak çekirdek gövdesini kullanır (core.Settings.nuc_bright_core); v1.0.0 St
 from __future__ import annotations
 
 import sys
+from datetime import datetime
 from pathlib import Path
 
 import numpy as np
+import pandas as pd
 from PySide6.QtCore import QObject, QRectF, Qt, QThread, Signal
 from PySide6.QtGui import QAction, QBrush, QColor, QFont, QImage, QKeySequence, QPainter, QPen, QPixmap
-from PySide6.QtWidgets import (QAbstractItemView, QApplication, QButtonGroup, QComboBox, QDockWidget,
+from PySide6.QtWidgets import (QAbstractItemView, QApplication, QButtonGroup, QCheckBox, QComboBox, QDialog,
+                               QDockWidget, QLineEdit, QPlainTextEdit,
                                QFileDialog, QFormLayout, QFrame, QGraphicsPixmapItem, QGraphicsRectItem,
                                QGraphicsScene, QGraphicsSimpleTextItem,
                                QGraphicsView, QGroupBox, QHBoxLayout, QHeaderView, QLabel, QMainWindow,
@@ -21,6 +24,7 @@ from PySide6.QtWidgets import (QAbstractItemView, QApplication, QButtonGroup, QC
                                QTableWidget, QTableWidgetItem, QTabWidget, QVBoxLayout, QWidget)
 
 import core
+import report
 
 APP_NAME = "ICC CTCF Ölçer"
 VERSION = "2.0.0-dev"
@@ -70,6 +74,11 @@ NUCLEUS_COLOR = (255, 0, 255)  # mor: hem yeşil hem mavi zeminde görünür
 TABLE_COLS = [("Cell", "Hücre", 0), ("Area", "Alan", 2), ("Mean", "Mean", 3), ("StdDev", "StdDev", 3),
               ("Min", "Min", 0), ("Max", "Max", 0), ("IntDen", "IntDen", 1), ("RawIntDen", "RawIntDen", 0),
               ("CTCF", "CTCF", 1), ("Saturated_px", "Doymuş px", 0)]
+RES_COLS = [("Group", "Grup", None), ("Image", "Görüntü", None), ("Cell", "Hücre", 0), ("Area", "Alan", 2),
+            ("Mean", "Mean", 3), ("IntDen", "IntDen", 1), ("BG_Mean", "BG Mean", 3), ("CTCF", "CTCF", 1),
+            ("Objective", "Objektif", 0)]
+SUM_COLS = [("Group", "Grup", None), ("n", "n", 0), ("Mean", "Ortalama", 1), ("SD", "SD", 1),
+            ("SEM", "SEM", 1), ("Median", "Medyan", 1), ("Min", "Min", 1), ("Max", "Max", 1)]
 BG_COLS = [("BG", "Kutu", 0), ("x0", "x", 0), ("y0", "y", 0), ("Area_px", "Piksel", 0), ("Mean", "Mean", 3),
            ("StdDev", "StdDev", 3), ("Min", "Min", 0), ("Max", "Max", 0), ("RawIntDen", "RawIntDen", 0)]
 
@@ -92,7 +101,13 @@ def fill(table: QTableWidget, cols, df):
     for r, row in enumerate(df.itertuples(index=False)):
         for c, (col, _, dec) in enumerate(cols):
             v = getattr(row, col)
-            it = QTableWidgetItem(f"{v:,.{dec}f}".replace(",", " ") if dec else f"{int(v)}")
+            if dec is None or isinstance(v, str):
+                txt = str(v)
+            elif v != v:  # NaN
+                txt = "—"
+            else:
+                txt = f"{v:,.{dec}f}".replace(",", " ") if dec else f"{int(v)}"
+            it = QTableWidgetItem(txt)
             it.setTextAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
             table.setItem(r, c, it)
 
@@ -331,6 +346,30 @@ class InfoPanel(QWidget):
         bl.addWidget(self.bg_info)
         lay.addWidget(bg)
 
+        res = QGroupBox("Sonuçlar")
+        rl = QVBoxLayout(res)
+        f3 = QFormLayout()
+        self.group = QLineEdit("Kontrol")
+        self.group.setToolTip("Bu görüntünün ait olduğu grup/koşul, ör. 'CD44 ilaçsız', 'Ax 10 µM 24 sa'.\n"
+                              "Grafik ve istatistik bu etikete göre gruplanır.")
+        f3.addRow("Grup / koşul", self.group)
+        rl.addLayout(f3)
+        self.btn_add = QPushButton("➕ Sonuç tablosuna ekle")
+        self.btn_add.setStyleSheet("font-weight:bold; padding:6px;")
+        self.btn_add.setToolTip("Seçili hücrelerin ölçümlerini biriken tabloya ekler (⌘↩ / Ctrl+Enter).\n"
+                                "Aynı görüntü yeniden eklenirse eskisinin yerine geçer.")
+        rl.addWidget(self.btn_add)
+        self.res_info = QLabel("Biriken: 0 hücre")
+        self.res_info.setWordWrap(True)
+        rl.addWidget(self.res_info)
+        row = QHBoxLayout()
+        self.btn_excel = QPushButton("Excel'e kaydet…")
+        self.btn_plot = QPushButton("Grafik…")
+        row.addWidget(self.btn_excel)
+        row.addWidget(self.btn_plot)
+        rl.addLayout(row)
+        lay.addWidget(res)
+
         legend = QLabel("<b>Çizgiler</b><br>"
                         "<span style='color:#9a9a9a'>━</span> hücre sınırı (numaralı)<br>"
                         "<span style='color:#d4b000'>━</span> seçili hücre (ölçülür)<br>"
@@ -374,6 +413,63 @@ class InfoPanel(QWidget):
             self.mode.setStyleSheet("background:#fdf3d8; color:#850; padding:6px; border-radius:4px;")
 
 
+# ------------------------------------------------------------- Grafik penceresi
+class PlotDialog(QDialog):
+    def __init__(self, parent, results):
+        super().__init__(parent)
+        from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
+        from matplotlib.figure import Figure
+        self.results = results
+        self.setWindowTitle("Grafik ve istatistik")
+        self.resize(900, 560)
+        lay = QHBoxLayout(self)
+        self.fig = Figure(dpi=110)
+        self.canvas = FigureCanvasQTAgg(self.fig)
+        lay.addWidget(self.canvas, 3)
+        side = QVBoxLayout()
+        form = QFormLayout()
+        self.metric_box = QComboBox()
+        self.metric_box.addItems(list(report.METRICS))
+        self.kind_box = QComboBox()
+        self.kind_box.addItems(report.PLOT_KINDS)
+        self.norm_box = QCheckBox("İlk gruba göre normalize et (kontrol = 1)")
+        form.addRow("Değişken", self.metric_box)
+        form.addRow("Grafik tipi", self.kind_box)
+        side.addLayout(form)
+        side.addWidget(self.norm_box)
+        side.addWidget(QLabel("<b>İstatistik</b>"))
+        self.stats = QPlainTextEdit()
+        self.stats.setReadOnly(True)
+        side.addWidget(self.stats)
+        note = QLabel("Not: hücreler teknik tekrardır; yayın için biyolojik tekrar (deney) ortalamalarıyla "
+                      "test önerilir.")
+        note.setWordWrap(True)
+        note.setStyleSheet("color:#666;")
+        side.addWidget(note)
+        for fmt in ("png", "pdf", "svg"):
+            b = QPushButton(f"Kaydet ({fmt.upper()}{', 600 dpi' if fmt == 'png' else ''})")
+            b.clicked.connect(lambda _, f=fmt: self.save(f))
+            side.addWidget(b)
+        lay.addLayout(side, 2)
+        for w in (self.metric_box, self.kind_box):
+            w.currentIndexChanged.connect(self.draw)
+        self.norm_box.toggled.connect(self.draw)
+        self.draw()
+
+    def draw(self):
+        _, txt = report.plot(self.results, self.metric_box.currentText(), self.kind_box.currentText(),
+                             self.norm_box.isChecked(), fig=self.fig)
+        self.stats.setPlainText(txt)
+        self.canvas.draw()
+
+    def save(self, fmt):
+        stamp = datetime.now().strftime("%Y%m%d_%H%M")
+        start = str(Path.home() / f"CTCF_plot_{self.metric_box.currentText()}_{stamp}.{fmt}")
+        path, _ = QFileDialog.getSaveFileName(self, "Grafiği kaydet", start, f"{fmt.upper()} (*.{fmt})")
+        if path:
+            self.fig.savefig(path, format=fmt, dpi=600 if fmt == "png" else None, bbox_inches="tight")
+
+
 # ---------------------------------------------------------------- Ana pencere
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -382,6 +478,10 @@ class MainWindow(QMainWindow):
         self.resize(1400, 900)
         self.setAcceptDrops(True)
         self.fitc = self.dapi = None  # (Path, arr, meta)
+        self.results = pd.DataFrame()     # biriken hücre ölçümleri (tüm görüntüler)
+        self.bg_results = pd.DataFrame()
+        self.cur_cells = self.cur_bg = None
+        self._dirty = False               # kaydedilmemiş sonuç var mı
         self.analysis: core.Analysis | None = None
         self._thread = None
         self._pending = False  # analiz sürerken yeni görüntü gelirse bitince yeniden çalıştır
@@ -404,6 +504,9 @@ class MainWindow(QMainWindow):
         p.bg_size.valueChanged.connect(lambda _: self.update_measure())
         p.bg_n.valueChanged.connect(lambda _: self.update_measure())
         p.btn_bg_clear.clicked.connect(self.clear_manual_boxes)
+        p.btn_add.clicked.connect(self.add_to_results)
+        p.btn_excel.clicked.connect(lambda: self.export_results("xlsx"))
+        p.btn_plot.clicked.connect(self.show_plot)
         scroll = QScrollArea()
         scroll.setWidget(self.panel)
         scroll.setWidgetResizable(True)
@@ -418,14 +521,20 @@ class MainWindow(QMainWindow):
         self.table = make_table(TABLE_COLS)
         self.bg_table = make_table(BG_COLS)
         self.tabs = QTabWidget()
+        self.res_table = make_table(RES_COLS)
+        self.sum_table = make_table(SUM_COLS)
         self.tabs.addTab(self.table, "Hücreler")
         self.tabs.addTab(self.bg_table, "Background kutuları")
+        self.tabs.addTab(self.res_table, "Biriken sonuçlar (0)")
+        self.tabs.addTab(self.sum_table, "Grup özeti (CTCF)")
         tdock = QDockWidget("CTCF ölçümü  —  CTCF = IntDen − (Alan × background ortalaması)", self)
         tdock.setWidget(self.tabs)
         tdock.setFeatures(QDockWidget.DockWidgetFeature.DockWidgetMovable)
         self.addDockWidget(Qt.DockWidgetArea.BottomDockWidgetArea, tdock)
         self.resizeDocks([tdock], [190], Qt.Orientation.Vertical)
         self._build_actions()
+        self.refresh_results()
+        self.panel.btn_add.setEnabled(False)
         self.statusBar().showMessage("Hazır — görüntü açın veya sürükleyin.")
 
     def _build_actions(self):
@@ -459,6 +568,19 @@ class MainWindow(QMainWindow):
         m.addActions([self.a_fitc, self.a_dapi, self.a_close])
         m.addSeparator()
         m.addAction(act("Çıkış", self.close, QKeySequence.StandardKey.Quit))
+        self.a_add = act("Sonuç tablosuna ekle", self.add_to_results, "Ctrl+Return")
+        self.a_xlsx = act("Excel olarak kaydet…", lambda: self.export_results("xlsx"), "Ctrl+E")
+        self.a_csv = act("CSV olarak kaydet…", lambda: self.export_results("csv"))
+        self.a_plot = act("Grafik ve istatistik…", self.show_plot, "Ctrl+G")
+        self.a_roi = act("ROI görüntüsü (PNG)…", self.export_roi_png)
+        self.a_ij = act("ImageJ/Fiji karşılaştırma paketi (ZIP)…", self.export_imagej)
+        self.a_reset = act("Biriken sonuçları sıfırla…", self.reset_results)
+        m = self.menuBar().addMenu("Sonuçlar")
+        m.addActions([self.a_add, self.a_xlsx, self.a_csv, self.a_plot])
+        m.addSeparator()
+        m.addActions([self.a_roi, self.a_ij])
+        m.addSeparator()
+        m.addAction(self.a_reset)
         m = self.menuBar().addMenu("Görünüm")
         m.addActions([self.a_fit, self.a_in, self.a_out])
         m.addSeparator()
@@ -475,6 +597,8 @@ class MainWindow(QMainWindow):
         tb.addWidget(QLabel(" Görüntü: "))
         tb.addWidget(self.view_mode)
         tb.addAction(self.a_nuc)
+        tb.addSeparator()
+        tb.addActions([self.a_add, self.a_xlsx, self.a_plot])
 
     # ---------------------------------------------------------- dosya açma
     def close_images(self):
@@ -482,6 +606,8 @@ class MainWindow(QMainWindow):
             return
         self.fitc = self.dapi = self.analysis = None
         self.selected, self.manual_boxes, self.boxes = set(), [], []
+        self.cur_cells = self.cur_bg = None
+        self.panel.btn_add.setEnabled(False)
         self.view.set_boxes([])
         self.view.item.setPixmap(QPixmap())
         self.view.placeholder.show()
@@ -737,6 +863,8 @@ class MainWindow(QMainWindow):
             p.bg_info.setText("<span style='color:#b22'>Background kutusu yok — CTCF hesaplanamaz.</span>"
                               + (" Görüntüye tıklayarak kutu ekleyin." if p.bg_manual.isChecked() else
                                  " Kutu boyutunu küçültün."))
+        self.cur_cells, self.cur_bg = cells, bg
+        p.btn_add.setEnabled(cells is not None and len(cells) > 0)
         self.fill_table(cells)
         fill(self.bg_table, BG_COLS, bg)
         self.tabs.setTabText(1, f"Background kutuları ({len(bg) if bg is not None else 0})")
@@ -749,6 +877,121 @@ class MainWindow(QMainWindow):
             return
         unit = cells["Area_unit"].iloc[0]
         self.table.horizontalHeaderItem(1).setText(f"Alan ({unit})")
+
+    # ------------------------------------------------------- sonuçlar
+    def add_to_results(self):
+        a, cells = self.analysis, self.cur_cells
+        if a is None or cells is None or not len(cells):
+            self.statusBar().showMessage("Önce hücre seçin (tıklayın veya 'Tüm hücreleri seç').", 5000)
+            return
+        group = self.panel.group.text().strip() or "Grup"
+        fpath = self.fitc[0]
+        meta = {"Group": group, "Image": fpath.name, "Image_path": str(fpath),
+                "DAPI_image": self.dapi[0].name if self.dapi else "",
+                "Channel": "G", "um_per_px": a.um_per_px or np.nan, "Scale_bar_um": a.bar_um,
+                "Scale_source": a.bar_um_source, "Objective": a.objective[0] if a.objective else np.nan,
+                "BG_mode": "auto" if self.panel.bg_auto.isChecked() else "manual",
+                "BG_box_px": self.panel.bg_size.value(), "BG_n": len(self.cur_bg),
+                "Segmentation": a.segmentation_mode, "Nucleus_method": "bright_core (v2)" if a.nuclei is not None else "",
+                "DAPI_overlap": a.dapi_overlap if a.dapi_overlap is not None else np.nan,
+                "Touching_pairs": "; ".join(f"{i}-{j}" for i, j in a.touching),
+                "Cells_in_field": len(a.cell_ids),
+                "Nuclei_in_field": int(a.nuclei.max()) if a.nuclei is not None else np.nan,
+                "App_version": VERSION, "Timestamp": datetime.now().strftime("%Y-%m-%d %H:%M")}
+        replaced = len(self.results) and (self.results["Image_path"] == str(fpath)).any()
+        self.results = report.add_image(self.results, cells, meta)
+        self.bg_results = report.add_background(self.bg_results, self.cur_bg, fpath.name, str(fpath), group)
+        self._dirty = True
+        self.refresh_results()
+        self.tabs.setCurrentIndex(2)
+        self.statusBar().showMessage(f"{len(cells)} hücre '{group}' grubuna eklendi"
+                                     + (" (bu görüntünün önceki ölçümünün yerine)." if replaced else "."), 6000)
+
+    def refresh_results(self):
+        r = self.results
+        fill(self.res_table, RES_COLS, r if len(r) else None)
+        fill(self.sum_table, SUM_COLS, report.group_summary(r) if len(r) else None)
+        n_img = r["Image_path"].nunique() if len(r) else 0
+        n_grp = r["Group"].nunique() if len(r) else 0
+        self.tabs.setTabText(2, f"Biriken sonuçlar ({len(r)})")
+        self.panel.res_info.setText(f"Biriken: <b>{len(r)}</b> hücre, {n_img} görüntü, {n_grp} grup"
+                                    + ("  <span style='color:#a60'>(kaydedilmedi)</span>" if self._dirty else ""))
+        for w in (self.panel.btn_excel, self.panel.btn_plot):
+            w.setEnabled(len(r) > 0)
+        for a_ in (self.a_xlsx, self.a_csv, self.a_plot, self.a_reset):
+            a_.setEnabled(len(r) > 0)
+
+    def _save_path(self, title, name, filt):
+        start = str((self.fitc[0].parent if self.fitc else Path.home()) / name)
+        path, _ = QFileDialog.getSaveFileName(self, title, start, filt)
+        return Path(path) if path else None
+
+    def export_results(self, fmt):
+        if not len(self.results):
+            return False
+        stamp = datetime.now().strftime("%Y%m%d_%H%M")
+        if fmt == "xlsx":
+            path = self._save_path("Excel olarak kaydet", f"CTCF_{stamp}.xlsx", "Excel (*.xlsx)")
+        else:
+            path = self._save_path("CSV olarak kaydet", f"CTCF_{stamp}.csv", "CSV (*.csv)")
+        if path is None:
+            return False
+        try:
+            if fmt == "xlsx":
+                report.write_excel(path, self.results, self.bg_results, VERSION)
+            else:
+                report.write_csv(path, self.results)
+        except Exception as ex:
+            message(self, "critical", f"Kaydedilemedi:\n{ex}\n\nDosya Excel'de açıksa kapatıp yeniden deneyin.")
+            return False
+        self._dirty = False
+        self.refresh_results()
+        self.statusBar().showMessage(f"Kaydedildi: {path}", 8000)
+        return True
+
+    def export_roi_png(self):
+        a = self.analysis
+        if a is None:
+            return
+        path = self._save_path("ROI görüntüsünü kaydet", f"ROI_{self.fitc[0].stem}.png", "PNG (*.png)")
+        if path:
+            disp = core.to_display(a.fitc_arr, self.panel.gain.value() / 10)
+            core.overlay(disp, a.labels, self.selected, self.boxes, a.nuclei, nucleus_color=NUCLEUS_COLOR,
+                         nucleus_width=1).save(path)
+            self.statusBar().showMessage(f"Kaydedildi: {path}", 8000)
+
+    def export_imagej(self):
+        a = self.analysis
+        if a is None or not self.selected:
+            self.statusBar().showMessage("ImageJ paketi için önce hücre seçin.", 5000)
+            return
+        base = self.fitc[0].stem
+        path = self._save_path("ImageJ/Fiji paketini kaydet", f"ImageJ_{base}.zip", "ZIP (*.zip)")
+        if path:
+            path.write_bytes(core.imagej_export_zip(a.fitc_ch, a.labels, sorted(self.selected), self.boxes, base))
+            message(self, "info", f"Kaydedildi: {path.name}\n\nFiji'de: TIFF'i açın → Analyze ▸ Set Scale: "
+                    f"{a.scale_bar.bar_px} piksel = {a.bar_um:g} µm → ROI Manager ▸ Open: RoiSet.zip → Measure.\n"
+                    "Ayrıntılar ZIP içindeki NASIL_KULLANILIR.txt dosyasında.")
+
+    def reset_results(self):
+        if len(self.results) and message(self, "question", f"Biriken {len(self.results)} hücrelik tablo silinsin mi?"
+                                         + ("\n\nKaydedilmemiş sonuçlar kaybolur." if self._dirty else ""),
+                                         ask=True):
+            self.results, self.bg_results, self._dirty = pd.DataFrame(), pd.DataFrame(), False
+            self.refresh_results()
+
+    def show_plot(self):
+        if len(self.results):
+            PlotDialog(self, self.results).exec()
+
+    def closeEvent(self, e):
+        if self._dirty and len(self.results):
+            if message(self, "question", f"Kaydedilmemiş {len(self.results)} hücrelik sonuç var.\n\n"
+                       "Çıkmadan önce Excel'e kaydetmek ister misiniz?", ask=True):
+                if not self.export_results("xlsx"):
+                    e.ignore()
+                    return
+        e.accept()
 
     def about(self):
         message(self, "info",

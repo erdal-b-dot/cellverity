@@ -93,6 +93,35 @@ def test_scale_label_reading():
         assert abs(an.um_per_px - 50 / 172) < 1e-9 and an.objective[0] == 20
 
 
+def test_report_exports(tmp=None):
+    """Biriken tablo: aynı görüntü yeniden eklenince üzerine yazılır; Excel 4 sayfa; istatistik doğru."""
+    import tempfile
+    import pandas as pd
+    from scipy import stats as sps
+    import report
+    rng = np.random.default_rng(1)
+    res = pd.DataFrame()
+    for g, mu in (("Kontrol", 100.0), ("İlaç", 140.0)):
+        for k in range(2):
+            cells = pd.DataFrame({"Cell": range(1, 6), "Area_unit": "µm²", "Area": 400.0,
+                                  "CTCF": rng.normal(mu, 10, 5)})
+            res = report.add_image(res, cells, {"Group": g, "Image": f"{g}{k}.jpg", "Image_path": f"/x/{g}{k}.jpg"})
+    assert len(res) == 20
+    again = pd.DataFrame({"Cell": [1], "Area_unit": "µm²", "Area": 1.0, "CTCF": 1.0})
+    res2 = report.add_image(res, again, {"Group": "Kontrol", "Image": "Kontrol0.jpg", "Image_path": "/x/Kontrol0.jpg"})
+    assert len(res2) == 16
+    _, txt = report.plot(res, "CTCF")
+    p = sps.ttest_ind(res.CTCF[res.Group == "Kontrol"], res.CTCF[res.Group == "İlaç"], equal_var=False).pvalue
+    assert f"{p:.4g}" in txt
+    with tempfile.TemporaryDirectory() as d:
+        path = Path(d) / "t.xlsx"
+        report.write_excel(path, res, pd.DataFrame({"BG": [1]}), "test")
+        x = pd.ExcelFile(path)
+        assert x.sheet_names == ["Cells", "Group_summary", "Background", "Methods"]
+        assert len(pd.read_excel(x, "Cells")) == 20
+        assert pd.read_excel(x, "Group_summary")["n"].tolist() == [10, 10]
+
+
 if __name__ == "__main__":
     if not FITC.exists():
         sys.exit(f"Örnek görüntü yok: {FITC}")
@@ -100,4 +129,5 @@ if __name__ == "__main__":
     test_analyze_matches_manual_pipeline()
     test_v2_bright_core_nuclei()
     test_scale_label_reading()
+    test_report_exports()
     print("✅ Doğrulama testi geçti: hesaplamalar Fiji ile doğrulanmış değerlerle aynı.")
