@@ -50,11 +50,13 @@ def _mask(arr: np.ndarray, channel: str, step: int = 4) -> np.ndarray:
 
 
 def overlap(fitc_arr: np.ndarray, dapi_arr: np.ndarray) -> float:
-    """Çekirdek maskesinin FITC hücre maskesi içinde kalan oranı (hızlı, 4× küçültülmüş)."""
+    """Şansa göre düzeltilmiş çekirdek–hücre örtüşmesi (hızlı, 4× küçültülmüş): 1 = bütün çekirdekler hücre
+    içinde, 0 = rastgele yerleşimden farksız. Ham oran yanıltıcıdır: hücrelerin alanın yarısını kapladığı kalabalık
+    görüntüde başka alana ait bir DAPI bile ~%50 örtüşür (2026-11-01, samples/Image_11323 + 11322: ham 0.55)."""
     nuc = _mask(dapi_arr, "B")
     if not nuc.any():
         return 0.0
-    return float(_mask(fitc_arr, "G")[nuc].mean())
+    return core.chance_corrected_overlap(_mask(fitc_arr, "G"), nuc)
 
 
 @dataclass

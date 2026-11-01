@@ -234,7 +234,7 @@ Experiments/
 - Both can be edited in the table before measuring.
 
 ### 8.2 FITC–DAPI pairing
-Each FITC is paired with the DAPI, among those **within ±3 file numbers in the same folder**, whose **nuclei actually overlap the cells** (≥ 50%). Consecutive numbers do not always mean the same field — the program checks the images themselves.
+Each FITC is paired with the DAPI, among those **within ±3 file numbers in the same folder**, whose **nuclei actually overlap the cells**. Overlap is a **chance-corrected** score (1 = all nuclei inside cells, 0 = no better than random placement); ≥ 0.5 is required. A raw fraction would mislead: in a crowded field where cells cover half the image, a DAPI from another field still overlaps ~50%. Consecutive numbers do not always mean the same field — the program checks the images themselves.
 
 | Status | Meaning |
 |---|---|

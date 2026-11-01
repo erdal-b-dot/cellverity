@@ -441,10 +441,22 @@ def analyze(fitc_arr: np.ndarray, meta: dict, dapi_arr: np.ndarray | None = None
     ids = [int(i) for i in np.setdiff1d(np.unique(labels), [0])]
     overlap = None
     if nuclei is not None and nuclei.any():
-        overlap = float((labels[nuclei > 0] > 0).mean())
+        overlap = chance_corrected_overlap((labels > 0) & ~exclude, (nuclei > 0) & ~exclude)
     return Analysis(fitc_arr, meta, sb, upp, exclude, fitc_ch, dapi_ch, nuclei, labels, th, ids,
                     touching_pairs(labels), s.camera_pixel_um, bar_um, src, overlap,
                     s.nuc_method if nuclei is not None else "")
+
+
+def chance_corrected_overlap(cell_mask: np.ndarray, nuc_mask: np.ndarray) -> float:
+    """(gözlenen − beklenen) / (1 − beklenen); gözlenen = çekirdek piksellerinin hücre içindeki oranı,
+    beklenen = hücrelerin kapladığı alan oranı (çekirdekler rastgele yerleşseydi). 1 = tam örtüşme, ≤0 = rastgele."""
+    if not nuc_mask.any():
+        return 0.0
+    observed = float(cell_mask[nuc_mask].mean())
+    expected = float(cell_mask.mean())
+    if expected >= 0.999:
+        return observed
+    return max(0.0, (observed - expected) / (1 - expected))
 
 
 def background_and_measure(a: Analysis, cell_ids, s: Settings | None = None, boxes=None):

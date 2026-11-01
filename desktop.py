@@ -527,7 +527,7 @@ class BatchDialog(QDialog):
         self.setWindowTitle(T("Klasörü toplu ölç"))
         self.resize(980, 620)
         lay = QVBoxLayout(self)
-        intro = QLabel(T("Klasördeki görüntüler FITC/DAPI olarak tanınır; her FITC, aynı klasördeki yakın numaralı DAPI'ler arasından <b>gerçekten aynı alana ait olanla</b> (çekirdek–hücre örtüşmesi ≥ %50) eşleştirilir. Grup = alt klasör adı; deney = onun üstündeki klasör (ör. Deney_1/Kontrol/…) — ikisini de tabloda değiştirebilirsiniz. Her görüntüde tüm hücreler ve otomatik background ölçülür; sağ paneldeki kutu boyutu/sayısı kullanılır."))
+        intro = QLabel(T("Klasördeki görüntüler FITC/DAPI olarak tanınır; her FITC, aynı klasördeki yakın numaralı DAPI'ler arasından <b>gerçekten aynı alana ait olanla</b> (şansa göre düzeltilmiş çekirdek–hücre örtüşmesi ≥ 0.5) eşleştirilir. Grup = alt klasör adı; deney = onun üstündeki klasör (ör. Deney_1/Kontrol/…) — ikisini de tabloda değiştirebilirsiniz. Her görüntüde tüm hücreler ve otomatik background ölçülür; sağ paneldeki kutu boyutu/sayısı kullanılır."))
         intro.setWordWrap(True)
         lay.addWidget(intro)
         row = QHBoxLayout()

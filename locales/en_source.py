@@ -222,8 +222,8 @@ EN = {
         "There are unsaved results for {0} cells.\n\nSave them to Excel before quitting?",
     # ---- toplu ölçüm
     "Klasörü toplu ölç": "Batch-measure folder",
-    "Klasördeki görüntüler FITC/DAPI olarak tanınır; her FITC, aynı klasördeki yakın numaralı DAPI'ler arasından <b>gerçekten aynı alana ait olanla</b> (çekirdek–hücre örtüşmesi ≥ %50) eşleştirilir. Grup = alt klasör adı; deney = onun üstündeki klasör (ör. Deney_1/Kontrol/…) — ikisini de tabloda değiştirebilirsiniz. Her görüntüde tüm hücreler ve otomatik background ölçülür; sağ paneldeki kutu boyutu/sayısı kullanılır.":
-        "Images in the folder are recognised as FITC/DAPI; each FITC is paired with the nearby-numbered DAPI in the same folder that <b>really belongs to the same field</b> (nucleus–cell overlap ≥ 50%). Group = subfolder name; experiment = the folder above it (e.g. Exp_1/Control/…) — both can be edited in the table. All cells and automatic background are measured in each image, using the box size/number from the right panel.",
+    "Klasördeki görüntüler FITC/DAPI olarak tanınır; her FITC, aynı klasördeki yakın numaralı DAPI'ler arasından <b>gerçekten aynı alana ait olanla</b> (şansa göre düzeltilmiş çekirdek–hücre örtüşmesi ≥ 0.5) eşleştirilir. Grup = alt klasör adı; deney = onun üstündeki klasör (ör. Deney_1/Kontrol/…) — ikisini de tabloda değiştirebilirsiniz. Her görüntüde tüm hücreler ve otomatik background ölçülür; sağ paneldeki kutu boyutu/sayısı kullanılır.":
+        "Images in the folder are recognised as FITC/DAPI; each FITC is paired with the nearby-numbered DAPI in the same folder that <b>really belongs to the same field</b> (chance-corrected nucleus–cell overlap ≥ 0.5). Group = subfolder name; experiment = the folder above it (e.g. Exp_1/Control/…) — both can be edited in the table. All cells and automatic background are measured in each image, using the box size/number from the right panel.",
     "Klasör seç…": "Choose folder…",
     "Alt klasörler dahil": "Include subfolders",
     "Görüntü kenarına değen (kesik) hücreleri hariç tut": "Exclude cells touching the image border (cut off)",

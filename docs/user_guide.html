@@ -357,7 +357,7 @@ The program looks for Fiji in <code>Downloads/Fiji</code>, <code>Applications/Fi
 <li>Both can be edited in the table before measuring.</li>
 </ul>
 <h3 id="82-fitcdapi-pairing">8.2 FITC–DAPI pairing</h3>
-<p>Each FITC is paired with the DAPI, among those <strong>within ±3 file numbers in the same folder</strong>, whose <strong>nuclei actually overlap the cells</strong> (≥ 50%). Consecutive numbers do not always mean the same field — the program checks the images themselves.</p>
+<p>Each FITC is paired with the DAPI, among those <strong>within ±3 file numbers in the same folder</strong>, whose <strong>nuclei actually overlap the cells</strong>. Overlap is a <strong>chance-corrected</strong> score (1 = all nuclei inside cells, 0 = no better than random placement); ≥ 0.5 is required. A raw fraction would mislead: in a crowded field where cells cover half the image, a DAPI from another field still overlaps ~50%. Consecutive numbers do not always mean the same field — the program checks the images themselves.</p>
 <table>
 <thead>
 <tr>

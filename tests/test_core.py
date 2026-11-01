@@ -276,6 +276,24 @@ def test_translations():
     assert i18n.T("Hücre sayısı") == "Hücre sayısı"
 
 
+def test_chance_corrected_pairing():
+    """Kalabalık alanda (hücreler görüntünün ~%50'si) başka alana ait DAPI ham oranla ~%55 örtüşür ve eşleşiyordu.
+    Şansa göre düzeltilmiş skorla reddedilmeli; doğru çift ≈ 1 almalı (samples/Image_11305/06, 11323/22)."""
+    import shutil
+    import tempfile
+    import batch
+    names = ["Image_11305.jpg", "Image_11306.jpg", "Image_11322.jpg", "Image_11323.jpg"]
+    if not all((ROOT / "ornek" / n).exists() for n in names):
+        return
+    with tempfile.TemporaryDirectory() as d:
+        for n in names:
+            shutil.copy(ROOT / "ornek" / n, Path(d) / n)
+        items = {it.fitc.name if it.fitc else it.dapi.name: it for it in batch.scan(Path(d), recursive=False)}
+    assert items["Image_11305.jpg"].status == "ready" and items["Image_11305.jpg"].overlap > 0.9
+    assert items["Image_11323.jpg"].status == "no_dapi" and items["Image_11323.jpg"].overlap < 0.3
+    assert items["Image_11322.jpg"].reason == "unpaired_dapi"
+
+
 if __name__ == "__main__":
     if not FITC.exists():
         sys.exit(f"Örnek görüntü yok: {FITC}")
@@ -290,4 +308,5 @@ if __name__ == "__main__":
     test_manual_edits()
     test_fiji_bridge()
     test_translations()
+    test_chance_corrected_pairing()
     print("✅ Doğrulama testi geçti: hesaplamalar Fiji ile doğrulanmış değerlerle aynı.")

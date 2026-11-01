@@ -236,7 +236,7 @@ Deneyler/
 - İkisi de ölçmeden önce tabloda değiştirilebilir.
 
 ### 8.2 FITC–DAPI eşleştirme
-Her FITC, **aynı klasörde ±3 numara içindeki** DAPI'ler arasından, **çekirdeklerin hücrelerle gerçekten örtüştüğü** (≥ %50) olanla eşleştirilir. Ardışık numara her zaman aynı alan demek değildir — program bunu görüntünün kendisinden kontrol eder.
+Her FITC, **aynı klasörde ±3 numara içindeki** DAPI'ler arasından, **çekirdeklerin hücrelerle gerçekten örtüştüğü** olanla eşleştirilir. Örtüşme **şansa göre düzeltilmiş** bir skordur (1 = bütün çekirdekler hücre içinde, 0 = rastgele yerleşimden farksız); eşleşme için ≥ 0.5 gerekir. Ham oran kullanılsaydı, hücrelerin alanın yarısını kapladığı kalabalık görüntülerde başka alana ait bir DAPI bile %50 örtüşürdü. Ardışık numara her zaman aynı alan demek değildir — program bunu görüntünün kendisinden kontrol eder.
 
 | Durum | Anlamı |
 |---|---|
