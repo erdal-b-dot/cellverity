@@ -31,7 +31,7 @@ import report
 from batch import guess_kind
 
 APP_NAME = "ICC CTCF Ölçer"
-VERSION = "2.0.0-dev"
+VERSION = "2.0.0"
 IMAGE_FILTER = "Görüntüler (*.jpg *.jpeg *.tif *.tiff *.png)"
 AUTOSAVE = Path.home() / "Documents" / "ICC CTCF Olcer" / "otomatik_kayit.xlsx"
 
@@ -1012,6 +1012,7 @@ class MainWindow(QMainWindow):
         m.addSeparator()
         m.addAction(self.a_nuc)
         m = self.menuBar().addMenu("Yardım")
+        m.addAction(act("Kullanım kılavuzu", self.open_manual, QKeySequence.StandardKey.HelpContents))
         m.addAction(act("Hakkında", self.about))
 
         tb = self.addToolBar("Araçlar")
@@ -1735,6 +1736,15 @@ class MainWindow(QMainWindow):
                     report.agreement_text(st).replace("\n", "<br>"),
                     fig_fn=lambda f: report.bland_altman_plot(v, fig=f)).exec()
 
+    def open_manual(self):
+        from PySide6.QtCore import QUrl
+        from PySide6.QtGui import QDesktopServices
+        path = resource("docs/kilavuz.html")
+        if not path.exists():
+            message(self, "warning", f"Kılavuz bulunamadı: {path}")
+            return
+        QDesktopServices.openUrl(QUrl.fromLocalFile(str(path)))
+
     def about(self):
         message(self, "info",
                 f"<b>{APP_NAME} {VERSION}</b><br>Immunositokimya görüntülerinde CTCF ölçümü.<br><br>"
@@ -1742,9 +1752,42 @@ class MainWindow(QMainWindow):
                           "Ölçümler ImageJ/Fiji ile birebir aynıdır.<br>© Erdal Balcan, MIT lisansı")
 
 
+def resource(rel: str) -> Path:
+    """Paketlenmiş (.app/.exe) sürümde dosyalar PyInstaller'ın açtığı klasördedir."""
+    return Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent)) / rel
+
+
+def selftest(fitc: str, dapi: str) -> int:
+    """Paketlenmiş sürümü pencere açmadan sınar: analiz, ölçüm, Excel, grafik, Qt grafik tuvali."""
+    import json
+    import tempfile
+    f, m = core.load_image(fitc)
+    d = core.load_image(dapi)[0]
+    a = core.analyze(f, m, d)
+    cells, bg, _ = core.background_and_measure(a, a.cell_ids)
+    meta = result_meta(a, Path(fitc), Path(dapi), "test", "auto", 50, len(bg))
+    res = report.add_image(pd.DataFrame(), cells, meta)
+    with tempfile.TemporaryDirectory() as t:
+        report.write_excel(Path(t) / "x.xlsx", res, bg, VERSION)
+        report.plot(res)[0].savefig(Path(t) / "x.png")
+        ok_xlsx = (Path(t) / "x.xlsx").stat().st_size > 0
+    from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg  # noqa: F401
+    out = json.dumps({"version": VERSION, "bar_um": a.bar_um, "um_per_px": a.um_per_px, "cells": len(a.cell_ids),
+                      "nuclei": int(a.nuclei.max()), "area": cells["Area"].round(2).tolist(),
+                      "ctcf": cells["CTCF"].round(1).tolist(), "excel": ok_xlsx}, ensure_ascii=False)
+    Path("selftest_result.json").write_text(out, encoding="utf-8")  # Windows'ta pencereli .exe'nin konsolu yok
+    if sys.stdout is not None:
+        print(out)
+    return 0
+
+
 def main():
+    if len(sys.argv) == 4 and sys.argv[1] == "--selftest":
+        sys.exit(selftest(sys.argv[2], sys.argv[3]))
     app = QApplication(sys.argv)
     app.setApplicationName(APP_NAME)
+    from PySide6.QtGui import QIcon
+    app.setWindowIcon(QIcon(str(resource("assets/icon.png"))))
     w = MainWindow()
     w.show()
     if len(sys.argv) < 2:

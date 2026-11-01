@@ -1,0 +1,874 @@
+<!doctype html><html lang='tr'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>ICC CTCF Ölçer Kılavuzu</title><style>
+:root{--bg:#fff;--fg:#1d1f23;--muted:#5b6170;--line:#e3e5ea;--code:#f4f5f7;--accent:#2f7d32;--warn:#a15c00}
+@media (prefers-color-scheme:dark){:root{--bg:#16181c;--fg:#e6e7ea;--muted:#a2a7b3;--line:#2c3038;--code:#22252b;--accent:#7fca7f;--warn:#e0a24a}}
+html{background:var(--bg)}body{max-width:920px;margin:0 auto;padding:24px 16px 80px;background:var(--bg);color:var(--fg);
+font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif}
+h1{font-size:1.9em;border-bottom:2px solid var(--accent);padding-bottom:.3em}h2{margin-top:2.2em;border-bottom:1px solid var(--line);padding-bottom:.2em}
+h3{margin-top:1.6em}a{color:var(--accent)}code{background:var(--code);padding:.1em .35em;border-radius:4px;font-size:.92em}
+pre{background:var(--code);padding:12px;border-radius:6px;overflow-x:auto}pre code{padding:0}
+table{border-collapse:collapse;width:100%;margin:1em 0;font-size:.94em;display:block;overflow-x:auto}
+th,td{border:1px solid var(--line);padding:6px 9px;vertical-align:top;text-align:left}th{background:var(--code)}
+blockquote{margin:1em 0;padding:.6em 1em;border-left:4px solid var(--warn);background:var(--code);border-radius:0 6px 6px 0}
+hr{border:0;border-top:1px solid var(--line);margin:2em 0}
+@media print{body{max-width:none;font-size:11pt}a{color:inherit}h2{page-break-before:auto}table{display:table}}
+</style></head><body><h1 id="icc-ctcf-olcer-2-kullanim-kilavuzu">ICC CTCF Ölçer 2 — Kullanım Kılavuzu</h1>
+<p><em>Sürüm 2.0.0 · Erdal Balcan, Manisa Celal Bayar Üniversitesi · MIT lisansı</em></p>
+<hr />
+<h2 id="icindekiler">İçindekiler</h2>
+<ol>
+<li><a href="#1-program-ne-yapar">Program ne yapar?</a></li>
+<li><a href="#2-kurulum">Kurulum</a></li>
+<li><a href="#3-goruntuleriniz-nasil-olmali">Görüntüleriniz nasıl olmalı?</a></li>
+<li><a href="#4-hizli-baslangic-5-dakika">Hızlı başlangıç (5 dakika)</a></li>
+<li><a href="#5-pencerenin-bolumleri">Pencerenin bölümleri</a></li>
+<li><a href="#6-tek-goruntu-olcmek-adim-adim">Tek görüntü ölçmek — adım adım</a></li>
+<li><a href="#7-hucre-sinirlarini-elle-duzeltmek">Hücre sınırlarını elle düzeltmek</a></li>
+<li><a href="#8-bir-klasoru-toplu-olcmek">Bir klasörü toplu ölçmek</a></li>
+<li><a href="#9-sonuclar-excel-ve-otomatik-kayit">Sonuçlar, Excel ve otomatik kayıt</a></li>
+<li><a href="#10-grafik-ve-istatistik-gruplar-arasi-karsilastirma">Grafik ve istatistik (gruplar arası karşılaştırma)</a></li>
+<li><a href="#11-fiji-koprusu-ve-yontem-dogrulamasi">Fiji köprüsü ve yöntem doğrulaması</a></li>
+<li><a href="#12-uyarilar-ne-anlama-gelir-ne-yapmali">Uyarılar: ne anlama gelir, ne yapmalı?</a></li>
+<li><a href="#13-makale-icin-yontem-metni-ve-atif">Makale için: yöntem metni ve atıf</a></li>
+<li><a href="#14-sorun-giderme">Sorun giderme</a></li>
+<li><a href="#15-teknik-ayrintilar">Teknik ayrıntılar</a></li>
+</ol>
+<hr />
+<h2 id="1-program-ne-yapar">1. Program ne yapar?</h2>
+<p>Immunositokimya (ICC) floresan görüntülerinde <strong>hücre başına CTCF</strong> (Corrected Total Cell Fluorescence) ölçer:</p>
+<blockquote>
+<p><strong>CTCF = Integrated Density − (Hücre alanı × Background ortalaması)</strong>
+(McCloy ve ark., 2014, <em>Cell Cycle</em> 13:1400–1412)</p>
+</blockquote>
+<p>ImageJ'de elle yapılan iş akışını otomatikleştirir:</p>
+<table>
+<thead>
+<tr>
+<th>ImageJ'de elle</th>
+<th>Bu programda</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Set Scale ile kalibrasyon</td>
+<td>Ölçek çubuğu <strong>ve üzerindeki değer</strong> (20 µm, 50 µm) otomatik okunur</td>
+</tr>
+<tr>
+<td>Her hücreyi Polygon ile çizmek</td>
+<td>Hücreler FITC'den, değen hücreler DAPI çekirdeklerinden otomatik ayrılır</td>
+</tr>
+<tr>
+<td>3 background alanı çizip ölçmek</td>
+<td>Hücrelerden uzak 3 kutu otomatik yerleşir (taşınabilir, elle eklenebilir)</td>
+</tr>
+<tr>
+<td>Measure → Excel'e kopyalama → formül</td>
+<td>Tablo, Excel, grup özeti, grafik ve istatistik tek tıkla</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Ölçümler ImageJ/Fiji ile birebir aynıdır.</strong> Aynı hücre sınırları verildiğinde Area, Mean, StdDev, Min, Max, IntDen ve RawIntDen değerleri Fiji'ninkiyle aynı çıkar (en büyük fark &lt; 0.00001 %). Bunu programın içinden kendiniz de kontrol edebilirsiniz: <strong>Fiji ▸ Fiji ile doğrula</strong> (<a href="#11-fiji-koprusu-ve-yontem-dogrulamasi">Bölüm 11</a>).</p>
+<p>Görüntüleriniz bilgisayarınızdan dışarı <strong>hiçbir yere gönderilmez</strong>; program internetsiz çalışır.</p>
+<hr />
+<h2 id="2-kurulum">2. Kurulum</h2>
+<h3 id="21-hazir-program-onerilen-python-gerekmez">2.1 Hazır program (önerilen — Python gerekmez)</h3>
+<table>
+<thead>
+<tr>
+<th>Bilgisayar</th>
+<th>İndirilecek dosya</th>
+<th>En düşük sistem</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Apple Silicon Mac (M1/M2/M3/M4)</td>
+<td><code>ICC_CTCF_Olcer_2.0.0_mac_AppleSilicon.zip</code></td>
+<td>macOS 12.3</td>
+</tr>
+<tr>
+<td>Intel Mac (ör. eski iMac)</td>
+<td><code>ICC_CTCF_Olcer_2.0.0_mac_Intel.zip</code></td>
+<td>macOS 12.0 (Monterey)</td>
+</tr>
+<tr>
+<td>Windows 10/11 (64-bit)</td>
+<td><code>ICC_CTCF_Olcer_2.0.0_Windows.zip</code></td>
+<td>Windows 10</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>Mac'inizin işlemcisini öğrenmek için: Apple menüsü ▸ <strong>Bu Mac Hakkında</strong>. "Çip: Apple M…" yazıyorsa Apple Silicon, "İşlemci: Intel…" yazıyorsa Intel paketini kullanın.
+Monterey'de Apple Silicon paketi için <strong>macOS 12.3 veya üstü</strong> gerekir: Sistem Tercihleri ▸ Yazılım Güncelleme.</p>
+</blockquote>
+<p><strong>Mac'te:</strong>
+1. Zip'e çift tıklayın → <code>ICC CTCF Ölçer.app</code> çıkar. <strong>Uygulamalar</strong> klasörüne sürükleyin.
+2. <strong>İlk açılışta</strong> çift tıklamayın: uygulamaya <strong>sağ tıklayın ▸ Aç ▸ Aç</strong>. (Program Apple'a ücretli imzalatılmadığı için macOS "tanınmayan geliştirici" uyarısı verir; bu bir kez yapılır.)
+3. "Hasarlı, Çöp Sepeti'ne taşıyın" uyarısı çıkarsa (internetten indirilen dosyalarda olur), Terminal'de bir kez şunu çalıştırın:
+   <code>xattr -cr "/Applications/ICC CTCF Ölçer.app"</code></p>
+<p><strong>Windows'ta:</strong>
+1. Zip'e sağ tıklayın ▸ <strong>Tümünü ayıkla</strong>. Klasörü örneğin <code>Belgeler</code> içine koyun (zip'in içinden çalıştırmayın).
+2. <code>ICC CTCF Olcer.exe</code>'ye çift tıklayın. "Windows bilgisayarınızı korudu" çıkarsa <strong>Ek bilgi ▸ Yine de çalıştır</strong>.
+3. Masaüstü kısayolu: exe'ye sağ tıklayın ▸ Gönder ▸ Masaüstü (kısayol oluştur).</p>
+<h3 id="22-gelistirici-kurulumu-kaynak-koddan">2.2 Geliştirici kurulumu (kaynak koddan)</h3>
+<p>Python ortamıyla çalıştırmak isterseniz (güncellemeleri <code>git pull</code> ile almak için):
+- Mac: <code>./install_mac.sh</code>, sonra <code>./run_desktop.command</code>
+- Windows: <code>install_windows.bat</code>, sonra <code>start_desktop.bat</code></p>
+<h3 id="23-fiji-istege-bagli-ama-onerilir">2.3 Fiji (isteğe bağlı ama önerilir)</h3>
+<p>Fiji köprüsü (<a href="#11-fiji-koprusu-ve-yontem-dogrulamasi">Bölüm 11</a>) için Fiji'nin kurulu olması gerekir: https://imagej.net/software/fiji/downloads
+Program Fiji'yi şu yerlerde kendisi arar: <code>İndirilenler/Fiji</code>, <code>Uygulamalar/Fiji</code>, ana klasör (<code>~/Fiji</code>, <code>C:\Fiji</code>). Başka yerdeyse: <strong>Fiji ▸ Fiji konumunu seç…</strong> (bir kez seçilir, hatırlanır).</p>
+<h3 id="24-eski-tarayici-surumu-v1">2.4 Eski tarayıcı sürümü (v1)</h3>
+<p>v1 (tarayıcıda açılan Streamlit sürümü) aynen çalışmaya devam eder. v1 ile v2 aynı hücre sınırlarında aynı sayıları verir; ancak <strong>çekirdek algılama yöntemi farklı</strong> olduğu için değen hücrelerde sınırlar biraz farklı çizilir (<a href="#15-teknik-ayrintilar">Bölüm 15</a>). Bir çalışmanın tüm görüntülerini <strong>aynı sürümle</strong> ölçün.</p>
+<hr />
+<h2 id="3-goruntuleriniz-nasil-olmali">3. Görüntüleriniz nasıl olmalı?</h2>
+<p>Program ne kadar iyi olursa olsun, ölçümün geçerliliği görüntüye bağlıdır.</p>
+<p><strong>Mutlaka:</strong>
+- <strong>Ham, tek kanal görüntü.</strong> Mikroskobun (cellSens vb.) doğrudan kaydettiği FITC görüntüsü. Photoshop'tan geçmiş, parlaklık/kontrast ayarlanmış ya da kanalları birleştirilmiş (<strong>merge</strong>) görüntüler CTCF için <strong>kullanılamaz</strong> — program bunları tanır ve uyarır.
+- <strong>Karşılaştırılan tüm görüntüler aynı ayarla çekilmiş olmalı:</strong> aynı objektif, pozlama süresi, kazanç (gain), lamba gücü, beyaz dengesi.
+- <strong>Aynı objektif.</strong> 20× ile 40× görüntüleri birbiriyle karşılaştırmayın — program karışık objektif görürse uyarır.
+- <strong>Doymuş (saturated) piksel olmamalı.</strong> Program doymuş piksel sayısını her hücre için raporlar ("Doymuş px" sütunu).</p>
+<p><strong>Önerilir:</strong>
+- <strong>Aynı alanın DAPI görüntüsü.</strong> Birbirine değen hücreleri doğru ayırmak için şart (<a href="#12-uyarilar-ne-anlama-gelir-ne-yapmali">Uyarılar</a>).
+- <strong>Ölçek çubuğu görüntüde kalsın.</strong> Program kalibrasyonu çubuktan okur (cellSens sağ alt köşe beyaz kutu).
+- <strong>TIFF</strong> kaydı JPEG'den iyidir (JPEG kayıplıdır). Aynı çalışmada tüm görüntüler aynı formatta olmalı.</p>
+<p><strong>Olympus DP74 notu:</strong> Bu renkli kamerada FITC sinyali sarı-yeşil, DAPI ise <strong>turkuaz</strong> görünür. Program FITC'yi <strong>yeşil (G) kanalından</strong> ölçer; FITC/DAPI ayrımını parlak piksellerin mavi/kırmızı oranından yapar.</p>
+<hr />
+<h2 id="4-hizli-baslangic-5-dakika">4. Hızlı başlangıç (5 dakika)</h2>
+<ol>
+<li>Programı açın.</li>
+<li>Finder/Gezgin'de <strong>FITC ve DAPI dosyalarını birlikte seçip</strong> pencereye sürükleyin. Program hangisinin DAPI olduğunu rengine göre anlar.</li>
+<li>Sağ panelde kontrol edin: <strong>Kalibrasyon</strong> (ör. 0.1449 µm/piksel, 20 µm, <em>etiketten okundu</em>), <strong>Objektif</strong>, <strong>Hücre sayısı</strong>, yeşil <strong>"Hücre ayırma: DAPI çekirdekleri"</strong> kutusu.</li>
+<li><strong>Tüm hücreleri seç</strong> (ya da ölçülecek hücrelere tıklayın — sarıya döner). Alttaki <strong>Hücreler</strong> sekmesinde CTCF görünür.</li>
+<li>Sağ panelde <strong>Grup / koşul</strong> (ör. <em>Kontrol</em>) ve <strong>Deney / tekrar</strong> (ör. <em>1</em>) yazın → <strong>➕ Sonuç tablosuna ekle</strong> (⌘↩ / Ctrl+Enter).</li>
+<li>Sonraki görüntü: <strong>⌘W</strong> ile kapatın, yenisini sürükleyin, grubu değiştirin, ekleyin.</li>
+<li>Bitince: <strong>Excel'e kaydet</strong> (⌘E) ve <strong>Grafik…</strong> (⌘G).</li>
+</ol>
+<p>Çok görüntü varsa 4–6. adımlar yerine <strong>Klasörü toplu ölç</strong> (⌘B) kullanın (<a href="#8-bir-klasoru-toplu-olcmek">Bölüm 8</a>).</p>
+<hr />
+<h2 id="5-pencerenin-bolumleri">5. Pencerenin bölümleri</h2>
+<table>
+<thead>
+<tr>
+<th>Bölüm</th>
+<th>İçerik</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Menüler</strong></td>
+<td>Dosya · Sonuçlar · Fiji · Düzelt · Görünüm · Yardım</td>
+</tr>
+<tr>
+<td><strong>1. araç çubuğu</strong></td>
+<td>FITC aç · DAPI aç · Görüntüleri kapat · Sığdır/Yakınlaştır/Uzaklaştır · <strong>Görüntü:</strong> FITC / DAPI / Birleşik · Çekirdek sınırları</td>
+</tr>
+<tr>
+<td><strong>2. araç çubuğu</strong></td>
+<td><strong>Sınır düzeltme:</strong> Seç · Böl · Birleştir · Sil · Çiz · Geri al · Yinele — <strong>Sonuçlar:</strong> tabloya ekle · toplu ölç · Excel · Grafik · Fiji ile doğrula</td>
+</tr>
+<tr>
+<td><strong>Görüntü alanı</strong></td>
+<td>Fare tekerleği: yakınlaştır · Sürükle: kaydır · Tıkla: hücre seç</td>
+</tr>
+<tr>
+<td><strong>Sağ panel</strong></td>
+<td>Dosyalar, ölçek çubuğu, kalibrasyon, objektif, sayılar, hücre ayırma göstergesi, hücre seçimi, background ayarları, sonuçlar (grup, deney), çizgi açıklaması, görüntü parlaklığı</td>
+</tr>
+<tr>
+<td><strong>Alt sekmeler</strong></td>
+<td>Hücreler · Background kutuları · Biriken sonuçlar · Grup özeti</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Görüntüdeki çizgiler:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Çizgi</th>
+<th>Anlamı</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Gri, numaralı</td>
+<td>Programın bulduğu hücre sınırı</td>
+</tr>
+<tr>
+<td><strong>Sarı</strong></td>
+<td>Seçili (ölçülen) hücre</td>
+</tr>
+<tr>
+<td><strong>Mor</strong></td>
+<td>DAPI'den bulunan çekirdek sınırı</td>
+</tr>
+<tr>
+<td><strong>Kırmızı kare</strong> (BG1, BG2…)</td>
+<td>Background kutusu</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Görüntü parlaklığı</strong> kaydırıcısı ve <strong>Görüntü: FITC/DAPI/Birleşik</strong> seçimi <strong>yalnızca ekranı</strong> değiştirir; ölçüm her zaman ham FITC (yeşil kanal) verisinden yapılır.</p>
+<hr />
+<h2 id="6-tek-goruntu-olcmek-adim-adim">6. Tek görüntü ölçmek — adım adım</h2>
+<h3 id="61-goruntuleri-acmak">6.1 Görüntüleri açmak</h3>
+<ul>
+<li><strong>Sürükle-bırak</strong> (en kolay): FITC + DAPI'yi birlikte sürükleyin.</li>
+<li><strong>FITC aç… (⌘O)</strong> ve <strong>DAPI aç… (⌘D)</strong> düğmeleri.</li>
+<li>Yanlış düğmeyle açarsanız (ör. mavi dosyayı "FITC aç" ile) program sorar: <em>"Bu bir DAPI görüntüsüne benziyor, DAPI olarak açılsın mı?"</em></li>
+<li><strong>Yeni bir FITC açıldığında önceki alanın DAPI'si otomatik kaldırılır</strong> (başka alanın çekirdekleri yanlış ayırmaya yol açar). Yeni alanın DAPI'sini de açın.</li>
+<li><strong>Görüntüleri kapat (⌘W):</strong> pencereyi boşaltır; biriken sonuçlar korunur.</li>
+</ul>
+<h3 id="62-kalibrasyonu-kontrol-etmek">6.2 Kalibrasyonu kontrol etmek</h3>
+<p>Sağ panelde <strong>Kalibrasyon</strong> satırı kaynağı da söyler:
+- <em>etiketten okundu</em> — ölçek çubuğunun altındaki değer (20 µm, 50 µm) okundu. ✅
+- <em>elle girildi</em> — <strong>Ölçek çubuğu</strong> kutusuna sizin yazdığınız değer.
+- <em>etiket OKUNAMADI, varsayıldı</em> — kırmızı uyarı çıkar; görüntüdeki değeri <strong>Ölçek çubuğu</strong> kutusuna yazın.</p>
+<blockquote>
+<p>⚠️ Ölçek değeri yanlışsa <strong>alan ve IntDen kat kat yanlış</strong> çıkar (ör. 50 µm yerine 20 µm: 6.25 kat). Bu yüzden her yeni görüntüde kalibrasyon satırına bir göz atın.</p>
+</blockquote>
+<p>DP74 + cellSens için bilinen değerler: <strong>20 µm = 138 px → 0.1449 µm/px (40×)</strong>; <strong>50 µm = 172 px → 0.2907 µm/px (20×)</strong>.</p>
+<h3 id="63-hucre-ayirma-gostergesi">6.3 Hücre ayırma göstergesi</h3>
+<table>
+<thead>
+<tr>
+<th>Gösterge</th>
+<th>Anlamı</th>
+<th>Ne yapmalı</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>🟢 <strong>DAPI çekirdekleri</strong></td>
+<td>Değen hücreler çekirdeklere göre ayrıldı</td>
+<td>—</td>
+</tr>
+<tr>
+<td>🟡 <strong>Yalnızca şekil (değen hücre yok)</strong></td>
+<td>DAPI yok ama gerek de yok</td>
+<td>—</td>
+</tr>
+<tr>
+<td>🔴 <strong>Yalnızca şekil — N değen hücre çifti</strong></td>
+<td>Değen hücreler yalnız şekle göre bölündü (~%5 hata)</td>
+<td>Aynı alanın DAPI'sini açın</td>
+</tr>
+<tr>
+<td>🔴 <strong>DAPI bu FITC ile aynı alana ait görünmüyor</strong></td>
+<td>Çekirdeklerin çoğu hücrelerin dışında</td>
+<td>Doğru DAPI'yi açın (numaralar ardışık olsa bile alan farklı olabilir)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="64-hucre-secmek">6.4 Hücre seçmek</h3>
+<ul>
+<li>Hücreye <strong>tıklayın</strong> → sarı olur, ölçülür; tekrar tıklayın → bırakılır.</li>
+<li><strong>Tüm hücreleri seç</strong> / <strong>Seçimi temizle</strong>.</li>
+<li>Görüntü kenarında <strong>kesilmiş</strong> hücreleri ölçmeyin (alanları eksik ölçülür).</li>
+</ul>
+<h3 id="65-background">6.5 Background</h3>
+<ul>
+<li><strong>Otomatik</strong> (varsayılan): hücrelerden ≥ 40 piksel uzak, sinyal/debris içermeyen, hücrelere en yakın <strong>3 kutu</strong> (50×50 piksel). Boyut ve sayı sağ panelden değiştirilebilir.</li>
+<li><strong>Kutuları taşımak:</strong> kutunun üzerine gelin (el imleci), basılı tutup sürükleyin. Bıraktığınız anda yeniden ölçülür. Otomatik bir kutuyu taşırsanız mod <strong>Elle</strong>'ye geçer, diğer kutular yerinde kalır.</li>
+<li><strong>Elle:</strong> boş alana tıklayın → kutu eklenir; kutuya tıklayın → silinir. <strong>Elle kutuları temizle</strong>.</li>
+<li>Bir hücrenin üzerine taşan kutu kabul edilmez (eski yerine döner).</li>
+<li>Kutu başına değerler: alttaki <strong>Background kutuları</strong> sekmesi.</li>
+</ul>
+<blockquote>
+<p>ℹ️ <strong>Background = 0 çıkıyorsa</strong> kamera/cellSens koyu arka planı sıfıra kırpmıştır; CTCF = IntDen olur. Tüm görüntüler aynı ayarla çekildiyse karşılaştırma geçerlidir.</p>
+</blockquote>
+<h3 id="66-sonuc-tablosuna-eklemek">6.6 Sonuç tablosuna eklemek</h3>
+<ul>
+<li><strong>Grup / koşul:</strong> ör. <em>Kontrol</em>, <em>Ax 10 µM 24 sa</em>. Grafik ve istatistik bu etikete göre gruplar.</li>
+<li><strong>Deney / tekrar:</strong> bağımsız deney (biyolojik tekrar) numarası: <em>1</em>, <em>2</em>, <em>3</em>… İstatistiği deney ortalamalarıyla yapmak için gerekir (<a href="#10-grafik-ve-istatistik-gruplar-arasi-karsilastirma">Bölüm 10</a>).</li>
+<li><strong>➕ Sonuç tablosuna ekle (⌘↩).</strong> Aynı görüntüyü yeniden eklerseniz eskisinin yerine geçer (iki kez sayılmaz).</li>
+</ul>
+<hr />
+<h2 id="7-hucre-sinirlarini-elle-duzeltmek">7. Hücre sınırlarını elle düzeltmek</h2>
+<p>Otomatik sınırlar çoğu görüntüde iyidir; yoğun kümelerde, debris'te ya da sönük hücrelerde düzeltme gerekebilir. <strong>2. araç çubuğu ▸ Sınır düzeltme</strong>:</p>
+<table>
+<thead>
+<tr>
+<th>Araç</th>
+<th>Nasıl</th>
+<th>Ne zaman</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Seç</strong></td>
+<td>Normal mod</td>
+<td>Hücre seçmek, kutu taşımak, kaydırmak</td>
+</tr>
+<tr>
+<td><strong>Böl</strong></td>
+<td>Yapışık hücrelerin üzerine <strong>bir kenardan öbür kenara</strong> çizgi çekin</td>
+<td>İki (veya daha çok) hücre tek hücre sayıldıysa</td>
+</tr>
+<tr>
+<td><strong>Birleştir</strong></td>
+<td>Önce bir hücreye, sonra komşusuna tıklayın</td>
+<td>Bir hücre ikiye bölündüyse</td>
+</tr>
+<tr>
+<td><strong>Sil</strong></td>
+<td>Bölgeye tıklayın</td>
+<td>Debris ya da hücre olmayan bölge</td>
+</tr>
+<tr>
+<td><strong>Çiz</strong></td>
+<td>Hücre sınırını fareyle çizin; bırakınca kapanır</td>
+<td>Kaçırılan hücre ya da kötü çizilmiş sınır (çizim, altındaki hücrelerin üzerine yazar)</td>
+</tr>
+<tr>
+<td><strong>Geri al / Yinele</strong></td>
+<td>⌘Z / ⇧⌘Z (Windows: Ctrl+Z / Ctrl+Y), 30 adım</td>
+<td>Her işlem geri alınabilir</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>Böl ve Çiz modlarında görüntüyü kaydırmak için <strong>⌥ Option (Windows: Alt)</strong> tuşuna basılı tutup sürükleyin.</li>
+<li>Bölme ve birleştirmede <strong>toplam alan korunur</strong>.</li>
+<li>Düzeltmeler Excel'de <strong>Manual_edits</strong> sütununa yazılır (ör. <em>birleştir 1+2; böl 1</em>).</li>
+<li>Ölçek değeri değiştirilince görüntü yeniden analiz edilir ve <strong>düzeltmeler sıfırlanır</strong> (altta uyarı çıkar). Önce kalibrasyonu, sonra düzeltmeleri yapın.</li>
+</ul>
+<hr />
+<h2 id="8-bir-klasoru-toplu-olcmek">8. Bir klasörü toplu ölçmek</h2>
+<p><strong>Sonuçlar ▸ Klasörü toplu ölç… (⌘B)</strong></p>
+<h3 id="81-onerilen-klasor-duzeni">8.1 Önerilen klasör düzeni</h3>
+<pre><code>Deneyler/
+  Deney_1/
+    Kontrol/      ← FITC + DAPI görüntüleri
+    Uygulama1/
+    Uygulama2/
+  Deney_2/
+    Kontrol/
+    ...
+</code></pre>
+<ul>
+<li><strong>Grup</strong> = görüntünün bulunduğu klasörün adı; <strong>Deney</strong> = onun bir üstündeki klasörün adı.</li>
+<li>Tek bir deney klasörünü seçerseniz (ör. <code>Deney_1</code>) deney adı o klasörün adı olur.</li>
+<li>İkisi de ölçmeden önce tabloda değiştirilebilir.</li>
+</ul>
+<h3 id="82-fitcdapi-eslestirme">8.2 FITC–DAPI eşleştirme</h3>
+<p>Her FITC, <strong>aynı klasörde ±3 numara içindeki</strong> DAPI'ler arasından, <strong>çekirdeklerin hücrelerle gerçekten örtüştüğü</strong> (≥ %50) olanla eşleştirilir. Ardışık numara her zaman aynı alan demek değildir — program bunu görüntünün kendisinden kontrol eder.</p>
+<table>
+<thead>
+<tr>
+<th>Durum</th>
+<th>Anlamı</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>🟢 <strong>hazır</strong></td>
+<td>Çift bulundu (Örtüşme sütununda yüzde)</td>
+</tr>
+<tr>
+<td>🟠 <strong>DAPI yok</strong></td>
+<td>Uygun DAPI bulunamadı; hücreler yalnız şekle göre ayrılacak</td>
+</tr>
+<tr>
+<td>⚪ <strong>atlandı: kamera bilgisi yok</strong></td>
+<td>Merge ya da yeniden kaydedilmiş görüntü</td>
+</tr>
+<tr>
+<td>⚪ <strong>atlandı: işlenmiş görüntü</strong></td>
+<td>Photoshop vb. ile kaydedilmiş</td>
+</tr>
+<tr>
+<td>⚪ <strong>atlandı: FITC mi DAPI mi anlaşılamadı</strong></td>
+<td>Renk belirsiz (ör. merge)</td>
+</tr>
+<tr>
+<td>⚪ <strong>atlandı: eşleşmeyen DAPI</strong></td>
+<td>Hiçbir FITC'ye ait olmayan DAPI</td>
+</tr>
+</tbody>
+</table>
+<h3 id="83-olcum">8.3 Ölçüm</h3>
+<ul>
+<li>İşaretli satırlar ölçülür; istemediklerinizin işaretini kaldırın.</li>
+<li>Her görüntüde <strong>tüm hücreler</strong> + <strong>otomatik background</strong> (sağ paneldeki kutu boyutu/sayısı).</li>
+<li><strong>Kenara değen (kesik) hücreler</strong> varsayılan olarak hariç tutulur.</li>
+<li>Excel'de <strong>Selection</strong> sütunu: <em>manual click</em> ya da <em>batch: all cells, edge excluded</em>.</li>
+<li>Toplu ölçümden sonra şüpheli görüntüleri tek tek açıp kontrol etmeniz önerilir (özellikle yoğun kümeler).</li>
+</ul>
+<hr />
+<h2 id="9-sonuclar-excel-ve-otomatik-kayit">9. Sonuçlar, Excel ve otomatik kayıt</h2>
+<h3 id="91-excel-dosyasinin-sayfalari">9.1 Excel dosyasının sayfaları</h3>
+<table>
+<thead>
+<tr>
+<th>Sayfa</th>
+<th>İçerik</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Cells</strong></td>
+<td>Hücre başına tüm ölçümler ve bağlam bilgisi</td>
+</tr>
+<tr>
+<td><strong>Group_summary</strong></td>
+<td>Grup başına n, ortalama, SD, SEM, medyan, min, max (CTCF)</td>
+</tr>
+<tr>
+<td><strong>Image_means</strong></td>
+<td>Görüntü (alan) ortalamaları — GraphPad'e yapıştırmaya hazır</td>
+</tr>
+<tr>
+<td><strong>Experiment_means</strong></td>
+<td>Deney ortalamaları — yayın istatistiği için önerilen birim</td>
+</tr>
+<tr>
+<td><strong>Background</strong></td>
+<td>Kutu başına background ölçümleri</td>
+</tr>
+<tr>
+<td><strong>Methods</strong></td>
+<td>Formüller, yöntemler, atıf</td>
+</tr>
+<tr>
+<td><strong>Validation</strong>, <strong>Validation_summary</strong></td>
+<td>Elle (Fiji) vs otomatik karşılaştırma ve Bland–Altman özeti (varsa)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="92-cells-sayfasindaki-onemli-sutunlar">9.2 Cells sayfasındaki önemli sütunlar</h3>
+<table>
+<thead>
+<tr>
+<th>Sütun</th>
+<th>Anlamı</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Area, Mean, StdDev, Min, Max, IntDen, RawIntDen</td>
+<td>ImageJ ile aynı tanımlar</td>
+</tr>
+<tr>
+<td>BG_Mean, CTCF, CTCF_per_Area</td>
+<td>Background ortalaması, CTCF, CTCF/alan (= Mean − BG_Mean)</td>
+</tr>
+<tr>
+<td>Saturated_px</td>
+<td>Doymuş piksel sayısı (0 olmalı)</td>
+</tr>
+<tr>
+<td>um_per_px, Scale_bar_um, Scale_source, Objective</td>
+<td>Kalibrasyon ve kaynağı (label / user / default)</td>
+</tr>
+<tr>
+<td>BG_mode, BG_box_px, BG_n</td>
+<td>Background yöntemi</td>
+</tr>
+<tr>
+<td>Segmentation, Nucleus_method, DAPI_overlap, Touching_pairs</td>
+<td>Hücre ayırma bilgisi</td>
+</tr>
+<tr>
+<td>Selection, Manual_edits</td>
+<td>Hücrelerin nasıl seçildiği, elle düzeltmeler</td>
+</tr>
+<tr>
+<td>Fiji_check</td>
+<td>Fiji ile doğrulandıysa sonuç</td>
+</tr>
+<tr>
+<td>App_version, Timestamp</td>
+<td>Program sürümü, tarih</td>
+</tr>
+</tbody>
+</table>
+<h3 id="93-diger-ciktilar">9.3 Diğer çıktılar</h3>
+<ul>
+<li><strong>CSV</strong> (Türkçe karakterler Excel'de doğru açılır).</li>
+<li><strong>ROI görüntüsü (PNG):</strong> işaretli sınırlar ve kutularla.</li>
+<li><strong>ImageJ/Fiji karşılaştırma paketi (ZIP):</strong> ölçülen kanal (TIFF) + ROI'ler (RoiSet.zip) + talimat.</li>
+</ul>
+<h3 id="94-kaybetmemek-icin">9.4 Kaybetmemek için</h3>
+<ul>
+<li><strong>Otomatik kayıt:</strong> her eklemeden sonra <code>Belgeler/ICC CTCF Olcer/otomatik_kayit.xlsx</code>. Program çökse ya da elektrik gitse bile kaybolmaz; yeniden açınca <em>"devam edilsin mi?"</em> diye sorar.</li>
+<li><strong>Önceki sonuçları aç (Excel)…:</strong> kaydettiğiniz bir Excel'i yükleyip ölçmeye devam edin (aynı görüntü iki kez sayılmaz).</li>
+<li>Kaydedilmemiş sonuçla programı kapatırsanız kaydetmek isteyip istemediğiniz sorulur.</li>
+</ul>
+<hr />
+<h2 id="10-grafik-ve-istatistik-gruplar-arasi-karsilastirma">10. Grafik ve istatistik (gruplar arası karşılaştırma)</h2>
+<p><strong>Sonuçlar ▸ Grafik ve istatistik… (⌘G)</strong></p>
+<table>
+<thead>
+<tr>
+<th>Ayar</th>
+<th>Seçenekler</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Kontrol grubu</strong></td>
+<td>Dunnett testinin ve normalizasyonun referansı (adı <em>Kontrol/Control/ilaçsız</em> ile başlayan grup otomatik seçilir)</td>
+</tr>
+<tr>
+<td><strong>Değişken</strong></td>
+<td>CTCF · CTCF_per_Area · Mean · IntDen · Area</td>
+</tr>
+<tr>
+<td><strong>İstatistik birimi</strong></td>
+<td>Hücre · Görüntü ortalaması · <strong>Deney ortalaması (önerilen)</strong></td>
+</tr>
+<tr>
+<td><strong>Çoklu karşılaştırma</strong></td>
+<td><strong>Dunnett</strong> (her grup kontrole karşı) · Tukey HSD (tüm çiftler)</td>
+</tr>
+<tr>
+<td><strong>Grafik tipi</strong></td>
+<td>Bar (ortalama ± SEM) · Box · Violin — hepsinde tek tek noktalar</td>
+</tr>
+<tr>
+<td><strong>Grup sırası</strong></td>
+<td>Sürükleyerek değiştirin (kontrol hep başta, gri)</td>
+</tr>
+<tr>
+<td>Normalize</td>
+<td>Kontrol ortalaması = 1</td>
+</tr>
+<tr>
+<td>Yıldızlar</td>
+<td>GraphPad gösterimi: ns, * p&lt;0.05, ** p&lt;0.01, *** p&lt;0.001, **** p&lt;0.0001</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Testler:</strong> 2 grup → Welch t-testi + Mann–Whitney U. 3+ grup → tek yönlü ANOVA + Kruskal–Wallis + Dunnett (veya Tukey).</p>
+<h3 id="101-onemli-istatistik-birimi-yalanci-tekrar">10.1 Önemli: istatistik birimi (yalancı tekrar)</h3>
+<p>Aynı deneyden gelen hücreler birbirinden bağımsız değildir. Her hücreyi ayrı tekrar saymak <strong>p değerini olduğundan küçük</strong> gösterir (hakemlerin en sık yakaladığı hatalardan biri). Örnek (yapay veri, 3 deney × 3 görüntü × 6 hücre):</p>
+<table>
+<thead>
+<tr>
+<th>Birim</th>
+<th>n</th>
+<th>Dunnett p (Uygulama vs Kontrol)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Hücre</td>
+<td>54</td>
+<td>0.069</td>
+</tr>
+<tr>
+<td>Deney ortalaması</td>
+<td>3</td>
+<td><strong>0.62</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Öneri:</strong> yayında istatistiği <strong>bağımsız deney ortalamaları</strong> (en az 3 deney) üzerinden yapın; hücre düzeyindeki noktaları grafikte gösterebilirsiniz. Program hücre düzeyinde test yaparsanız uyarır.</p>
+<p>Dunnett p değerleri sayısal integrasyonla hesaplanır; program sabit tohum kullanır, <strong>aynı veri her zaman aynı p'yi</strong> verir.</p>
+<p>Kaydet: grafik PNG (600 dpi), PDF, SVG; istatistik metni .txt.</p>
+<hr />
+<h2 id="11-fiji-koprusu-ve-yontem-dogrulamasi">11. Fiji köprüsü ve yöntem doğrulaması</h2>
+<p><strong>Fiji menüsü:</strong></p>
+<h3 id="111-fiji-ile-dogrula-f">11.1 Fiji ile doğrula (⌘⇧F)</h3>
+<p>Seçili hücreleri ve background kutularını <strong>Fiji'nin kendi Measure motoruna arka planda</strong> ölçtürür (Fiji penceresi açılmaz, ~5 saniye) ve sonuçları programınkilerle yan yana gösterir. Sonuç, görüntü sonuç tablosuna eklenince Excel'de <strong>Fiji_check</strong> sütununa yazılır (ör. <em>OK (1.54p99, max fark 3.3e-07 %)</em>). Seçim, kutu ya da sınır değişirse önceki doğrulama geçersiz sayılır.</p>
+<h3 id="112-fijide-ac">11.2 Fiji'de aç</h3>
+<p>Fiji'yi arayüzüyle açar: görüntü, ölçek, ROI Manager'da tüm ROI'ler, Measure sonuçları. Dosyalar: <code>Belgeler/ICC CTCF Olcer/Fiji/&lt;görüntü adı&gt;/</code>.</p>
+<h3 id="113-elle-cizilmis-roilerle-karsilastir-yontem-dogrulamasi">11.3 Elle çizilmiş ROI'lerle karşılaştır (yöntem doğrulaması)</h3>
+<p>Programın otomatik sınırlarının elle çizime ne kadar yakın olduğunu ölçmek için (makale için önerilir):</p>
+<ol>
+<li>Fiji'de FITC görüntüsünü açın. <strong>Polygon</strong> ya da <strong>Freehand</strong> aracıyla bir hücreyi çizin → <strong>T</strong> (ROI Manager'a ekle). Tüm hücreler için tekrarlayın.</li>
+<li>ROI Manager ▸ <strong>More » ▸ Save…</strong> → <code>elle_RoiSet_&lt;görüntü&gt;.zip</code></li>
+<li>Programda aynı görüntüyü (ve DAPI'sini) açın → <strong>Fiji ▸ Elle çizilmiş ROI'lerle karşılaştır…</strong> → zip'i seçin.</li>
+<li>Her elle ROI en çok örtüşen otomatik hücreyle eşleştirilir: alan farkı, CTCF farkı, <strong>Dice</strong> ve IoU (sınır örtüşmesi; 1 = tam).</li>
+<li><strong>➕ Doğrulama tablosuna ekle.</strong> 3–5 görüntü (ayrık + değen hücreler, farklı koşullar) için tekrarlayın.</li>
+<li><strong>Fiji ▸ Yöntem doğrulama tablosu ve Bland–Altman…:</strong> dağılım grafiği + Bland–Altman (yüzde fark), ortalama fark (bias), %95 uyum sınırları, Pearson r, Lin CCC, Dice.</li>
+</ol>
+<p><strong>Öneri:</strong> ≥ 30 hücre, ≥ 3 görüntü. İsterseniz aynı hücreleri birkaç saat sonra yeniden çizin (gözlemci içi değişkenlik): otomatik–elle farkı, elle–elle farkından büyük değilse yöntem en az elle ölçüm kadar güvenilirdir.</p>
+<hr />
+<h2 id="12-uyarilar-ne-anlama-gelir-ne-yapmali">12. Uyarılar: ne anlama gelir, ne yapmalı?</h2>
+<h3 id="121-goruntu-acarken">12.1 Görüntü açarken</h3>
+<table>
+<thead>
+<tr>
+<th>Uyarı</th>
+<th>Anlamı</th>
+<th>Ne yapmalı</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><em>Görüntü yazılımla işlenmiş görünüyor (Adobe Photoshop…)</em></td>
+<td>Dosya bir görüntü programında yeniden kaydedilmiş</td>
+<td>Mikroskobun ham çıktısını kullanın</td>
+</tr>
+<tr>
+<td><em>Kamera bilgisi (EXIF) yok</em></td>
+<td>Merge ya da yeniden kaydedilmiş görüntü</td>
+<td>Ham tek kanal FITC'yi kullanın</td>
+</tr>
+<tr>
+<td><em>… bir DAPI görüntüsüne benziyor, DAPI olarak açılsın mı?</em></td>
+<td>Dosya rengi düğmeyle uyuşmuyor</td>
+<td>Genellikle <strong>Evet</strong></td>
+</tr>
+<tr>
+<td><em>FITC ve DAPI görüntülerinin boyutları farklı; DAPI kullanılmadı</em></td>
+<td>İki dosya aynı çekim değil</td>
+<td>Doğru DAPI'yi açın</td>
+</tr>
+<tr>
+<td><em>Yeni FITC açıldı; aynı alanın DAPI'sini açın</em></td>
+<td>Önceki alanın DAPI'si kaldırıldı</td>
+<td>Yeni alanın DAPI'sini açın</td>
+</tr>
+</tbody>
+</table>
+<h3 id="122-kalibrasyon-ve-hucre-ayirma">12.2 Kalibrasyon ve hücre ayırma</h3>
+<table>
+<thead>
+<tr>
+<th>Uyarı</th>
+<th>Anlamı</th>
+<th>Ne yapmalı</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>🔴 <em>Ölçek çubuğunun değeri okunamadı; 20 µm varsayıldı</em></td>
+<td>Etiket okunamadı</td>
+<td>Görüntüdeki değeri <strong>Ölçek çubuğu</strong> kutusuna yazın</td>
+</tr>
+<tr>
+<td><em>Ölçek çubuğu bulunamadı — piksel birimi</em></td>
+<td>Çubuk yok</td>
+<td>Alan piksel² cinsinden; karşılaştırmalar yalnız aynı büyütmede geçerli</td>
+</tr>
+<tr>
+<td>🔴 <em>Hücre ayırma: yalnızca şekil — N değen hücre çifti</em></td>
+<td>DAPI yok, değen hücreler var</td>
+<td>Aynı alanın DAPI'sini açın</td>
+</tr>
+<tr>
+<td>🔴 <em>DAPI bu FITC ile aynı alana ait görünmüyor</em></td>
+<td>Çekirdeklerin çoğu hücre dışında</td>
+<td>Doğru DAPI'yi açın</td>
+</tr>
+<tr>
+<td><em>Yeniden analiz edildi: önceki elle düzeltmeler sıfırlandı</em></td>
+<td>Ölçek vb. değişti</td>
+<td>Düzeltmeleri yeniden yapın</td>
+</tr>
+</tbody>
+</table>
+<h3 id="123-background">12.3 Background</h3>
+<table>
+<thead>
+<tr>
+<th>Uyarı</th>
+<th>Anlamı</th>
+<th>Ne yapmalı</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ℹ️ <em>Kutulardaki tüm pikseller 0</em></td>
+<td>Kamera siyah seviyesi kırpılmış; CTCF = IntDen</td>
+<td>Tüm görüntüler aynı ayarla çekildiyse sorun değil</td>
+</tr>
+<tr>
+<td>⚠️ <em>Bazı kutularda sinyal/debris olabilir</em></td>
+<td>Kutuda parlak piksel var</td>
+<td>Kutuyu sürükleyip temiz alana taşıyın</td>
+</tr>
+<tr>
+<td>🔴 <em>Background kutusu yok — CTCF hesaplanamaz</em></td>
+<td>Kutu yerleşecek boş alan yok / Elle modunda kutu yok</td>
+<td>Kutu boyutunu küçültün ya da elle ekleyin</td>
+</tr>
+<tr>
+<td>⚠️ <em>Kutu bir hücreye taşıyor</em></td>
+<td>Kutu hücre üzerine konamaz</td>
+<td>Biraz uzağa koyun</td>
+</tr>
+</tbody>
+</table>
+<h3 id="124-olcum-tablosu">12.4 Ölçüm tablosu</h3>
+<table>
+<thead>
+<tr>
+<th>Durum</th>
+<th>Anlamı</th>
+<th>Ne yapmalı</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Doymuş px &gt; 0</strong></td>
+<td>Hücrede kameranın üst sınırına ulaşmış pikseller var → CTCF olduğundan <strong>düşük</strong></td>
+<td>Pozlamayı düşürerek yeniden çekin ya da o hücreyi dışarıda bırakın</td>
+</tr>
+</tbody>
+</table>
+<h3 id="125-istatistik">12.5 İstatistik</h3>
+<table>
+<thead>
+<tr>
+<th>Uyarı</th>
+<th>Anlamı</th>
+<th>Ne yapmalı</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>⚠️ <em>Her hücre ayrı tekrar sayıldı (yalancı tekrar riski)</em></td>
+<td>n = hücre sayısı</td>
+<td>Yayında <strong>Deney ortalaması</strong> birimini kullanın</td>
+</tr>
+<tr>
+<td>⚠️ <em>Farklı objektifler karışık (20×, 40×)</em></td>
+<td>Gruplar farklı büyütmede çekilmiş</td>
+<td>Yalnız aynı objektifle çekilmiş görüntüleri karşılaştırın</td>
+</tr>
+<tr>
+<td>⚠️ <em>Grup içi değişkenlik sıfır</em></td>
+<td>Aynı değerler tekrar ediyor (aynı görüntü iki kez?)</td>
+<td>Tabloyu kontrol edin; test güvenilmez</td>
+</tr>
+<tr>
+<td>ℹ️ <em>Grup başına 2 deney: test gücü düşük</em></td>
+<td>n &lt; 3</td>
+<td>En az 3 bağımsız deney</td>
+</tr>
+<tr>
+<td><em>İstatistik için her grupta en az … gerekir</em></td>
+<td>Yetersiz veri</td>
+<td>Daha çok görüntü/deney ekleyin</td>
+</tr>
+<tr>
+<td>⚠️ <em>Az hücre: r ve CCC anlamsız</em> (doğrulama)</td>
+<td>Bland–Altman için az hücre</td>
+<td>≥ 30 hücre, ≥ 3 görüntü</td>
+</tr>
+</tbody>
+</table>
+<h3 id="126-toplu-olcum-ve-fiji">12.6 Toplu ölçüm ve Fiji</h3>
+<table>
+<thead>
+<tr>
+<th>Uyarı</th>
+<th>Anlamı</th>
+<th>Ne yapmalı</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>🟠 <em>DAPI yok (en iyi aday %…)</em></td>
+<td>Örtüşen DAPI bulunamadı</td>
+<td>Doğru DAPI'yi klasöre koyun ya da şekle göre ayırmayı kabul edin</td>
+</tr>
+<tr>
+<td>⚪ <em>atlandı: …</em></td>
+<td>Bkz. <a href="#82-fitcdapi-eslestirme">8.2</a></td>
+<td>—</td>
+</tr>
+<tr>
+<td><em>Fiji bulunamadı</em></td>
+<td>Fiji kurulu değil / farklı yerde</td>
+<td>Fiji ▸ Fiji konumunu seç…</td>
+</tr>
+<tr>
+<td>⚠️ <em>Fark var</em> (Fiji doğrulaması)</td>
+<td>Program ile Fiji farklı ölçtü (beklenmez)</td>
+<td>Kalibrasyonu kontrol edin; sorunu bildirin</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="13-makale-icin-yontem-metni-ve-atif">13. Makale için: yöntem metni ve atıf</h2>
+<p><strong>Örnek yöntem metni (İngilizce, kendi ayarlarınıza göre düzenleyin):</strong></p>
+<blockquote>
+<p>Corrected total cell fluorescence (CTCF) was quantified as CTCF = integrated density − (cell area × mean background fluorescence) (McCloy et al., 2014) using ICC CTCF Ölçer v2.0.0 (Balcan, 2026), a custom Python tool whose measurements are identical to ImageJ/Fiji for the same regions of interest (verified with Fiji 1.54p). FITC fluorescence was measured on the green channel of unprocessed Olympus DP74 images (40× objective, 0.145 µm/pixel; calibration read from the embedded scale bar). Cells were segmented from the FITC channel (Li threshold) and touching cells were separated by watershed seeded with DAPI-stained nuclei. Background was the mean of three 50 × 50 pixel cell-free regions per field. Cells touching the image border were excluded. Automatic boundaries were compared with manual Fiji tracing in n = … cells from … images (Bland–Altman bias …%, 95% limits of agreement … to …%; mean Dice …). Statistics were performed on the means of N = … independent experiments using one-way ANOVA followed by Dunnett's test versus control.</p>
+</blockquote>
+<p>Excel'deki <strong>Methods</strong> sayfası ve <strong>Cells</strong> sayfasındaki <em>App_version, Nucleus_method, Scale_source, BG_box_px, BG_n, Selection, Manual_edits, Fiji_check</em> sütunları bu metni doldurmak için gereken bilgileri içerir.</p>
+<p><strong>Atıf:</strong> Programın kaynak kodu GitHub'dadır; atıf bilgisi <code>CITATION.cff</code> dosyasında. Yayın öncesi depo herkese açılıp Zenodo DOI'si alınacaktır.</p>
+<hr />
+<h2 id="14-sorun-giderme">14. Sorun giderme</h2>
+<table>
+<thead>
+<tr>
+<th>Sorun</th>
+<th>Çözüm</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Mac: <em>"tanınmayan geliştirici"</em></td>
+<td>Uygulamaya sağ tık ▸ Aç ▸ Aç (bir kez)</td>
+</tr>
+<tr>
+<td>Mac: <em>"hasarlı, Çöp Sepeti'ne taşıyın"</em></td>
+<td>Terminal: <code>xattr -cr "/Applications/ICC CTCF Ölçer.app"</code></td>
+</tr>
+<tr>
+<td>Mac (Apple Silicon, Monterey): açılmıyor</td>
+<td>macOS'u 12.3 veya üstüne güncelleyin</td>
+</tr>
+<tr>
+<td>Windows: <em>"bilgisayarınızı korudu"</em></td>
+<td>Ek bilgi ▸ Yine de çalıştır</td>
+</tr>
+<tr>
+<td>Program açılırken uzun bekliyor</td>
+<td>İlk açılışta yazı tipi önbelleği oluşturulur (bir kez, ~10–30 sn)</td>
+</tr>
+<tr>
+<td>Hücre sayısı yanlış</td>
+<td>Doğru düğmeyle mi açtınız (FITC/DAPI)? DAPI aynı alanın mı? Sınırları <a href="#7-hucre-sinirlarini-elle-duzeltmek">Bölüm 7</a> ile düzeltin</td>
+</tr>
+<tr>
+<td>Yoğun kümede tek "hücre"</td>
+<td><strong>Böl</strong> aracı</td>
+</tr>
+<tr>
+<td>Çekirdekler (mor çizgi) yanlış</td>
+<td><strong>Görüntü: DAPI</strong> görünümüne geçip kontrol edin; DAPI aynı alanın mı?</td>
+</tr>
+<tr>
+<td>Değerler v1'den biraz farklı</td>
+<td>v2'nin çekirdek algılaması farklı (Nucleus_method). Çalışma boyunca tek sürüm kullanın</td>
+</tr>
+<tr>
+<td>Excel kaydedilemiyor</td>
+<td>Dosya Excel'de açıksa kapatıp yeniden deneyin</td>
+</tr>
+<tr>
+<td>Program kapandı / çöktü</td>
+<td>Yeniden açın → <em>"devam edilsin mi?"</em> → Evet (otomatik kayıt)</td>
+</tr>
+<tr>
+<td>Fiji köprüsü çalışmıyor</td>
+<td>Fiji ▸ Fiji konumunu seç… ; Fiji'yi bir kez kendiniz açıp kapatın (ilk kurulum güncellemeleri)</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="15-teknik-ayrintilar">15. Teknik ayrıntılar</h2>
+<p><strong>Ölçüm tanımları (ImageJ ile aynı):</strong>
+- Area = piksel sayısı × (µm/piksel)²
+- IntDen = Area × Mean (kalibre birim); RawIntDen = piksellerin toplamı
+- StdDev = örneklem standart sapması (n − 1)
+- ROI kuralı: piksel merkezi çokgenin içindeyse dahil
+- CTCF = IntDen − Area × BG_Mean; CTCF_per_Area = Mean − BG_Mean</p>
+<p><strong>Kalibrasyon:</strong> cellSens ölçek çubuğu (sağ alt beyaz kutu) uzunluğu piksel olarak ölçülür; altındaki sayı rakam şablonlarıyla okunur (ZÜBEYDE/ICC'deki 301 görüntünün tamamı doğru: 157 × 50 µm, 144 × 20 µm). Objektif = kamera piksel boyutu (DP74: 5.86 µm) ÷ µm/piksel.</p>
+<p><strong>Hücre segmentasyonu:</strong> FITC (G kanalı) Gauss yumuşatma → Li eşiği → kapanış, delik doldurma, küçük nesne eleme (&lt; 50 µm²) → DAPI çekirdekleri tohum olarak watershed (DAPI yoksa mesafe dönüşümü).</p>
+<p><strong>Çekirdek algılama (Nucleus_method):</strong>
+| Yöntem | Sürüm | Açıklama |
+|---|---|---|
+| <code>otsu</code> | v1.0.0 | Otsu eşiği (DAPI'nin loş halesini de kapsar) |
+| <code>bright_core</code> | v2 ilk | 3 sınıflı Otsu'nun üst eşiği (sönük çekirdekleri kaçırır) |
+| <strong><code>local</code></strong> | <strong>v2.0.0 varsayılan</strong> | Otsu maskesi → yumuşatılmış DAPI tepelerinden watershed → her çekirdek kendi tepe parlaklığının yarısında kırpılır |</p>
+<p><strong>Doğrulama sonuçları (2026-10-31 / 11-01):</strong>
+- Fiji 1.54p ile aynı ROI'lerde Area/Mean/StdDev/Min/Max/IntDen/RawIntDen birebir aynı (Image_392: 5 ROI; Image_286, background ≠ 0: 54 ROI; en büyük fark &lt; 0.00001 %).
+- Elle çizim (1 görüntü, 2 değen hücre — ön veri): Dice 0.943 / 0.938; CTCF farkı +2.3 % / +3.7 %.
+- 20× yoğun kümeler (Image_286/287): 47 çekirdek, 51 hücre.</p>
+<p><strong>Program dosyaları:</strong> <code>core.py</code> (ölçüm), <code>batch.py</code> (toplu), <code>report.py</code> (Excel, grafik, istatistik), <code>fiji.py</code> (Fiji köprüsü), <code>desktop.py</code> (arayüz), <code>tests/test_core.py</code> (doğrulama testleri).</p></body></html>

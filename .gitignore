@@ -6,3 +6,7 @@ server.log
 # Araştırma verileri repoya girmez (yayımlanmamış görüntüler / doğrulama çıktıları)
 ornek/
 dogrulama/
+.build-*/
+build/
+dist/
+selftest_result.json

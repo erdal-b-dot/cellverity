@@ -64,6 +64,12 @@ Durdurmak için: macOS `./stop.sh`; Windows'ta küçültülmüş "ICC CTCF Olcer
 - **Elle çizimle uyum (ön veri, 1 görüntü, 2 değen hücre):** Dice 0.92–0.94; CTCF farkı −1.9 % ve +8.0 %.
   Fark esas olarak değen hücreler arasındaki bölme çizgisinden kaynaklanır.
 
+## v2.0 masaüstü programı
+- **Kullanım kılavuzu:** [`docs/KULLANIM_KILAVUZU.md`](docs/KULLANIM_KILAVUZU.md) — programda Yardım ▸ Kullanım kılavuzu (F1)
+- Hazır paketler (Python gerekmez): `./build_mac.sh` → Apple Silicon (macOS 12.3+) ve Intel (macOS 12.0+) `.zip`;
+  Windows'ta `build_windows.bat` ya da GitHub Actions ▸ Build (elle başlatılır)
+- Paketler macOS 12 uyumlu tekerleklerle derlenir; paket kendini sınar: `"ICC CTCF Olcer" --selftest FITC DAPI`
+
 ## Dosyalar
 - `core.py` — görüntü işleme ve ölçüm (arayüzden bağımsız)
 - `app.py` — Streamlit arayüzü
