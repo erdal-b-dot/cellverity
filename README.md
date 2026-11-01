@@ -40,7 +40,7 @@ Windows: extract the zip, run `ICC CTCF Olcer.exe`; if SmartScreen appears: **Mo
 - Scale-bar labels read correctly in all 301 images of the development data set (Olympus DP74 / cellSens).
 - Agreement with manual tracing (preliminary, 1 image, 2 touching cells): Dice 0.943 / 0.938, CTCF difference +2.3 % / +3.7 %. A larger validation study is in progress; the app contains the tools to run your own (Fiji ▸ Compare with manually traced ROIs).
 
-**Scope:** developed and validated with an Olympus DP74 colour camera and cellSens images (FITC + DAPI). Measurements work on other images; if the scale-bar label cannot be read, the program warns you and asks for the value.
+**Scope:** developed and validated with images acquired by the author on an **Olympus BX43** fluorescence microscope with an **Olympus DP74** colour camera and **cellSens Entry** software (FITC + DAPI). Measurements work on other images; if the scale-bar label cannot be read, the program warns you and asks for the value.
 
 ## Citation
 Balcan E. (2026). *ICC CTCF Ölçer: per-cell corrected total cell fluorescence (CTCF) quantification for immunocytochemistry images* (Version 2.0.0) [Computer software]. Zenodo. https://doi.org/10.5281/zenodo.23860021

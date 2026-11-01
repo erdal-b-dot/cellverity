@@ -29,5 +29,6 @@
       "resource_type": "publication-article"
     }
   ],
-  "version": "2.0.0"
+  "version": "2.0.0",
+  "notes": "Developed and validated with images acquired on an Olympus BX43 fluorescence microscope, Olympus DP74 colour camera and cellSens Entry software."
 }
