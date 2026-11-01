@@ -252,7 +252,7 @@ Each FITC is paired with the DAPI, among those **within ±3 file numbers in the 
 - In each image: **all cells** + **automatic background** (box size/number from the right panel).
 - **Cells touching the image border** are excluded by default.
 - The **Selection** column in Excel records *manual click* or *batch: all cells, edge excluded*.
-- After batch measurement, opening suspicious images one by one is recommended (especially dense clusters).
+- After batch measurement, check suspicious images (especially dense clusters): in the **Collected results** tab, **hover over a row** to preview the cell; **click the row** to open that image with its DAPI — the cells recorded in the table are selected and the clicked cell is centred. Edit boundaries ([Section 7](#7-editing-cell-boundaries)) or **Verify with Fiji**, then **Add to results table** to replace that image's earlier rows.
 
 ---
 

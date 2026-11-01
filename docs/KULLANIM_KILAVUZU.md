@@ -254,7 +254,7 @@ Her FITC, **aynı klasörde ±3 numara içindeki** DAPI'ler arasından, **çekir
 - Her görüntüde **tüm hücreler** + **otomatik background** (sağ paneldeki kutu boyutu/sayısı).
 - **Kenara değen (kesik) hücreler** varsayılan olarak hariç tutulur.
 - Excel'de **Selection** sütunu: *manual click* ya da *batch: all cells, edge excluded*.
-- Toplu ölçümden sonra şüpheli görüntüleri tek tek açıp kontrol etmeniz önerilir (özellikle yoğun kümeler).
+- Toplu ölçümden sonra şüpheli görüntüleri kontrol edin (özellikle yoğun kümeler): **Biriken sonuçlar** sekmesinde bir satırın **üzerine gelince** hücrenin önizlemesi çıkar; **satıra tıklayınca** o görüntü DAPI'siyle açılır, tabloda kayıtlı hücreleri seçili gelir ve tıklanan hücre ortalanır. Sınırları düzeltip ([Bölüm 7](#7-hucre-sinirlarini-elle-duzeltmek)) ya da **Fiji ile doğrula**yıp **Sonuç tablosuna ekle** derseniz o görüntünün eski satırlarının yerine geçer.
 
 ---
 
