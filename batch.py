@@ -63,12 +63,26 @@ class Item:
     dapi: Path | None = None
     overlap: float | None = None
     group: str = ""
+    experiment: str = ""  # bağımsız deney / biyolojik tekrar
     status: str = ""      # "hazır" | "DAPI yok" | "atlandı: …"
     use: bool = True
 
 
+def group_experiment(p: Path, folder: Path) -> tuple[str, str]:
+    """Klasör düzeninden grup ve deney adı:
+    Seçilen/Deney_1/Kontrol/img → deney 'Deney_1', grup 'Kontrol'
+    Seçilen(=Deney_1)/Kontrol/img → deney 'Deney_1' (seçilen klasör), grup 'Kontrol'
+    Seçilen/img → grup ve deney = seçilen klasör adı."""
+    parts = p.relative_to(folder).parts
+    if len(parts) >= 3:
+        return parts[-2], parts[-3]
+    if len(parts) == 2:
+        return parts[0], folder.name
+    return folder.name, folder.name
+
+
 def scan(folder: Path, recursive: bool = True, progress=None) -> list[Item]:
-    """Klasördeki görüntüleri sınıflar ve FITC→DAPI eşleştirir. Grup = alt klasör adı."""
+    """Klasördeki görüntüleri sınıflar ve FITC→DAPI eşleştirir. Grup/deney klasör düzeninden gelir."""
     files = sorted(p for p in (folder.rglob("*") if recursive else folder.iterdir())
                    if p.is_file() and p.suffix.lower() in IMAGE_EXT and not p.name.startswith("._"))
     info, items = {}, []
@@ -94,9 +108,9 @@ def scan(folder: Path, recursive: bool = True, progress=None) -> list[Item]:
     fitcs = [p for p, (k, _, s) in info.items() if k == "FITC" or s]
     for i, p in enumerate(fitcs):
         kind, arr, skip = info[p]
-        group = p.parent.name if p.parent != folder else folder.name
+        group, exp = group_experiment(p, folder)
         if skip:
-            items.append(Item(p, group=group, status=f"atlandı: {skip}", use=False))
+            items.append(Item(p, group=group, experiment=exp, status=f"atlandı: {skip}", use=False))
             continue
         if progress:
             progress(i, len(fitcs), f"Eşleştiriliyor: {p.name}")
@@ -107,13 +121,14 @@ def scan(folder: Path, recursive: bool = True, progress=None) -> list[Item]:
         if scored and scored[0][0] >= MIN_OVERLAP:
             ov, d = scored[0]
             used.add(d)
-            items.append(Item(p, d, ov, group, "hazır"))
+            items.append(Item(p, d, ov, group, exp, "hazır"))
         else:
             best = f" (en iyi aday %{100 * scored[0][0]:.0f})" if scored else ""
-            items.append(Item(p, None, scored[0][0] if scored else None, group, "DAPI yok" + best))
+            items.append(Item(p, None, scored[0][0] if scored else None, group, exp, "DAPI yok" + best))
     for d in dapis:
         if d not in used:
-            items.append(Item(None, d, group=d.parent.name, status="atlandı: eşleşmeyen DAPI", use=False))
+            g, e = group_experiment(d, folder)
+            items.append(Item(None, d, group=g, experiment=e, status="atlandı: eşleşmeyen DAPI", use=False))
     return items
 
 

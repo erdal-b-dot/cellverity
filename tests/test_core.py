@@ -112,12 +112,12 @@ def test_report_exports(tmp=None):
     assert len(res2) == 16
     _, txt = report.plot(res, "CTCF")
     p = sps.ttest_ind(res.CTCF[res.Group == "Kontrol"], res.CTCF[res.Group == "İlaç"], equal_var=False).pvalue
-    assert f"{p:.4g}" in txt
+    assert report.p_fmt(p) in txt
     with tempfile.TemporaryDirectory() as d:
         path = Path(d) / "t.xlsx"
         report.write_excel(path, res, pd.DataFrame({"BG": [1]}), "test")
         x = pd.ExcelFile(path)
-        assert x.sheet_names == ["Cells", "Group_summary", "Background", "Methods"]
+        assert x.sheet_names == ["Cells", "Group_summary", "Image_means", "Background", "Methods"]
         assert len(pd.read_excel(x, "Cells")) == 20
         assert pd.read_excel(x, "Group_summary")["n"].tolist() == [10, 10]
 
@@ -148,6 +148,31 @@ def test_batch_pairing():
         assert len(cells) == 2
 
 
+def test_group_statistics():
+    """Kontrol seçimi, Dunnett (elle hesapla aynı), deney düzeyi, karışık objektif uyarısı."""
+    import pandas as pd
+    from scipy import stats as sps
+    import report
+    rng = np.random.default_rng(3)
+    rows = []
+    for g, mu, obj in (("Uygulama1", 105, 40), ("Kontrol", 100, 40), ("Uygulama2", 150, 40)):
+        for e in (1, 2, 3):
+            for c in range(6):
+                rows.append(dict(Group=g, Experiment=e, Image_path=f"{g}/{e}", CTCF=rng.normal(mu + 8 * e, 15),
+                                 Area_unit="µm²", Objective=obj))
+    r = pd.DataFrame(rows)
+    groups, data, txt, pairs = report.compare(r, "CTCF", "experiment", control="Kontrol")
+    assert groups[0] == "Kontrol" and [len(d) for d in data] == [3, 3, 3]
+    agg = r.groupby(["Group", "Experiment"]).CTCF.mean()
+    ref = sps.dunnett(agg["Uygulama1"].values, agg["Uygulama2"].values, control=agg["Kontrol"].values,
+                      random_state=0).pvalue
+    assert np.allclose([p for _, _, p in pairs], ref)
+    assert "Dunnett" in txt and "objektif" not in txt
+    r.loc[r.Group == "Uygulama2", "Objective"] = 20
+    assert "Farklı objektifler" in report.compare(r, "CTCF", "image", control="Kontrol")[2]
+    assert "yalancı tekrar" in report.compare(r, "CTCF", "cell", control="Kontrol")[2]
+
+
 if __name__ == "__main__":
     if not FITC.exists():
         sys.exit(f"Örnek görüntü yok: {FITC}")
@@ -157,4 +182,5 @@ if __name__ == "__main__":
     test_scale_label_reading()
     test_report_exports()
     test_batch_pairing()
+    test_group_statistics()
     print("✅ Doğrulama testi geçti: hesaplamalar Fiji ile doğrulanmış değerlerle aynı.")

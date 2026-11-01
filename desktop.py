@@ -35,9 +35,9 @@ AUTOSAVE = Path.home() / "Documents" / "ICC CTCF Olcer" / "otomatik_kayit.xlsx"
 
 
 def result_meta(a: core.Analysis, fitc: Path, dapi: Path | None, group: str, bg_mode: str, bg_size: int,
-                bg_n: int, note: str = "") -> dict:
+                bg_n: int, note: str = "", experiment: str = "") -> dict:
     """Her hücre satırına yazılan bağlam (yöntem bölümü ve tekrarlanabilirlik için)."""
-    return {"Group": group, "Image": fitc.name, "Image_path": str(fitc), "DAPI_image": dapi.name if dapi else "",
+    return {"Group": group, "Experiment": experiment, "Image": fitc.name, "Image_path": str(fitc), "DAPI_image": dapi.name if dapi else "",
             "Channel": "G", "um_per_px": a.um_per_px or np.nan, "Scale_bar_um": a.bar_um,
             "Scale_source": a.bar_um_source, "Objective": a.objective[0] if a.objective else np.nan,
             "BG_mode": bg_mode, "BG_box_px": bg_size, "BG_n": bg_n,
@@ -75,7 +75,7 @@ NUCLEUS_COLOR = (255, 0, 255)  # mor: hem yeşil hem mavi zeminde görünür
 TABLE_COLS = [("Cell", "Hücre", 0), ("Area", "Alan", 2), ("Mean", "Mean", 3), ("StdDev", "StdDev", 3),
               ("Min", "Min", 0), ("Max", "Max", 0), ("IntDen", "IntDen", 1), ("RawIntDen", "RawIntDen", 0),
               ("CTCF", "CTCF", 1), ("Saturated_px", "Doymuş px", 0)]
-RES_COLS = [("Group", "Grup", None), ("Image", "Görüntü", None), ("Cell", "Hücre", 0), ("Area", "Alan", 2),
+RES_COLS = [("Group", "Grup", None), ("Experiment", "Deney", None), ("Image", "Görüntü", None), ("Cell", "Hücre", 0), ("Area", "Alan", 2),
             ("Mean", "Mean", 3), ("IntDen", "IntDen", 1), ("BG_Mean", "BG Mean", 3), ("CTCF", "CTCF", 1),
             ("Objective", "Objektif", 0)]
 SUM_COLS = [("Group", "Grup", None), ("n", "n", 0), ("Mean", "Ortalama", 1), ("SD", "SD", 1),
@@ -354,6 +354,10 @@ class InfoPanel(QWidget):
         self.group.setToolTip("Bu görüntünün ait olduğu grup/koşul, ör. 'CD44 ilaçsız', 'Ax 10 µM 24 sa'.\n"
                               "Grafik ve istatistik bu etikete göre gruplanır.")
         f3.addRow("Grup / koşul", self.group)
+        self.experiment = QLineEdit("1")
+        self.experiment.setToolTip("Bağımsız deney (biyolojik tekrar) numarası/adı, ör. 1, 2, 3 ya da 'Deney_1'.\n"
+                                   "İstatistiği deney ortalamaları üzerinden yapmak için gerekir.")
+        f3.addRow("Deney / tekrar", self.experiment)
         rl.addLayout(f3)
         self.btn_add = QPushButton("➕ Sonuç tablosuna ekle")
         self.btn_add.setStyleSheet("font-weight:bold; padding:6px;")
@@ -448,7 +452,7 @@ class BatchWorker(QObject):
 
 
 class BatchDialog(QDialog):
-    COLS = ["Ölç", "Grup", "FITC", "DAPI", "Örtüşme", "Durum"]
+    COLS = ["Ölç", "Grup", "Deney", "FITC", "DAPI", "Örtüşme", "Durum"]
 
     def __init__(self, main):
         super().__init__(main)
@@ -458,7 +462,8 @@ class BatchDialog(QDialog):
         lay = QVBoxLayout(self)
         intro = QLabel("Klasördeki görüntüler FITC/DAPI olarak tanınır; her FITC, aynı klasördeki yakın numaralı "
                        "DAPI'ler arasından <b>gerçekten aynı alana ait olanla</b> (çekirdek–hücre örtüşmesi ≥ %50) "
-                       "eşleştirilir. Grup = alt klasör adı (tabloda değiştirebilirsiniz). Her görüntüde tüm "
+                       "eşleştirilir. Grup = alt klasör adı; deney = onun üstündeki klasör (ör. Deney_1/Kontrol/…) — "
+                       "ikisini de tabloda değiştirebilirsiniz. Her görüntüde tüm "
                        "hücreler ve otomatik background ölçülür; sağ paneldeki kutu boyutu/sayısı kullanılır.")
         intro.setWordWrap(True)
         lay.addWidget(intro)
@@ -475,7 +480,7 @@ class BatchDialog(QDialog):
         self.table.setHorizontalHeaderLabels(self.COLS)
         hh = self.table.horizontalHeader()
         hh.setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
-        hh.setSectionResizeMode(5, QHeaderView.ResizeMode.Stretch)
+        hh.setSectionResizeMode(6, QHeaderView.ResizeMode.Stretch)
         self.table.verticalHeader().setVisible(False)
         lay.addWidget(self.table, 1)
         self.edge = QCheckBox("Görüntü kenarına değen (kesik) hücreleri hariç tut")
@@ -555,11 +560,12 @@ class BatchDialog(QDialog):
                 chk.setFlags(Qt.ItemFlag.NoItemFlags)
             self.table.setItem(r, 0, chk)
             self.table.setItem(r, 1, QTableWidgetItem(it.group))
-            for c, txt in ((2, it.fitc.name if it.fitc else "—"), (3, it.dapi.name if it.dapi else "—"),
-                           (4, f"%{100 * it.overlap:.0f}" if it.overlap is not None else "—"), (5, it.status)):
+            self.table.setItem(r, 2, QTableWidgetItem(it.experiment))
+            for c, txt in ((3, it.fitc.name if it.fitc else "—"), (4, it.dapi.name if it.dapi else "—"),
+                           (5, f"%{100 * it.overlap:.0f}" if it.overlap is not None else "—"), (6, it.status)):
                 cell = QTableWidgetItem(txt)
                 cell.setFlags(Qt.ItemFlag.ItemIsEnabled)
-                if c == 5:
+                if c == 6:
                     color = "#2a7" if it.status == "hazır" else ("#c80" if it.status.startswith("DAPI") else "#999")
                     cell.setForeground(QColor(color))
                 self.table.setItem(r, c, cell)
@@ -577,6 +583,7 @@ class BatchDialog(QDialog):
         for r, it in enumerate(self.items):
             if it.fitc is not None and self.table.item(r, 0).checkState() == Qt.CheckState.Checked:
                 it.group = self.table.item(r, 1).text().strip() or it.group
+                it.experiment = self.table.item(r, 2).text().strip()
                 todo.append(it)
         if not todo:
             return
@@ -589,7 +596,8 @@ class BatchDialog(QDialog):
         if cells is None or not len(cells):
             return
         meta = result_meta(a, it.fitc, it.dapi, it.group, "auto", self.settings.bg_size, len(bg),
-                           "batch: all cells" + (", edge excluded" if self.edge.isChecked() else ""))
+                           "batch: all cells" + (", edge excluded" if self.edge.isChecked() else ""),
+                           it.experiment)
         self.main.add_measurement(cells, bg, meta)
         self.n_cells += len(cells)
 
@@ -608,59 +616,111 @@ class BatchDialog(QDialog):
 
 # ------------------------------------------------------------- Grafik penceresi
 class PlotDialog(QDialog):
+    """GraphPad tarzı: kontrol grubu, grup sırası, istatistik düzeyi (hücre/görüntü/deney), Dunnett/Tukey."""
+
     def __init__(self, parent, results):
         super().__init__(parent)
         from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
         from matplotlib.figure import Figure
         self.results = results
         self.setWindowTitle("Grafik ve istatistik")
-        self.resize(900, 560)
+        self.resize(1100, 700)
         lay = QHBoxLayout(self)
-        self.fig = Figure(dpi=110)
+        self.fig = Figure(dpi=110, layout="constrained")  # pencere boyutu değişince eksen yazıları kesilmesin
         self.canvas = FigureCanvasQTAgg(self.fig)
         lay.addWidget(self.canvas, 3)
         side = QVBoxLayout()
+        groups = list(dict.fromkeys(results["Group"]))
         form = QFormLayout()
+        self.control_box = QComboBox()
+        self.control_box.addItems(groups)
+        guess = next((g for g in groups if g.lower().startswith(("kontrol", "control", "ctrl", "ilaçsız"))), None)
+        if guess:
+            self.control_box.setCurrentText(guess)
+        self.control_box.setToolTip("Dunnett testinde ve normalizasyonda referans alınan grup (GraphPad'deki "
+                                    "'control column').")
         self.metric_box = QComboBox()
         self.metric_box.addItems(list(report.METRICS))
+        self.level_box = QComboBox()
+        for k, v in report.LEVELS.items():
+            self.level_box.addItem(v, k)
+        has_exp = "Experiment" in results and results["Experiment"].astype(str).str.strip().replace(
+            {"nan": ""}).ne("").any() and results.groupby("Group")["Experiment"].nunique().min() >= 2
+        self.level_box.setCurrentIndex(2 if has_exp else 1)
+        self.level_box.setToolTip("Testte n neyi sayıyor? Hücreler aynı deneyden geldiği için bağımsız değildir;\n"
+                                  "yayın için bağımsız deney ortalamaları önerilir.")
+        self.cmp_box = QComboBox()
+        for k, v in report.COMPARISONS.items():
+            self.cmp_box.addItem(v, k)
         self.kind_box = QComboBox()
         self.kind_box.addItems(report.PLOT_KINDS)
-        self.norm_box = QCheckBox("İlk gruba göre normalize et (kontrol = 1)")
+        form.addRow("Kontrol grubu", self.control_box)
         form.addRow("Değişken", self.metric_box)
+        form.addRow("İstatistik birimi", self.level_box)
+        form.addRow("Çoklu karşılaştırma", self.cmp_box)
         form.addRow("Grafik tipi", self.kind_box)
         side.addLayout(form)
+        side.addWidget(QLabel("<b>Grup sırası</b> (sürükleyerek değiştirin; kontrol hep başta)"))
+        from PySide6.QtWidgets import QListWidget
+        self.order_list = QListWidget()
+        self.order_list.addItems(groups)
+        self.order_list.setDragDropMode(QAbstractItemView.DragDropMode.InternalMove)
+        self.order_list.setMaximumHeight(110)
+        side.addWidget(self.order_list)
+        self.norm_box = QCheckBox("Kontrole göre normalize et (kontrol = 1)")
+        self.stars_box = QCheckBox("Anlamlılık yıldızlarını göster")
+        self.stars_box.setChecked(True)
         side.addWidget(self.norm_box)
-        side.addWidget(QLabel("<b>İstatistik</b>"))
+        side.addWidget(self.stars_box)
         self.stats = QPlainTextEdit()
         self.stats.setReadOnly(True)
-        side.addWidget(self.stats)
-        note = QLabel("Not: hücreler teknik tekrardır; yayın için biyolojik tekrar (deney) ortalamalarıyla "
-                      "test önerilir.")
-        note.setWordWrap(True)
-        note.setStyleSheet("color:#666;")
-        side.addWidget(note)
+        side.addWidget(self.stats, 1)
+        row = QHBoxLayout()
         for fmt in ("png", "pdf", "svg"):
-            b = QPushButton(f"Kaydet ({fmt.upper()}{', 600 dpi' if fmt == 'png' else ''})")
+            b = QPushButton(f"{fmt.upper()}{' 600 dpi' if fmt == 'png' else ''}")
+            b.setToolTip(f"Grafiği {fmt.upper()} olarak kaydet")
             b.clicked.connect(lambda _, f=fmt: self.save(f))
-            side.addWidget(b)
+            row.addWidget(b)
+        b = QPushButton("İstatistik metni")
+        b.setToolTip("İstatistik sonucunu .txt olarak kaydet")
+        b.clicked.connect(self.save_txt)
+        row.addWidget(b)
+        side.addWidget(QLabel("<b>Kaydet</b>"))
+        side.addLayout(row)
         lay.addLayout(side, 2)
-        for w in (self.metric_box, self.kind_box):
+        for w in (self.control_box, self.metric_box, self.level_box, self.cmp_box, self.kind_box):
             w.currentIndexChanged.connect(self.draw)
-        self.norm_box.toggled.connect(self.draw)
+        for w in (self.norm_box, self.stars_box):
+            w.toggled.connect(self.draw)
+        self.order_list.model().rowsMoved.connect(lambda *_: self.draw())
         self.draw()
 
     def draw(self):
+        order = [self.order_list.item(i).text() for i in range(self.order_list.count())]
         _, txt = report.plot(self.results, self.metric_box.currentText(), self.kind_box.currentText(),
-                             self.norm_box.isChecked(), fig=self.fig)
+                             self.norm_box.isChecked(), fig=self.fig, level=self.level_box.currentData(),
+                             control=self.control_box.currentText(), order=order,
+                             comparison=self.cmp_box.currentData(), stars=self.stars_box.isChecked())
         self.stats.setPlainText(txt)
         self.canvas.draw()
 
-    def save(self, fmt):
+    def _path(self, ext, title):
         stamp = datetime.now().strftime("%Y%m%d_%H%M")
-        start = str(Path.home() / f"CTCF_plot_{self.metric_box.currentText()}_{stamp}.{fmt}")
-        path, _ = QFileDialog.getSaveFileName(self, "Grafiği kaydet", start, f"{fmt.upper()} (*.{fmt})")
+        start = str(Path.home() / f"CTCF_{self.metric_box.currentText()}_{self.level_box.currentData()}_{stamp}.{ext}")
+        path, _ = QFileDialog.getSaveFileName(self, title, start, f"{ext.upper()} (*.{ext})")
+        return path
+
+    def save(self, fmt):
+        path = self._path(fmt, "Grafiği kaydet")
         if path:
             self.fig.savefig(path, format=fmt, dpi=600 if fmt == "png" else None, bbox_inches="tight")
+
+    def save_txt(self):
+        path = self._path("txt", "İstatistik metnini kaydet")
+        if path:
+            head = (f"Değişken: {self.metric_box.currentText()}\nİstatistik birimi: {self.level_box.currentText()}\n"
+                    f"Kontrol: {self.control_box.currentText()}\n\n")
+            Path(path).write_text(head + self.stats.toPlainText(), encoding="utf-8")
 
 
 # ---------------------------------------------------------------- Ana pencere
@@ -1086,7 +1146,8 @@ class MainWindow(QMainWindow):
         fpath = self.fitc[0]
         meta = result_meta(a, fpath, self.dapi[0] if self.dapi else None, group,
                            "auto" if self.panel.bg_auto.isChecked() else "manual",
-                           self.panel.bg_size.value(), len(self.cur_bg), "manual click")
+                           self.panel.bg_size.value(), len(self.cur_bg), "manual click",
+                           self.panel.experiment.text().strip())
         replaced = len(self.results) and (self.results["Image_path"] == str(fpath)).any()
         self.add_measurement(cells, self.cur_bg, meta)
         self.tabs.setCurrentIndex(2)
@@ -1159,6 +1220,8 @@ class MainWindow(QMainWindow):
         BatchDialog(self).exec()
 
     def refresh_results(self):
+        if len(self.results) and "Experiment" not in self.results:  # eski Excel'ler
+            self.results["Experiment"] = ""
         r = self.results
         fill(self.res_table, RES_COLS, r if len(r) else None)
         fill(self.sum_table, SUM_COLS, report.group_summary(r) if len(r) else None)
@@ -1166,7 +1229,9 @@ class MainWindow(QMainWindow):
         n_grp = r["Group"].nunique() if len(r) else 0
         self.tabs.setTabText(2, f"Biriken sonuçlar ({len(r)})")
         self.panel.res_info.setText(f"Biriken: <b>{len(r)}</b> hücre, {n_img} görüntü, {n_grp} grup"
-                                    + ("  <span style='color:#a60'>(kaydedilmedi)</span>" if self._dirty else ""))
+                                    + ("  <span style='color:#a60'>(kaydedilmedi)</span>" if self._dirty else "")
+                                    + (f"<br><span style='color:#b22'>{report.mixed_objectives(r)}</span>"
+                                       if len(r) and report.mixed_objectives(r) else ""))
         for w in (self.panel.btn_excel, self.panel.btn_plot):
             w.setEnabled(len(r) > 0)
         for a_ in (self.a_xlsx, self.a_csv, self.a_plot, self.a_reset):
