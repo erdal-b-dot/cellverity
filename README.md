@@ -70,6 +70,7 @@ Durdurmak için: macOS `./stop.sh`; Windows'ta küçültülmüş "ICC CTCF Olcer
 - `install_mac.sh`, `start.sh`, `stop.sh`, `run.command` — macOS
 - `install_windows.bat`, `start_windows.bat` — Windows
 - `desktop.py` — **v2.0 masaüstü arayüzü (geliştiriliyor)**: `./run_desktop.command` (Mac) / `start_desktop.bat` (Windows)
+- `batch.py` — klasör işleme: FITC/DAPI eşleştirme (örtüşmeye göre) ve toplu ölçüm (v2)
 - `report.py` — biriken sonuçlar, Excel/CSV, grafik ve istatistik (v2)
 - `requirements-desktop.txt` — PySide6 6.9.3 (macOS 12 Monterey'i destekleyen son sürüm)
 - `tests/test_core.py` — doğrulama testi (Fiji ile doğrulanmış değerler); `.venv/bin/python tests/test_core.py`

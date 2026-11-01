@@ -122,6 +122,32 @@ def test_report_exports(tmp=None):
         assert pd.read_excel(x, "Group_summary")["n"].tolist() == [10, 10]
 
 
+def test_batch_pairing():
+    """Klasör eşleştirme: doğru çift eşleşir; başka alanın DAPI'si (numara ardışık olsa da) eşleşmez;
+    EXIF'siz (merge/yeniden kaydedilmiş) JPEG atlanır."""
+    import shutil
+    import tempfile
+    from PIL import Image
+    import batch
+    p286, p287 = ROOT / "ornek" / "Image_286.jpg", ROOT / "ornek" / "Image_287.jpg"
+    if not p286.exists():
+        return
+    with tempfile.TemporaryDirectory() as d:
+        d = Path(d)
+        (d / "A").mkdir(); (d / "B").mkdir()
+        shutil.copy(FITC, d / "A" / "Image_392.jpg"); shutil.copy(DAPI, d / "A" / "Image_393.jpg")
+        shutil.copy(FITC, d / "B" / "Image_10.jpg"); shutil.copy(p287, d / "B" / "Image_11.jpg")  # farklı alan
+        Image.open(p286).save(d / "B" / "Image_20-21.jpg")                                       # EXIF'siz
+        items = {(it.group, it.fitc.name if it.fitc else None): it for it in batch.scan(d)}
+        a = items[("A", "Image_392.jpg")]
+        assert a.dapi.name == "Image_393.jpg" and a.status == "hazır"
+        b = items[("B", "Image_10.jpg")]
+        assert b.dapi is None and b.status.startswith("DAPI yok"), b
+        assert items[("B", "Image_20-21.jpg")].status.startswith("atlandı") and not items[("B", "Image_20-21.jpg")].use
+        an, cells, _ = batch.measure(a, core.Settings())
+        assert len(cells) == 2
+
+
 if __name__ == "__main__":
     if not FITC.exists():
         sys.exit(f"Örnek görüntü yok: {FITC}")
@@ -130,4 +156,5 @@ if __name__ == "__main__":
     test_v2_bright_core_nuclei()
     test_scale_label_reading()
     test_report_exports()
+    test_batch_pairing()
     print("✅ Doğrulama testi geçti: hesaplamalar Fiji ile doğrulanmış değerlerle aynı.")

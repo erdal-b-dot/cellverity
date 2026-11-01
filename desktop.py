@@ -15,7 +15,7 @@ import pandas as pd
 from PySide6.QtCore import QObject, QRectF, Qt, QThread, Signal
 from PySide6.QtGui import QAction, QBrush, QColor, QFont, QImage, QKeySequence, QPainter, QPen, QPixmap
 from PySide6.QtWidgets import (QAbstractItemView, QApplication, QButtonGroup, QCheckBox, QComboBox, QDialog,
-                               QDockWidget, QLineEdit, QPlainTextEdit,
+                               QDockWidget, QLineEdit, QPlainTextEdit, QProgressBar,
                                QFileDialog, QFormLayout, QFrame, QGraphicsPixmapItem, QGraphicsRectItem,
                                QGraphicsScene, QGraphicsSimpleTextItem,
                                QGraphicsView, QGroupBox, QHBoxLayout, QHeaderView, QLabel, QMainWindow,
@@ -23,35 +23,36 @@ from PySide6.QtWidgets import (QAbstractItemView, QApplication, QButtonGroup, QC
                                QSlider, QSpinBox,
                                QTableWidget, QTableWidgetItem, QTabWidget, QVBoxLayout, QWidget)
 
+import batch
 import core
 import report
+from batch import guess_kind
 
 APP_NAME = "ICC CTCF Ölçer"
 VERSION = "2.0.0-dev"
 IMAGE_FILTER = "Görüntüler (*.jpg *.jpeg *.tif *.tiff *.png)"
+AUTOSAVE = Path.home() / "Documents" / "ICC CTCF Olcer" / "otomatik_kayit.xlsx"
+
+
+def result_meta(a: core.Analysis, fitc: Path, dapi: Path | None, group: str, bg_mode: str, bg_size: int,
+                bg_n: int, note: str = "") -> dict:
+    """Her hücre satırına yazılan bağlam (yöntem bölümü ve tekrarlanabilirlik için)."""
+    return {"Group": group, "Image": fitc.name, "Image_path": str(fitc), "DAPI_image": dapi.name if dapi else "",
+            "Channel": "G", "um_per_px": a.um_per_px or np.nan, "Scale_bar_um": a.bar_um,
+            "Scale_source": a.bar_um_source, "Objective": a.objective[0] if a.objective else np.nan,
+            "BG_mode": bg_mode, "BG_box_px": bg_size, "BG_n": bg_n,
+            "Segmentation": a.segmentation_mode,
+            "Nucleus_method": "bright_core (v2)" if a.nuclei is not None else "",
+            "DAPI_overlap": a.dapi_overlap if a.dapi_overlap is not None else np.nan,
+            "Touching_pairs": "; ".join(f"{i}-{j}" for i, j in a.touching),
+            "Cells_in_field": len(a.cell_ids),
+            "Nuclei_in_field": int(a.nuclei.max()) if a.nuclei is not None else np.nan,
+            "Selection": note, "App_version": VERSION, "Timestamp": datetime.now().strftime("%Y-%m-%d %H:%M")}
 
 
 def is_dapi_like(arr: np.ndarray) -> bool:
     """Mavi kanalın baskın olduğu (DAPI) görüntüyü tanır; sürükle-bırakta FITC/DAPI ayrımı için."""
     return guess_kind(arr) == "DAPI"
-
-
-def guess_kind(arr: np.ndarray) -> str | None:
-    """'DAPI' (mavi baskın), 'FITC' (yeşil baskın) veya None (gri tonlu / belirsiz → kullanıcıya sorma)."""
-    if arr.ndim != 3:
-        return None
-    # Yalnızca en parlak %1 piksele (boyalı yapı) bakılır; arka plan halesi yanıltmasın.
-    # Mavi/kırmızı oranı: DP74'te DAPI turkuaz görünür (G yüksek) ama kırmızısı düşüktür; FITC sarı-yeşil
-    # görünür (R yüksek). ZÜBEYDE/ICC'deki 282 tek kanal görüntüde FITC ≤ 0.79, DAPI ≥ 1.47 (2026-10-31).
-    a = arr.reshape(-1, 3)[::7].astype(float)
-    mx = a.max(axis=1)
-    r, _, b = a[mx >= np.percentile(mx, 99)].mean(axis=0)
-    ratio = b / (r + 1)
-    if ratio > 1.2:
-        return "DAPI"
-    if ratio < 0.9:
-        return "FITC"
-    return None
 
 
 def message(parent, kind: str, text: str, ask: bool = False) -> bool:
@@ -413,6 +414,198 @@ class InfoPanel(QWidget):
             self.mode.setStyleSheet("background:#fdf3d8; color:#850; padding:6px; border-radius:4px;")
 
 
+# ------------------------------------------------------------- Klasör işleme
+class BatchWorker(QObject):
+    progress = Signal(int, int, str)
+    item_done = Signal(object, object, object, object)  # item, Analysis, cells, bg
+    finished = Signal(object)
+    failed = Signal(str)
+
+    def __init__(self, mode, payload):
+        super().__init__()
+        self.mode, self.payload, self.stop = mode, payload, False
+
+    def run(self):
+        try:
+            if self.mode == "scan":
+                folder, recursive = self.payload
+                self.finished.emit(batch.scan(folder, recursive, lambda i, n, t: self.progress.emit(i, n, t)))
+            else:
+                items, s, edge = self.payload
+                errors = []
+                for k, it in enumerate(items):
+                    if self.stop:
+                        break
+                    self.progress.emit(k, len(items), f"Ölçülüyor: {it.fitc.name}")
+                    try:
+                        a, cells, bg = batch.measure(it, s, edge)
+                        self.item_done.emit(it, a, cells, bg)
+                    except Exception as ex:  # bir görüntü bozuksa diğerleri sürsün
+                        errors.append(f"{it.fitc.name}: {type(ex).__name__}: {ex}")
+                self.finished.emit(errors)
+        except Exception as ex:
+            self.failed.emit(f"{type(ex).__name__}: {ex}")
+
+
+class BatchDialog(QDialog):
+    COLS = ["Ölç", "Grup", "FITC", "DAPI", "Örtüşme", "Durum"]
+
+    def __init__(self, main):
+        super().__init__(main)
+        self.main, self.items, self._thread = main, [], None
+        self.setWindowTitle("Klasörü toplu ölç")
+        self.resize(980, 620)
+        lay = QVBoxLayout(self)
+        intro = QLabel("Klasördeki görüntüler FITC/DAPI olarak tanınır; her FITC, aynı klasördeki yakın numaralı "
+                       "DAPI'ler arasından <b>gerçekten aynı alana ait olanla</b> (çekirdek–hücre örtüşmesi ≥ %50) "
+                       "eşleştirilir. Grup = alt klasör adı (tabloda değiştirebilirsiniz). Her görüntüde tüm "
+                       "hücreler ve otomatik background ölçülür; sağ paneldeki kutu boyutu/sayısı kullanılır.")
+        intro.setWordWrap(True)
+        lay.addWidget(intro)
+        row = QHBoxLayout()
+        self.btn_folder = QPushButton("Klasör seç…")
+        self.folder_lbl = QLabel("—")
+        self.recursive = QCheckBox("Alt klasörler dahil")
+        self.recursive.setChecked(True)
+        row.addWidget(self.btn_folder)
+        row.addWidget(self.folder_lbl, 1)
+        row.addWidget(self.recursive)
+        lay.addLayout(row)
+        self.table = QTableWidget(0, len(self.COLS))
+        self.table.setHorizontalHeaderLabels(self.COLS)
+        hh = self.table.horizontalHeader()
+        hh.setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
+        hh.setSectionResizeMode(5, QHeaderView.ResizeMode.Stretch)
+        self.table.verticalHeader().setVisible(False)
+        lay.addWidget(self.table, 1)
+        self.edge = QCheckBox("Görüntü kenarına değen (kesik) hücreleri hariç tut")
+        self.edge.setChecked(True)
+        self.edge.setToolTip("Kenarda kesilmiş hücrenin alanı ve IntDen'i eksik ölçülür; genellikle hariç tutulur.")
+        lay.addWidget(self.edge)
+        self.bar = QProgressBar()
+        self.bar.hide()
+        self.status = QLabel()
+        self.status.setWordWrap(True)
+        lay.addWidget(self.bar)
+        lay.addWidget(self.status)
+        row = QHBoxLayout()
+        row.addStretch()
+        self.btn_run = QPushButton("Seçilenleri ölç ve tabloya ekle")
+        self.btn_run.setStyleSheet("font-weight:bold; padding:6px 14px;")
+        self.btn_run.setEnabled(False)
+        self.btn_close = QPushButton("Kapat")
+        row.addWidget(self.btn_run)
+        row.addWidget(self.btn_close)
+        lay.addLayout(row)
+        self.btn_folder.clicked.connect(self.choose)
+        self.btn_run.clicked.connect(self.run)
+        self.btn_close.clicked.connect(self.reject)
+
+    def _start(self, mode, payload, done):
+        self.bar.show()
+        self.bar.setValue(0)
+        for b in (self.btn_folder, self.btn_run, self.btn_close):
+            b.setEnabled(False)
+        self._thread = QThread(self)
+        self._worker = BatchWorker(mode, payload)
+        self._worker.moveToThread(self._thread)
+        self._thread.started.connect(self._worker.run)
+        self._worker.progress.connect(self.on_progress)
+        self._worker.item_done.connect(self.on_item)
+        self._worker.finished.connect(done)
+        self._worker.failed.connect(self.on_fail)
+        self._thread.start()
+
+    def _stop(self):
+        self._thread.quit()
+        self._thread.wait()
+        self._thread = None
+        self.bar.hide()
+        for b in (self.btn_folder, self.btn_close):
+            b.setEnabled(True)
+        self.btn_run.setEnabled(any(it.use for it in self.items))
+
+    def on_progress(self, i, n, text):
+        self.bar.setMaximum(max(n, 1))
+        self.bar.setValue(i)
+        self.status.setText(text)
+
+    def on_fail(self, msg):
+        self._stop()
+        message(self, "critical", f"Hata:\n{msg}")
+
+    def choose(self, folder: str | None = None):
+        if not folder:
+            start = str(self.main.fitc[0].parent) if self.main.fitc else str(Path.home())
+            folder = QFileDialog.getExistingDirectory(self, "Görüntü klasörünü seçin", start)
+        if folder:
+            self.folder = Path(folder)
+            self.folder_lbl.setText(str(self.folder))
+            self._start("scan", (self.folder, self.recursive.isChecked()), self.on_scanned)
+
+    def on_scanned(self, items):
+        self._stop()
+        self.items = items
+        self.table.setRowCount(len(items))
+        for r, it in enumerate(items):
+            chk = QTableWidgetItem()
+            chk.setFlags(Qt.ItemFlag.ItemIsUserCheckable | Qt.ItemFlag.ItemIsEnabled)
+            chk.setCheckState(Qt.CheckState.Checked if it.use else Qt.CheckState.Unchecked)
+            if it.fitc is None:
+                chk.setFlags(Qt.ItemFlag.NoItemFlags)
+            self.table.setItem(r, 0, chk)
+            self.table.setItem(r, 1, QTableWidgetItem(it.group))
+            for c, txt in ((2, it.fitc.name if it.fitc else "—"), (3, it.dapi.name if it.dapi else "—"),
+                           (4, f"%{100 * it.overlap:.0f}" if it.overlap is not None else "—"), (5, it.status)):
+                cell = QTableWidgetItem(txt)
+                cell.setFlags(Qt.ItemFlag.ItemIsEnabled)
+                if c == 5:
+                    color = "#2a7" if it.status == "hazır" else ("#c80" if it.status.startswith("DAPI") else "#999")
+                    cell.setForeground(QColor(color))
+                self.table.setItem(r, c, cell)
+        ready = sum(it.status == "hazır" for it in items)
+        nod = sum(it.status.startswith("DAPI yok") for it in items)
+        skip = sum(it.status.startswith("atlandı") for it in items)
+        self.status.setText(f"<b>{ready}</b> çift hazır · <span style='color:#c80'>{nod} FITC'nin DAPI'si "
+                            f"bulunamadı</span> (yalnız şekle göre ayrılır) · <span style='color:#999'>{skip} dosya "
+                            "atlandı</span> (merge, işlenmiş, eşleşmeyen DAPI). Ölçülmesini istemediklerinizin "
+                            "işaretini kaldırın.")
+        self.btn_run.setEnabled(any(it.use for it in items))
+
+    def run(self):
+        todo = []
+        for r, it in enumerate(self.items):
+            if it.fitc is not None and self.table.item(r, 0).checkState() == Qt.CheckState.Checked:
+                it.group = self.table.item(r, 1).text().strip() or it.group
+                todo.append(it)
+        if not todo:
+            return
+        p = self.main.panel
+        self.settings = core.Settings(bg_size=p.bg_size.value(), bg_n=p.bg_n.value())
+        self.n_cells = 0
+        self._start("measure", (todo, self.settings, self.edge.isChecked()), self.on_measured)
+
+    def on_item(self, it, a, cells, bg):
+        if cells is None or not len(cells):
+            return
+        meta = result_meta(a, it.fitc, it.dapi, it.group, "auto", self.settings.bg_size, len(bg),
+                           "batch: all cells" + (", edge excluded" if self.edge.isChecked() else ""))
+        self.main.add_measurement(cells, bg, meta)
+        self.n_cells += len(cells)
+
+    def on_measured(self, errors):
+        self._stop()
+        txt = f"Bitti: {self.n_cells} hücre biriken tabloya eklendi."
+        if errors:
+            txt += "\n\nÖlçülemeyenler:\n" + "\n".join(errors)
+        self.status.setText(txt.replace("\n", "<br>"))
+        self.main.tabs.setCurrentIndex(2)
+
+    def reject(self):
+        if self._thread is None:
+            super().reject()
+
+
 # ------------------------------------------------------------- Grafik penceresi
 class PlotDialog(QDialog):
     def __init__(self, parent, results):
@@ -575,8 +768,13 @@ class MainWindow(QMainWindow):
         self.a_roi = act("ROI görüntüsü (PNG)…", self.export_roi_png)
         self.a_ij = act("ImageJ/Fiji karşılaştırma paketi (ZIP)…", self.export_imagej)
         self.a_reset = act("Biriken sonuçları sıfırla…", self.reset_results)
+        self.a_batch = act("Klasörü toplu ölç…", self.batch_dialog, "Ctrl+B")
+        self.a_batch.setToolTip("Bir klasördeki tüm FITC/DAPI çiftlerini bulur ve hepsini ölçer.")
+        self.a_load = act("Önceki sonuçları aç (Excel)…", self.load_excel)
         m = self.menuBar().addMenu("Sonuçlar")
-        m.addActions([self.a_add, self.a_xlsx, self.a_csv, self.a_plot])
+        m.addActions([self.a_add, self.a_batch])
+        m.addSeparator()
+        m.addActions([self.a_xlsx, self.a_csv, self.a_load, self.a_plot])
         m.addSeparator()
         m.addActions([self.a_roi, self.a_ij])
         m.addSeparator()
@@ -598,7 +796,7 @@ class MainWindow(QMainWindow):
         tb.addWidget(self.view_mode)
         tb.addAction(self.a_nuc)
         tb.addSeparator()
-        tb.addActions([self.a_add, self.a_xlsx, self.a_plot])
+        tb.addActions([self.a_add, self.a_batch, self.a_xlsx, self.a_plot])
 
     # ---------------------------------------------------------- dosya açma
     def close_images(self):
@@ -886,26 +1084,79 @@ class MainWindow(QMainWindow):
             return
         group = self.panel.group.text().strip() or "Grup"
         fpath = self.fitc[0]
-        meta = {"Group": group, "Image": fpath.name, "Image_path": str(fpath),
-                "DAPI_image": self.dapi[0].name if self.dapi else "",
-                "Channel": "G", "um_per_px": a.um_per_px or np.nan, "Scale_bar_um": a.bar_um,
-                "Scale_source": a.bar_um_source, "Objective": a.objective[0] if a.objective else np.nan,
-                "BG_mode": "auto" if self.panel.bg_auto.isChecked() else "manual",
-                "BG_box_px": self.panel.bg_size.value(), "BG_n": len(self.cur_bg),
-                "Segmentation": a.segmentation_mode, "Nucleus_method": "bright_core (v2)" if a.nuclei is not None else "",
-                "DAPI_overlap": a.dapi_overlap if a.dapi_overlap is not None else np.nan,
-                "Touching_pairs": "; ".join(f"{i}-{j}" for i, j in a.touching),
-                "Cells_in_field": len(a.cell_ids),
-                "Nuclei_in_field": int(a.nuclei.max()) if a.nuclei is not None else np.nan,
-                "App_version": VERSION, "Timestamp": datetime.now().strftime("%Y-%m-%d %H:%M")}
+        meta = result_meta(a, fpath, self.dapi[0] if self.dapi else None, group,
+                           "auto" if self.panel.bg_auto.isChecked() else "manual",
+                           self.panel.bg_size.value(), len(self.cur_bg), "manual click")
         replaced = len(self.results) and (self.results["Image_path"] == str(fpath)).any()
-        self.results = report.add_image(self.results, cells, meta)
-        self.bg_results = report.add_background(self.bg_results, self.cur_bg, fpath.name, str(fpath), group)
-        self._dirty = True
-        self.refresh_results()
+        self.add_measurement(cells, self.cur_bg, meta)
         self.tabs.setCurrentIndex(2)
         self.statusBar().showMessage(f"{len(cells)} hücre '{group}' grubuna eklendi"
                                      + (" (bu görüntünün önceki ölçümünün yerine)." if replaced else "."), 6000)
+
+    def add_measurement(self, cells, bg, meta):
+        self.results = report.add_image(self.results, cells, meta)
+        self.bg_results = report.add_background(self.bg_results, bg, meta["Image"], meta["Image_path"],
+                                                meta["Group"])
+        self._dirty = True
+        self.autosave()
+        self.refresh_results()
+
+    def autosave(self):
+        """Her eklemeden sonra Belgeler/ICC CTCF Olcer/otomatik_kayit.xlsx — çökme/elektrik kesintisine karşı."""
+        try:
+            AUTOSAVE.parent.mkdir(parents=True, exist_ok=True)
+            report.write_excel(AUTOSAVE, self.results, self.bg_results, VERSION)
+        except Exception as ex:  # otomatik kayıt başarısızlığı ölçümü durdurmasın
+            self.statusBar().showMessage(f"Otomatik kayıt yapılamadı: {ex}", 6000)
+
+    def load_excel(self, path: Path | None = None):
+        """Daha önce kaydedilmiş Excel'i (Cells + Background) yükler → kaldığınız yerden devam."""
+        if path is None:
+            fn, _ = QFileDialog.getOpenFileName(self, "Önceki sonuçları aç (Excel)", str(Path.home()),
+                                                "Excel (*.xlsx)")
+            if not fn:
+                return
+            path = Path(fn)
+        try:
+            cells = pd.read_excel(path, sheet_name="Cells")
+            try:
+                bg = pd.read_excel(path, sheet_name="Background")
+            except ValueError:
+                bg = pd.DataFrame()
+        except Exception as ex:
+            message(self, "warning", f"{path.name} okunamadı:\n{ex}\n\nBu programın kaydettiği Excel olmalı "
+                    "('Cells' sayfası).")
+            return
+        if "Image_path" not in cells:
+            cells["Image_path"] = cells.get("Image", "")
+        if len(bg) and "Image_path" not in bg:
+            bg["Image_path"] = bg.get("Image", "")
+        if len(self.results):  # açık tabloyla birleştir; aynı görüntü varsa Excel'deki geçerli
+            new = set(cells["Image_path"])
+            cells = pd.concat([self.results[~self.results["Image_path"].isin(new)], cells], ignore_index=True)
+            if len(self.bg_results):
+                bg = pd.concat([self.bg_results[~self.bg_results["Image_path"].isin(new)], bg], ignore_index=True)
+        self.results, self.bg_results = report.ordered(cells), bg
+        self._dirty = path == AUTOSAVE
+        self.refresh_results()
+        self.tabs.setCurrentIndex(2)
+        self.statusBar().showMessage(f"{path.name}: {len(self.results)} hücre yüklendi — eklemeye devam edebilirsiniz.",
+                                     8000)
+
+    def offer_restore(self):
+        if not AUTOSAVE.exists():
+            return
+        try:
+            n = len(pd.read_excel(AUTOSAVE, sheet_name="Cells"))
+        except Exception:
+            return
+        when = datetime.fromtimestamp(AUTOSAVE.stat().st_mtime).strftime("%d.%m.%Y %H:%M")
+        if n and message(self, "question", f"Son oturumdan otomatik kaydedilmiş {n} hücrelik sonuç var "
+                         f"({when}).\n\nKaldığınız yerden devam edilsin mi?", ask=True):
+            self.load_excel(AUTOSAVE)
+
+    def batch_dialog(self):
+        BatchDialog(self).exec()
 
     def refresh_results(self):
         r = self.results
@@ -978,6 +1229,7 @@ class MainWindow(QMainWindow):
                                          + ("\n\nKaydedilmemiş sonuçlar kaybolur." if self._dirty else ""),
                                          ask=True):
             self.results, self.bg_results, self._dirty = pd.DataFrame(), pd.DataFrame(), False
+            AUTOSAVE.unlink(missing_ok=True)
             self.refresh_results()
 
     def show_plot(self):
@@ -1005,6 +1257,8 @@ def main():
     app.setApplicationName(APP_NAME)
     w = MainWindow()
     w.show()
+    if len(sys.argv) < 2:
+        w.offer_restore()
     for arg in sys.argv[1:3]:  # komut satırından: desktop.py FITC.jpg [DAPI.jpg]
         p = Path(arg)
         arr, meta = core.load_image(str(p))
