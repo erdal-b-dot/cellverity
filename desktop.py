@@ -1775,9 +1775,14 @@ def selftest(fitc: str, dapi: str) -> int:
         report.plot(res)[0].savefig(Path(t) / "x.png")
         ok_xlsx = (Path(t) / "x.xlsx").stat().st_size > 0
     from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg  # noqa: F401
+    cur = i18n.language()
+    i18n.set_language("en")
+    en_ok = T("Hücre sayısı") == "Cell count" and resource("docs/user_guide.html").exists()
+    i18n.set_language(cur)
     out = json.dumps({"version": VERSION, "bar_um": a.bar_um, "um_per_px": a.um_per_px, "cells": len(a.cell_ids),
                       "nuclei": int(a.nuclei.max()), "area": cells["Area"].round(2).tolist(),
-                      "ctcf": cells["CTCF"].round(1).tolist(), "excel": ok_xlsx}, ensure_ascii=False)
+                      "ctcf": cells["CTCF"].round(1).tolist(), "excel": ok_xlsx, "english": en_ok},
+                     ensure_ascii=False)
     Path("selftest_result.json").write_text(out, encoding="utf-8")  # Windows'ta pencereli .exe'nin konsolu yok
     if sys.stdout is not None:
         print(out)
