@@ -10,6 +10,7 @@ Two raw FITC + DAPI image pairs for trying out ICC CTCF Ölçer and checking an 
 
 **Sample:** PARC immunocytochemistry (FITC-labelled secondary antibody), DAPI nuclear counterstain; untreated control group of a doxorubicin experiment (January 2021).
 **Acquisition:** Olympus BX43 fluorescence microscope, Olympus DP74 colour camera, cellSens Entry; 40× objective; scale bar 20 µm = 137 px (0.146 µm/pixel). Files are unmodified camera output (JPEG, 1920 × 1200, original EXIF).
+Exposure times differ (11305: 0.5 s, 11319: 0.649 s), so these two fields are for **trying the program, not for comparing CTCF between them** — the program shows a mixed-exposure warning if you put both in one table. *Pozlama süreleri farklıdır; bu iki alan denemek içindir, aralarında CTCF karşılaştırması için değildir.*
 
 ## Try it / Deneyin
 - Drag a FITC + DAPI pair onto the program window, or use **Results ▸ Batch-measure folder…** on `PARC_control`.
