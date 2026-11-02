@@ -428,17 +428,18 @@ Programın otomatik sınırlarının elle çizime ne kadar yakın olduğunu öl�
 
 **Örnek yöntem metni (İngilizce, kendi ayarlarınıza göre düzenleyin):**
 
-> Corrected total cell fluorescence (CTCF) was quantified as CTCF = integrated density − (cell area × mean background fluorescence) (McCloy et al., 2014) using CellVerity v2.1.0 (formerly ICC CTCF Ölçer; Balcan, 2026; https://doi.org/10.5281/zenodo.23860020), an open-source tool whose measurements are identical to ImageJ/Fiji for the same regions of interest (verified with Fiji 1.54p). Images were acquired on an Olympus BX43 fluorescence microscope with an Olympus DP74 camera (cellSens Entry); FITC fluorescence was measured on the green channel of the unprocessed images (40× objective, 0.145 µm/pixel; calibration read from the embedded scale bar). Cells were segmented from the FITC channel (Li threshold) and touching cells were separated by watershed seeded with DAPI-stained nuclei. Background was the mean of three 50 × 50 pixel cell-free regions per field. Cells touching the image border were excluded. Automatic boundaries were compared with manual Fiji tracing in n = … cells from … images (Bland–Altman bias …%, 95% limits of agreement … to …%; mean Dice …). Statistics were performed on the means of N = … independent experiments using one-way ANOVA followed by Dunnett's test versus control.
+> Corrected total cell fluorescence (CTCF) was quantified as CTCF = integrated density − (cell area × mean background fluorescence) (McCloy et al., 2014) using CellVerity v2.1.0 (formerly ICC CTCF Ölçer; Balcan, 2026; https://doi.org/10.5281/zenodo.23884562), an open-source tool whose measurements are identical to ImageJ/Fiji for the same regions of interest (verified with Fiji 1.54p). Images were acquired on an Olympus BX43 fluorescence microscope with an Olympus DP74 camera (cellSens Entry); FITC fluorescence was measured on the green channel of the unprocessed images (40× objective, 0.145 µm/pixel; calibration read from the embedded scale bar). Cells were segmented from the FITC channel (Li threshold) and touching cells were separated by watershed seeded with DAPI-stained nuclei. Background was the mean of three 50 × 50 pixel cell-free regions per field. Cells touching the image border were excluded. Automatic boundaries were compared with manual Fiji tracing in n = … cells from … images (Bland–Altman bias …%, 95% limits of agreement … to …%; mean Dice …). Statistics were performed on the means of N = … independent experiments using one-way ANOVA followed by Dunnett's test versus control.
 
 Excel'deki **Methods** sayfası ve **Cells** sayfasındaki *App_version, Nucleus_method, Scale_source, BG_box_px, BG_n, Selection, Manual_edits, Fiji_check* sütunları bu metni doldurmak için gereken bilgileri içerir.
 
 **Atıf (kaynakçaya):**
 
-> Balcan E. (2026). *CellVerity: verifiable per-cell fluorescence (CTCF) quantification for immunocytochemistry images* (Version 2.1.0) [Computer software]. Zenodo. https://doi.org/10.5281/zenodo.23860020
+> Balcan E. (2026). *CellVerity: verifiable per-cell fluorescence (CTCF) quantification for immunocytochemistry images* (Version 2.1.0) [Computer software]. Zenodo. https://doi.org/10.5281/zenodo.23884562
 
 | DOI | Ne zaman kullanılır |
 |---|---|
-| **Kullandığınız sürümün DOI'si** (v2.1.0: Zenodo sayfasında) | Önerilen; okuyucu tam olarak sizin kullandığınız sürümü indirebilir |
+| **Kullandığınız sürümün DOI'si** (v2.1.0: 10.5281/zenodo.23884562) | Önerilen; okuyucu tam olarak sizin kullandığınız sürümü indirebilir |
+| 10.5281/zenodo.23884562 | v2.1.0 (*CellVerity*) |
 | 10.5281/zenodo.23860021 | v2.0.0 (*ICC CTCF Ölçer* adıyla yayımlandı) |
 | 10.5281/zenodo.23860020 | Programın **tüm sürümleri** (concept DOI; her zaman en yeni sürüme yönlendirir) |
 

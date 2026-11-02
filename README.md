@@ -48,8 +48,9 @@ Windows: extract the zip, run `CellVerity.exe`; if SmartScreen appears: **More i
 **Scope:** developed and validated with images acquired by the author on an **Olympus BX43** fluorescence microscope with an **Olympus DP74** colour camera and **cellSens Entry** software (FITC + DAPI). Measurements work on other images; if the scale-bar label cannot be read, the program warns you and asks for the value.
 
 ## Citation
-Balcan E. (2026). *CellVerity: verifiable per-cell fluorescence (CTCF) quantification for immunocytochemistry images* (Version 2.1.0) [Computer software]. Zenodo. https://doi.org/10.5281/zenodo.23860020
+Balcan E. (2026). *CellVerity: verifiable per-cell fluorescence (CTCF) quantification for immunocytochemistry images* (Version 2.1.0) [Computer software]. Zenodo. https://doi.org/10.5281/zenodo.23884562
 
+- v2.1.0: [10.5281/zenodo.23884562](https://doi.org/10.5281/zenodo.23884562)
 - v2.0.0 (as ICC CTCF Ölçer): [10.5281/zenodo.23860021](https://doi.org/10.5281/zenodo.23860021)
 - All versions (resolves to the latest): [10.5281/zenodo.23860020](https://doi.org/10.5281/zenodo.23860020)
 
