@@ -10,3 +10,4 @@ dogrulama/
 build/
 dist/
 selftest_result.json
+.uv-cache/

@@ -12,6 +12,8 @@ echo "%~dp0" | findstr /i "OneDrive" >nul && (
   exit /b 1
 )
 set "UV_LINK_MODE=copy"
+REM Proje icinde ayri ve temiz paket onbellegi: OneDrive ile bozulmus genel uv onbellegi (os error 396) kullanilmaz
+set "UV_CACHE_DIR=%~dp0.uv-cache"
 where uv >nul 2>nul || powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
 set "PATH=%USERPROFILE%\.local\bin;%PATH%"
 uv venv --clear --python 3.12 .build-win || goto :err
