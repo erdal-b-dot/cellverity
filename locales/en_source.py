@@ -48,12 +48,12 @@ EN = {
     "Elle kutuları temizle": "Clear manual boxes",
     "Background ortalaması: —": "Background mean: —",
     "Background ortalaması: <b>{0:.3f}</b>  (n = {1} kutu, {2}×{3} px)": "Background mean: <b>{0:.3f}</b>  (n = {1} boxes, {2}×{3} px)",
-    "<br><span style='color:#a60'>⚠️ Bazı kutularda sinyal/debris olabilir.</span>":
-        "<br><span style='color:#a60'>⚠️ Some boxes may contain signal/debris.</span>",
-    "<br><span style='color:#555'>ℹ️ Kutulardaki tüm pikseller 0: kamera siyah seviyesi kırpılmış (Fiji'de de 0). Bu durumda CTCF = IntDen olur; tüm görüntüler aynı ayarla çekildiyse sorun değildir. Ayrıntı: alttaki 'Background kutuları' sekmesi.</span>":
-        "<br><span style='color:#555'>ℹ️ All pixels in the boxes are 0: the camera black level is clipped (also 0 in Fiji). CTCF then equals IntDen; this is fine if all images were acquired with the same settings. Details: 'Background boxes' tab below.</span>",
-    "<span style='color:#b22'>Background kutusu yok — CTCF hesaplanamaz.</span>":
-        "<span style='color:#b22'>No background box — CTCF cannot be computed.</span>",
+    "<br><span style='color:{warn}'>⚠️ Bazı kutularda sinyal/debris olabilir.</span>":
+        "<br><span style='color:{warn}'>⚠️ Some boxes may contain signal/debris.</span>",
+    "<br><span style='color:{info}'>ℹ️ Kutulardaki tüm pikseller 0: kamera siyah seviyesi kırpılmış (Fiji'de de 0). Bu durumda CTCF = IntDen olur; tüm görüntüler aynı ayarla çekildiyse sorun değildir. Ayrıntı: alttaki 'Background kutuları' sekmesi.</span>":
+        "<br><span style='color:{info}'>ℹ️ All pixels in the boxes are 0: the camera black level is clipped (also 0 in Fiji). CTCF then equals IntDen; this is fine if all images were acquired with the same settings. Details: 'Background boxes' tab below.</span>",
+    "<span style='color:{bad}'>Background kutusu yok — CTCF hesaplanamaz.</span>":
+        "<span style='color:{bad}'>No background box — CTCF cannot be computed.</span>",
     " Görüntüye tıklayarak kutu ekleyin.": " Click the image to add a box.",
     " Kutu boyutunu küçültün.": " Reduce the box size.",
     "Sonuçlar": "Results",
@@ -68,7 +68,7 @@ EN = {
         "Adds the measurements of the selected cells to the results table (⌘↩ / Ctrl+Enter).\nRe-adding the same image replaces its previous entry.",
     "Biriken: 0 hücre": "Collected: 0 cells",
     "Biriken: <b>{0}</b> hücre, {1} görüntü, {2} grup": "Collected: <b>{0}</b> cells, {1} images, {2} groups",
-    "  <span style='color:#a60'>(kaydedilmedi)</span>": "  <span style='color:#a60'>(not saved)</span>",
+    "  <span style='color:{warn}'>(kaydedilmedi)</span>": "  <span style='color:{warn}'>(not saved)</span>",
     "Excel'e kaydet…": "Save to Excel…",
     "Grafik…": "Plot…",
     "<b>Çizgiler</b><br><span style='color:#9a9a9a'>━</span> hücre sınırı (numaralı)<br><span style='color:#d4b000'>━</span> seçili hücre (ölçülür)<br><span style='color:#ff00ff'>━</span> çekirdek sınırı (DAPI'den)<br><span style='color:#ff3c3c'>□</span> background kutusu":
@@ -235,8 +235,8 @@ EN = {
     "Okunuyor: {0}": "Reading: {0}",
     "Eşleştiriliyor: {0}": "Pairing: {0}",
     "Ölçülüyor: {0}": "Measuring: {0}",
-    "<b>{0}</b> çift hazır · <span style='color:#c80'>{1} FITC'nin DAPI'si bulunamadı</span> (yalnız şekle göre ayrılır) · <span style='color:#999'>{2} dosya atlandı</span> (merge, işlenmiş, eşleşmeyen DAPI). Ölçülmesini istemediklerinizin işaretini kaldırın.":
-        "<b>{0}</b> pairs ready · <span style='color:#c80'>no DAPI found for {1} FITC</span> (separated by shape only) · <span style='color:#999'>{2} files skipped</span> (merged, processed, unpaired DAPI). Untick the ones you do not want measured.",
+    "<b>{0}</b> çift hazır · <span style='color:{warn}'>{1} FITC'nin DAPI'si bulunamadı</span> (yalnız şekle göre ayrılır) · <span style='color:{info}'>{2} dosya atlandı</span> (merge, işlenmiş, eşleşmeyen DAPI). Ölçülmesini istemediklerinizin işaretini kaldırın.":
+        "<b>{0}</b> pairs ready · <span style='color:{warn}'>no DAPI found for {1} FITC</span> (separated by shape only) · <span style='color:{info}'>{2} files skipped</span> (merged, processed, unpaired DAPI). Untick the ones you do not want measured.",
     "Bitti: {0} hücre biriken tabloya eklendi.": "Done: {0} cells added to the results table.",
     "\n\nÖlçülemeyenler:\n": "\n\nCould not be measured:\n",
     "hazır": "ready",
@@ -365,8 +365,8 @@ EN = {
     "Dışlamayı kaldır ({0})": "Remove exclusion ({0})",
     "Dışla: {0}": "Exclude: {0}",
     "QC: {0}": "QC: {0}",
-    "<span style='color:#d07000'>QC: {0} hücre</span> · <span style='color:#c22'>elle dışlanan: {1}</span>":
-        "<span style='color:#d07000'>QC: {0} cells</span> · <span style='color:#c22'>manually excluded: {1}</span>",
+    "<span style='color:{warn}'>QC: {0} hücre</span> · <span style='color:{bad}'>elle dışlanan: {1}</span>":
+        "<span style='color:{warn}'>QC: {0} cells</span> · <span style='color:{bad}'>manually excluded: {1}</span>",
     "Kalite kontrolünden kalanları dışla (doymuş, çekirdeksiz, çok/kısmi çekirdekli, piknotik)":
         "Exclude cells failing quality control (saturated, no/several/partial nucleus, pyknotic)",
     "Dışlanan her hücre gerekçesiyle Excel'in Excluded_cells sayfasına yazılır.": "Every excluded cell is written with its reason to the Excluded_cells sheet in Excel.",

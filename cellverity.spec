@@ -7,7 +7,10 @@ a = Analysis(
     ["desktop.py"],
     pathex=["."],
     datas=[("assets/icon.png", "assets"), ("docs/kilavuz.html", "docs"), ("docs/user_guide.html", "docs"),
-           ("locales/en.json", "locales")],
+           ("locales/en.json", "locales"),
+           # Tema: stylesheet ve araç çubuğu simgeleri paketin içine girmezse
+           # program açılır ama tamamen renksiz/simgesiz görünür.
+           ("theme.qss", "."), ("assets/icons", "assets/icons")],
     hiddenimports=collect_submodules("skimage.feature") + collect_submodules("skimage.segmentation")
     + collect_submodules("skimage.measure") + collect_submodules("skimage.filters")
     + collect_submodules("skimage.morphology") + collect_submodules("skimage.draw")

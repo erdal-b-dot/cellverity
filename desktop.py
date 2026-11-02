@@ -12,7 +12,7 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-from PySide6.QtCore import QObject, QRectF, QSettings, Qt, QThread, Signal
+from PySide6.QtCore import QObject, QRectF, QSettings, QSize, Qt, QThread, Signal
 from PySide6.QtGui import (QAction, QActionGroup, QBrush, QColor, QFont, QImage, QKeySequence, QPainter,
                            QPainterPath, QPen, QPixmap)
 from PySide6.QtWidgets import (QAbstractItemView, QApplication, QButtonGroup, QCheckBox, QComboBox, QDialog,
@@ -27,6 +27,7 @@ from PySide6.QtWidgets import (QAbstractItemView, QApplication, QButtonGroup, QC
 import batch
 import core
 import i18n
+import theme
 from i18n import T
 
 SETTINGS_ID = ("ErdalBalcan", "ICC CTCF Olcer")  # iç anahtar; değiştirmeyin (dil/Fiji tercihleri korunur)
@@ -174,12 +175,13 @@ class ImageView(QGraphicsView):
         self.setRenderHints(QPainter.RenderHint.SmoothPixmapTransform)
         self.setDragMode(QGraphicsView.DragMode.ScrollHandDrag)
         self.setTransformationAnchor(QGraphicsView.ViewportAnchor.AnchorUnderMouse)
-        self.setBackgroundBrush(Qt.GlobalColor.black)
+        # Düz siyah yerine koyu gri: görüntünün nerede bittiği görünür.
+        self.setBackgroundBrush(QColor(theme.COLORS["canvas"]))
         self.setFrameShape(QFrame.Shape.NoFrame)
         self.placeholder = QLabel(T("FITC ve DAPI görüntülerini buraya sürükleyin\nveya  Dosya ▸ FITC aç  (⌘O / Ctrl+O)"),
                                   self)
         self.placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.placeholder.setStyleSheet("color:#9aa; font-size:16px;")
+        self.placeholder.setStyleSheet(f"color:{theme.COLORS['dim']}; font-size:16px;")
 
     def resizeEvent(self, e):
         super().resizeEvent(e)
@@ -362,11 +364,14 @@ class InfoPanel(QWidget):
         lay.addLayout(form)
         self.calib_warn = QLabel()
         self.calib_warn.setWordWrap(True)
-        self.calib_warn.setStyleSheet("background:#fbe4e4; color:#922; padding:6px; border-radius:4px;")
+        self.calib_warn.setObjectName("banner")
+        self.calib_warn.setProperty("state", "bad")
         self.calib_warn.hide()
         lay.addWidget(self.calib_warn)
         self.mode = QLabel()
         self.mode.setWordWrap(True)
+        self.mode.setObjectName("banner")
+        self.mode.setProperty("state", "none")
         lay.addWidget(self.mode)
         sel = QGroupBox(T("Hücre seçimi"))
         sl = QVBoxLayout(sel)
@@ -386,7 +391,7 @@ class InfoPanel(QWidget):
                                   "Excel'in Excluded_cells sayfasına yazılır. Turuncu çizgiyle gösterilir."))
         sl.addWidget(self.qc_auto)
         hint = QLabel(T("Sağ tık: hücreyi gerekçesiyle dışla (kırmızı)."))
-        hint.setStyleSheet("color:#666;")
+        hint.setObjectName("hint")
         sl.addWidget(hint)
         self.qc_info = QLabel()
         self.qc_info.setWordWrap(True)
@@ -420,7 +425,7 @@ class InfoPanel(QWidget):
         bl.addLayout(f2)
         self.bg_hint = QLabel(T("Kutuları fareyle sürükleyerek taşıyabilirsiniz (otomatik kutu taşınırsa 'Elle'ye geçilir). Elle: boş alana tıklayın → kutu eklenir; kutuya tıklayın → silinir."))
         self.bg_hint.setWordWrap(True)
-        self.bg_hint.setStyleSheet("color:#666;")
+        self.bg_hint.setObjectName("hint")
         bl.addWidget(self.bg_hint)
         self.btn_bg_clear = QPushButton(T("Elle kutuları temizle"))
         bl.addWidget(self.btn_bg_clear)
@@ -440,7 +445,7 @@ class InfoPanel(QWidget):
         f3.addRow(T("Deney / tekrar"), self.experiment)
         rl.addLayout(f3)
         self.btn_add = QPushButton(T("➕ Sonuç tablosuna ekle"))
-        self.btn_add.setStyleSheet("font-weight:bold; padding:6px;")
+        self.btn_add.setObjectName("primary")
         self.btn_add.setToolTip(T("Seçili hücrelerin ölçümlerini biriken tabloya ekler (⌘↩ / Ctrl+Enter).\nAynı görüntü yeniden eklenirse eskisinin yerine geçer."))
         rl.addWidget(self.btn_add)
         self.res_info = QLabel(T("Biriken: 0 hücre"))
@@ -466,7 +471,7 @@ class InfoPanel(QWidget):
         lay.addStretch()
         note = QLabel(T("⚠️ Birbirine değen hücreler varsa aynı alanın DAPI görüntüsünü mutlaka yükleyin."))
         note.setWordWrap(True)
-        note.setStyleSheet("color:#a60;")
+        note.setObjectName("note")
         lay.addWidget(note)
 
     def set(self, key, text):
@@ -474,20 +479,20 @@ class InfoPanel(QWidget):
 
     def set_mode(self, a: core.Analysis | None):
         if a is None:
-            self.mode.setText("")
-            self.mode.setStyleSheet("")
+            text, state = "", "none"
         elif a.nuclei is not None and a.dapi_overlap is not None and a.dapi_overlap < 0.5:
-            self.mode.setText(T("⚠️ <b>DAPI bu FITC ile aynı alana ait görünmüyor</b> — çekirdeklerin %{0:.0f}'i hücrelerin dışında kalıyor. Aynı alanın DAPI görüntüsünü açın (dosya numaraları ardışık olsa bile alan farklı olabilir).").format(100 * (1 - a.dapi_overlap)))
-            self.mode.setStyleSheet("background:#fbe4e4; color:#922; padding:6px; border-radius:4px;")
+            text = T("⚠️ <b>DAPI bu FITC ile aynı alana ait görünmüyor</b> — çekirdeklerin %{0:.0f}'i hücrelerin dışında kalıyor. Aynı alanın DAPI görüntüsünü açın (dosya numaraları ardışık olsa bile alan farklı olabilir).").format(100 * (1 - a.dapi_overlap))
+            state = "bad"
         elif a.nuclei is not None:
-            self.mode.setText(T("🧬 <b>Hücre ayırma: DAPI çekirdekleri</b>"))
-            self.mode.setStyleSheet("background:#e3f4e6; color:#174; padding:6px; border-radius:4px;")
+            text, state = T("🧬 <b>Hücre ayırma: DAPI çekirdekleri</b>"), "good"
         elif a.touching:
-            self.mode.setText(T("⚠️ <b>Hücre ayırma: yalnızca şekil</b> — {0} değen hücre çifti var; DAPI yükleyin.").format(len(a.touching)))
-            self.mode.setStyleSheet("background:#fbe4e4; color:#922; padding:6px; border-radius:4px;")
+            text = T("⚠️ <b>Hücre ayırma: yalnızca şekil</b> — {0} değen hücre çifti var; DAPI yükleyin.").format(len(a.touching))
+            state = "bad"
         else:
-            self.mode.setText(T("ℹ️ <b>Hücre ayırma: yalnızca şekil</b> (değen hücre yok)"))
-            self.mode.setStyleSheet("background:#fdf3d8; color:#850; padding:6px; border-radius:4px;")
+            text, state = T("ℹ️ <b>Hücre ayırma: yalnızca şekil</b> (değen hücre yok)"), "warn"
+        self.mode.setText(text)
+        self.mode.setProperty("state", state)
+        theme.restyle(self.mode)
 
 
 # ------------------------------------------------------------- Klasör işleme
@@ -584,7 +589,7 @@ class BatchDialog(QDialog):
         row = QHBoxLayout()
         row.addStretch()
         self.btn_run = QPushButton(T("Seçilenleri ölç ve tabloya ekle"))
-        self.btn_run.setStyleSheet("font-weight:bold; padding:6px 14px;")
+        self.btn_run.setObjectName("primary")
         self.btn_run.setEnabled(False)
         self.btn_close = QPushButton(T("Kapat"))
         row.addWidget(self.btn_run)
@@ -655,17 +660,18 @@ class BatchDialog(QDialog):
                 cell = QTableWidgetItem(txt)
                 cell.setFlags(Qt.ItemFlag.ItemIsEnabled)
                 if c == 7:
-                    color = {"ready": "#2a7", "no_dapi": "#c80"}.get(it.status, "#999")
+                    color = {"ready": theme.COLORS["good"], "no_dapi": theme.COLORS["warn"]}.get(
+                        it.status, theme.COLORS["info"])
                     cell.setForeground(QColor(color))
                 self.table.setItem(r, c, cell)
         ready = sum(it.status == "ready" for it in items)
         nod = sum(it.status == "no_dapi" for it in items)
         skip = sum(it.status == "skipped" for it in items)
-        self.status.setText(T("<b>{0}</b> çift hazır · <span style='color:#c80'>{1} FITC'nin DAPI'si bulunamadı</span> (yalnız şekle göre ayrılır) · <span style='color:#999'>{2} dosya atlandı</span> (merge, işlenmiş, eşleşmeyen DAPI). Ölçülmesini istemediklerinizin işaretini kaldırın.").format(ready, nod, skip))
+        self.status.setText(T("<b>{0}</b> çift hazır · <span style='color:{warn}'>{1} FITC'nin DAPI'si bulunamadı</span> (yalnız şekle göre ayrılır) · <span style='color:{info}'>{2} dosya atlandı</span> (merge, işlenmiş, eşleşmeyen DAPI). Ölçülmesini istemediklerinizin işaretini kaldırın.").format(ready, nod, skip, **theme.COLORS))
         self.btn_run.setEnabled(any(it.use for it in items))
         expos = sorted({round(it.exposure, 4) for it in items if it.use and it.exposure})
         if len(expos) > 1:
-            self.status.setText(self.status.text() + "<br><span style='color:#b22'>" + T(
+            self.status.setText(self.status.text() + f"<br><span style='color:{theme.COLORS['bad']}'>" + T(
                 "⚠️ Bu klasörde farklı pozlama süreleri var ({0}). Farklı pozlamayla çekilmiş görüntülerin CTCF "
                 "değerleri karşılaştırılamaz; yalnızca aynı ayarla çekilenleri işaretli bırakın.").format(
                 ", ".join(f"{v:g} s" for v in expos)) + "</span>")
@@ -981,24 +987,26 @@ class MainWindow(QMainWindow):
         self.statusBar().showMessage(T("Hazır — görüntü açın veya sürükleyin."))
 
     def _build_actions(self):
-        def act(text, slot, shortcut=None, checkable=False):
+        def act(text, slot, shortcut=None, checkable=False, icon=None):
             a = QAction(text, self)
+            if icon:
+                a.setIcon(theme.icon(icon))
             a.triggered.connect(slot)
             if shortcut:
                 a.setShortcut(QKeySequence(shortcut))
             a.setCheckable(checkable)
             return a
 
-        self.a_fitc = act(T("FITC aç…"), lambda: self.open_dialog("FITC"), QKeySequence.StandardKey.Open)
+        self.a_fitc = act(T("FITC aç…"), lambda: self.open_dialog("FITC"), QKeySequence.StandardKey.Open, icon="open-fitc")
         self.a_fitc.setToolTip(T("Ölçülecek yeşil (FITC) görüntüyü açar. Yeni FITC açılınca eski DAPI kaldırılır."))
-        self.a_dapi = act(T("DAPI aç…"), lambda: self.open_dialog("DAPI"), "Ctrl+D")
+        self.a_dapi = act(T("DAPI aç…"), lambda: self.open_dialog("DAPI"), "Ctrl+D", icon="open-dapi")
         self.a_dapi.setToolTip(T("Aynı alanın mavi (DAPI) görüntüsünü açar; değen hücreleri çekirdeklere göre ayırmak için."))
-        self.a_close = act(T("Görüntüleri kapat"), self.close_images, QKeySequence.StandardKey.Close)
+        self.a_close = act(T("Görüntüleri kapat"), self.close_images, QKeySequence.StandardKey.Close, icon="close-images")
         self.a_close.setToolTip(T("Açık FITC ve DAPI görüntülerini kapatır (⌘W / Ctrl+W)."))
-        self.a_fit = act(T("Pencereye sığdır"), self.view.fit, "Ctrl+0")
-        self.a_in = act(T("Yakınlaştır"), lambda: self.view.zoom(1.25), QKeySequence.StandardKey.ZoomIn)
-        self.a_out = act(T("Uzaklaştır"), lambda: self.view.zoom(0.8), QKeySequence.StandardKey.ZoomOut)
-        self.a_nuc = act(T("Çekirdek sınırları"), lambda: self.redraw(fit=False), "Ctrl+N", checkable=True)
+        self.a_fit = act(T("Pencereye sığdır"), self.view.fit, "Ctrl+0", icon="fit-window")
+        self.a_in = act(T("Yakınlaştır"), lambda: self.view.zoom(1.25), QKeySequence.StandardKey.ZoomIn, icon="zoom-in")
+        self.a_out = act(T("Uzaklaştır"), lambda: self.view.zoom(0.8), QKeySequence.StandardKey.ZoomOut, icon="zoom-out")
+        self.a_nuc = act(T("Çekirdek sınırları"), lambda: self.redraw(fit=False), "Ctrl+N", checkable=True, icon="nucleus")
         self.a_nuc.setChecked(True)
         self.a_nuc.setToolTip(T("DAPI'den bulunan çekirdeklerin sınırlarını mavi çizgiyle gösterir/gizler.\nProgram değen hücreleri bu çekirdeklere göre ayırır. Ölçümü etkilemez."))
         self.view_mode = QComboBox()
@@ -1010,16 +1018,16 @@ class MainWindow(QMainWindow):
         m.addActions([self.a_fitc, self.a_dapi, self.a_close])
         m.addSeparator()
         m.addAction(act(T("Çıkış"), self.close, QKeySequence.StandardKey.Quit))
-        self.a_add = act(T("Sonuç tablosuna ekle"), self.add_to_results, "Ctrl+Return")
-        self.a_xlsx = act(T("Excel olarak kaydet…"), lambda: self.export_results("xlsx"), "Ctrl+E")
-        self.a_csv = act(T("CSV olarak kaydet…"), lambda: self.export_results("csv"))
-        self.a_plot = act(T("Grafik ve istatistik…"), self.show_plot, "Ctrl+G")
-        self.a_roi = act(T("ROI görüntüsü (PNG)…"), self.export_roi_png)
-        self.a_ij = act(T("ImageJ/Fiji karşılaştırma paketi (ZIP)…"), self.export_imagej)
-        self.a_reset = act(T("Biriken sonuçları sıfırla…"), self.reset_results)
-        self.a_batch = act(T("Klasörü toplu ölç…"), self.batch_dialog, "Ctrl+B")
+        self.a_add = act(T("Sonuç tablosuna ekle"), self.add_to_results, "Ctrl+Return", icon="add-result")
+        self.a_xlsx = act(T("Excel olarak kaydet…"), lambda: self.export_results("xlsx"), "Ctrl+E", icon="excel")
+        self.a_csv = act(T("CSV olarak kaydet…"), lambda: self.export_results("csv"), icon="excel")
+        self.a_plot = act(T("Grafik ve istatistik…"), self.show_plot, "Ctrl+G", icon="plot")
+        self.a_roi = act(T("ROI görüntüsü (PNG)…"), self.export_roi_png, icon="roi-png")
+        self.a_ij = act(T("ImageJ/Fiji karşılaştırma paketi (ZIP)…"), self.export_imagej, icon="fiji-open")
+        self.a_reset = act(T("Biriken sonuçları sıfırla…"), self.reset_results, icon="reset")
+        self.a_batch = act(T("Klasörü toplu ölç…"), self.batch_dialog, "Ctrl+B", icon="batch")
         self.a_batch.setToolTip(T("Bir klasördeki tüm FITC/DAPI çiftlerini bulur ve hepsini ölçer."))
-        self.a_load = act(T("Önceki sonuçları aç (Excel)…"), self.load_excel)
+        self.a_load = act(T("Önceki sonuçları aç (Excel)…"), self.load_excel, icon="load")
         m = self.menuBar().addMenu(T("Sonuçlar"))
         m.addActions([self.a_add, self.a_batch])
         m.addSeparator()
@@ -1037,20 +1045,21 @@ class MainWindow(QMainWindow):
                 "draw": (T("Çiz"), T("Programın kaçırdığı/yanlış çizdiği hücrenin sınırını fareyle çizin (bırakınca kapanır).\nÇizilen alan diğer hücrelerin üzerine yazar. Kaydırmak için ⌥ ile sürükleyin."))}
         for key, (txt, tip) in tips.items():
             a_ = QAction(txt, self, checkable=True)
+            a_.setIcon(theme.icon(key))   # anahtarlar simge dosyalarıyla aynı adda
             a_.setToolTip(f"<b>{txt}</b><br>{tip.replace(chr(10), '<br>')}")
             a_.triggered.connect(lambda _, k=key: self.set_edit_mode(k))
             self.edit_group.addAction(a_)
             self.edit_acts[key] = a_
         self.edit_acts["select"].setChecked(True)
-        self.a_undo = act(T("Geri al"), self.undo, QKeySequence.StandardKey.Undo)
-        self.a_redo = act(T("Yinele"), self.redo, QKeySequence.StandardKey.Redo)
+        self.a_undo = act(T("Geri al"), self.undo, QKeySequence.StandardKey.Undo, icon="undo")
+        self.a_redo = act(T("Yinele"), self.redo, QKeySequence.StandardKey.Redo, icon="redo")
         self.a_undo.setEnabled(False)
         self.a_redo.setEnabled(False)
-        self.a_fiji_verify = act(T("Fiji ile doğrula"), self.fiji_verify, "Ctrl+Shift+F")
+        self.a_fiji_verify = act(T("Fiji ile doğrula"), self.fiji_verify, "Ctrl+Shift+F", icon="fiji-verify")
         self.a_fiji_verify.setToolTip(T("Seçili hücreleri ve background kutularını Fiji'nin kendi 'Measure' motoruna arka planda ölçtürür ve sonuçları programınkilerle yan yana koyar."))
-        self.a_fiji_open = act(T("Fiji'de aç (görüntü + ROI'ler + Measure)"), self.fiji_open)
-        self.a_manual = act(T("Fiji'de elle çizilmiş ROI'lerle karşılaştır (RoiSet.zip)…"), self.manual_compare)
-        self.a_valid = act(T("Yöntem doğrulama tablosu ve Bland–Altman…"), self.show_validation)
+        self.a_fiji_open = act(T("Fiji'de aç (görüntü + ROI'ler + Measure)"), self.fiji_open, icon="fiji-open")
+        self.a_manual = act(T("Fiji'de elle çizilmiş ROI'lerle karşılaştır (RoiSet.zip)…"), self.manual_compare, icon="manual")
+        self.a_valid = act(T("Yöntem doğrulama tablosu ve Bland–Altman…"), self.show_validation, icon="plot")
         self.a_fiji_path = act(T("Fiji konumunu seç…"), self.choose_fiji)
         m = self.menuBar().addMenu("Fiji")
         m.addActions([self.a_fiji_verify, self.a_fiji_open])
@@ -1081,6 +1090,10 @@ class MainWindow(QMainWindow):
 
         tb = self.addToolBar(T("Araçlar"))
         tb.setMovable(False)
+        # Simge + yazı: simgeler tanımayı hızlandırır, yazı kalır — programı ayda
+        # bir açan bir araştırmacı yalnız simgeden eylemi hatırlamak zorunda kalmasın.
+        tb.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
+        tb.setIconSize(QSize(16, 16))
         tb.addActions([self.a_fitc, self.a_dapi, self.a_close])
         tb.addSeparator()
         tb.addActions([self.a_fit, self.a_in, self.a_out])
@@ -1092,12 +1105,14 @@ class MainWindow(QMainWindow):
         self.addToolBarBreak()
         tb2 = self.addToolBar(T("Sınır düzeltme"))
         tb2.setMovable(False)
+        tb2.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
+        tb2.setIconSize(QSize(16, 16))
         tb2.addWidget(QLabel(T(" Sınır düzeltme: ")))
         tb2.addActions(list(self.edit_acts.values()))
         tb2.addSeparator()
         tb2.addActions([self.a_undo, self.a_redo])
         self.edit_info = QLabel()
-        self.edit_info.setStyleSheet("color:#666; padding-left:8px;")
+        self.edit_info.setObjectName("toolhint")
         tb2.addWidget(self.edit_info)
         tb2.addSeparator()
         tb2.addWidget(QLabel(T(" Sonuçlar: ")))
@@ -1515,20 +1530,20 @@ class MainWindow(QMainWindow):
         p.btn_bg_clear.setEnabled(p.bg_manual.isChecked() and bool(self.manual_boxes))
         p.sel_info.setText(T("Seçili: {0} / {1} hücre").format(len(self.selected), len(a.cell_ids)))
         n_qc, n_man = len(self.qc_failed()), len(self.exclusions)
-        p.qc_info.setText(T("<span style='color:#d07000'>QC: {0} hücre</span> · "
-                            "<span style='color:#c22'>elle dışlanan: {1}</span>").format(n_qc, n_man)
+        p.qc_info.setText(T("<span style='color:{warn}'>QC: {0} hücre</span> · "
+                            "<span style='color:{bad}'>elle dışlanan: {1}</span>").format(n_qc, n_man, **theme.COLORS)
                           if (n_qc or n_man) else "")
         if self.boxes:
             cells, bg, _ = core.background_and_measure(a, sorted(self.selected), s, self.boxes)
             msg = T("Background ortalaması: <b>{0:.3f}</b>  (n = {1} kutu, {2}×{3} px)").format(bg['Mean'].mean(), len(bg), s.bg_size, s.bg_size)
             if (bg["Max"] > a.threshold * 0.5).any():
-                msg += T("<br><span style='color:#a60'>⚠️ Bazı kutularda sinyal/debris olabilir.</span>")
+                msg += T("<br><span style='color:{warn}'>⚠️ Bazı kutularda sinyal/debris olabilir.</span>").format(**theme.COLORS)
             if bg["Max"].max() == 0:
-                msg += (T("<br><span style='color:#555'>ℹ️ Kutulardaki tüm pikseller 0: kamera siyah seviyesi kırpılmış (Fiji'de de 0). Bu durumda CTCF = IntDen olur; tüm görüntüler aynı ayarla çekildiyse sorun değildir. Ayrıntı: alttaki 'Background kutuları' sekmesi.</span>"))
+                msg += (T("<br><span style='color:{info}'>ℹ️ Kutulardaki tüm pikseller 0: kamera siyah seviyesi kırpılmış (Fiji'de de 0). Bu durumda CTCF = IntDen olur; tüm görüntüler aynı ayarla çekildiyse sorun değildir. Ayrıntı: alttaki 'Background kutuları' sekmesi.</span>").format(**theme.COLORS))
             p.bg_info.setText(msg)
         else:
             cells = bg = None
-            p.bg_info.setText(T("<span style='color:#b22'>Background kutusu yok — CTCF hesaplanamaz.</span>")
+            p.bg_info.setText(T("<span style='color:{bad}'>Background kutusu yok — CTCF hesaplanamaz.</span>").format(**theme.COLORS)
                               + (T(" Görüntüye tıklayarak kutu ekleyin.") if p.bg_manual.isChecked() else
                                  T(" Kutu boyutunu küçültün.")))
         self.cur_cells, self.cur_bg = cells, bg
@@ -1752,8 +1767,8 @@ class MainWindow(QMainWindow):
         n_grp = r["Group"].nunique() if len(r) else 0
         self.tabs.setTabText(2, T("Biriken sonuçlar ({0})").format(len(r)))
         self.panel.res_info.setText(T("Biriken: <b>{0}</b> hücre, {1} görüntü, {2} grup").format(len(r), n_img, n_grp)
-                                    + (T("  <span style='color:#a60'>(kaydedilmedi)</span>") if self._dirty else "")
-                                    + "".join(f"<br><span style='color:#b22'>{w}</span>" for w in
+                                    + (T("  <span style='color:{warn}'>(kaydedilmedi)</span>").format(**theme.COLORS) if self._dirty else "")
+                                    + "".join(f"<br><span style='color:{theme.COLORS['bad']}'>{w}</span>" for w in
                                               (report.mixed_objectives(r), report.mixed_exposures(r)) if len(r) and w))
         for w in (self.panel.btn_excel, self.panel.btn_plot):
             w.setEnabled(len(r) > 0)
@@ -2034,6 +2049,7 @@ def main():
         sys.exit(selftest(sys.argv[2], sys.argv[3]))
     app = QApplication(sys.argv)
     app.setApplicationName(APP_NAME)
+    theme.apply(app)   # pencere kurulmadan önce: görünüm işletim sistemine bırakılmaz
     from PySide6.QtGui import QIcon
     app.setWindowIcon(QIcon(str(resource("assets/icon.png"))))
     w = MainWindow()

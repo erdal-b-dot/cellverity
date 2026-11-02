@@ -1,0 +1,393 @@
+/* CellVerity — koyu tema.  Renkler theme.py'deki COLORS sözlüğünden gelir ve
+   dolar imli adlarla yazılır. Bu dosya tek başına geçerli QSS değildir:
+   theme.stylesheet() string.Template ile adları renklerle doldurur. */
+
+/* ---------------------------------------------------------------- temel */
+QWidget {
+    background: $panel;
+    color: $text;
+    font-size: 12px;
+}
+QMainWindow, QDialog {
+    background: $panel;
+}
+QWidget:disabled {
+    color: $icon_off;
+}
+QLabel {
+    background: transparent;
+}
+/* Yardım satırları ve uyarı şeritleri. Renkler eskiden desktop.py'de satır içinde
+   ve açık zemine göre yazılıydı (#666, #fbe4e4 …); koyu zeminde okunmuyorlardı. */
+QLabel#hint {
+    color: $dim;
+}
+QLabel#note {
+    color: $warn;
+}
+QLabel#toolhint {
+    color: $dim;
+    padding-left: 8px;
+}
+QLabel#banner {
+    padding: 7px 9px;
+    border-radius: 4px;
+    background: $bar;
+    color: $text;
+}
+QLabel#banner[state="bad"]  { background: $bad_bg;  color: $bad; }
+QLabel#banner[state="good"] { background: $good_bg; color: $good; }
+QLabel#banner[state="warn"] { background: $warn_bg; color: $warn; }
+QLabel#banner[state="none"] { background: transparent; padding: 0; }
+QToolTip {
+    background: $header;
+    color: $text;
+    border: 1px solid $line_soft;
+    padding: 5px 7px;
+}
+
+/* ------------------------------------------------------------ menü çubuğu */
+QMenuBar {
+    background: $header;
+    padding: 1px 4px;
+}
+QMenuBar::item {
+    background: transparent;
+    padding: 4px 9px;
+    border-radius: 3px;
+}
+QMenuBar::item:selected { background: $button; }
+QMenuBar::item:pressed  { background: $active; }
+
+QMenu {
+    background: $chrome;
+    border: 1px solid $line;
+    padding: 4px;
+}
+QMenu::item {
+    padding: 5px 26px 5px 26px;
+    border-radius: 3px;
+}
+QMenu::item:selected  { background: $accent; color: $bright; }
+QMenu::item:disabled  { color: $icon_off; }
+QMenu::separator      { height: 1px; background: $line_soft; margin: 4px 8px; }
+QMenu::icon           { padding-left: 6px; }
+
+/* --------------------------------------------------------- araç çubukları */
+QToolBar {
+    background: $chrome;
+    border: 0;
+    border-bottom: 1px solid $line;
+    padding: 2px 5px;
+    spacing: 1px;
+}
+QToolBar::separator {
+    width: 1px;
+    background: $line_soft;
+    margin: 5px 6px;
+}
+QToolBar QLabel {
+    color: $dim;
+    padding: 0 5px 0 2px;
+}
+QToolButton {
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 3px;
+    padding: 3px 7px;
+    color: $text;
+}
+QToolButton:hover   { background: $button; }
+QToolButton:pressed { background: $active; }
+QToolButton:checked {
+    background: $active;
+    border-color: $line;
+    color: $bright;
+}
+QToolButton:disabled { color: $icon_off; }
+
+/* ------------------------------------------------------------- dock'lar */
+QDockWidget {
+    titlebar-close-icon: none;
+    titlebar-normal-icon: none;
+}
+QDockWidget::title {
+    background: $header;
+    color: $dim;
+    padding: 6px 10px;
+    border-bottom: 1px solid $line;
+    text-align: left;
+}
+QDockWidget > QWidget {
+    border: 0;
+}
+
+/* ------------------------------------------------- gruplar (çerçevesiz) */
+QGroupBox {
+    background: transparent;
+    border: 0;
+    border-top: 1px solid $line_soft;
+    margin-top: 20px;
+    padding-top: 10px;
+}
+QGroupBox::title {
+    subcontrol-origin: margin;
+    subcontrol-position: top left;
+    left: 0;
+    padding: 0 0 5px 0;
+    color: $dim;
+    font-size: 11px;
+}
+
+/* ------------------------------------------------------------- düğmeler */
+QPushButton {
+    background: $button;
+    border: 1px solid $line;
+    border-radius: 3px;
+    padding: 5px 11px;
+    color: $text;
+    min-height: 15px;
+}
+QPushButton:hover    { background: $active; }
+QPushButton:pressed  { background: $header; }
+QPushButton:disabled { background: $bar; color: $icon_off; border-color: $panel; }
+QPushButton:default  { border-color: $accent; }
+
+/* Panelin ana eylemi (sonuç tablosuna ekle, ölçümü başlat). */
+QPushButton#primary {
+    background: $accent;
+    border-color: $accent;
+    color: $bright;
+    font-weight: bold;
+    padding: 6px 13px;
+}
+QPushButton#primary:hover    { background: $accent_hi; border-color: $accent_hi; }
+QPushButton#primary:pressed  { background: $accent; }
+QPushButton#primary:disabled { background: $bar; color: $icon_off; border-color: $panel; }
+
+/* ------------------------------------------------------- girdi alanları */
+QLineEdit, QSpinBox, QDoubleSpinBox, QComboBox, QPlainTextEdit {
+    background: $field;
+    border: 1px solid $line;
+    border-radius: 3px;
+    padding: 3px 6px;
+    color: $text;
+    selection-background-color: $accent;
+    selection-color: $bright;
+}
+QLineEdit:focus, QSpinBox:focus, QDoubleSpinBox:focus,
+QComboBox:focus, QPlainTextEdit:focus {
+    border-color: $accent;
+}
+QLineEdit:disabled, QSpinBox:disabled, QDoubleSpinBox:disabled, QComboBox:disabled {
+    background: $bar;
+    color: $icon_off;
+}
+QComboBox::drop-down {
+    border: 0;
+    width: 17px;
+}
+QComboBox::down-arrow {
+    image: none;
+    border-left: 4px solid transparent;
+    border-right: 4px solid transparent;
+    border-top: 5px solid $dim;
+    width: 0;
+    height: 0;
+    margin-right: 6px;
+}
+QComboBox QAbstractItemView {
+    background: $chrome;
+    border: 1px solid $line;
+    selection-background-color: $accent;
+    selection-color: $bright;
+    outline: 0;
+}
+QSpinBox::up-button, QDoubleSpinBox::up-button,
+QSpinBox::down-button, QDoubleSpinBox::down-button {
+    background: $button;
+    border: 0;
+    width: 15px;
+}
+QSpinBox::up-button:hover, QDoubleSpinBox::up-button:hover,
+QSpinBox::down-button:hover, QDoubleSpinBox::down-button:hover {
+    background: $active;
+}
+QSpinBox::up-arrow, QDoubleSpinBox::up-arrow {
+    image: none;
+    border-left: 3px solid transparent;
+    border-right: 3px solid transparent;
+    border-bottom: 4px solid $text;
+    width: 0; height: 0;
+}
+QSpinBox::down-arrow, QDoubleSpinBox::down-arrow {
+    image: none;
+    border-left: 3px solid transparent;
+    border-right: 3px solid transparent;
+    border-top: 4px solid $text;
+    width: 0; height: 0;
+}
+
+/* ------------------------------------------------- onay kutusu / radyo */
+QCheckBox, QRadioButton {
+    background: transparent;
+    spacing: 7px;
+    padding: 2px 0;
+}
+QCheckBox::indicator, QRadioButton::indicator {
+    width: 14px;
+    height: 14px;
+    border: 1px solid $dim;
+    background: $field;
+}
+QCheckBox::indicator  { border-radius: 3px; }
+QRadioButton::indicator { border-radius: 8px; }
+QCheckBox::indicator:checked {
+    background: $accent;
+    border-color: $accent;
+    image: url($check);
+}
+QRadioButton::indicator:checked {
+    background: $accent;
+    border: 4px solid $panel;
+    width: 8px;
+    height: 8px;
+}
+QCheckBox::indicator:disabled, QRadioButton::indicator:disabled {
+    border-color: $icon_off;
+    background: $bar;
+}
+
+/* ---------------------------------------------------------- sekmeler */
+QTabWidget::pane {
+    background: $panel;
+    border: 0;
+    border-top: 1px solid $line;
+}
+QTabBar {
+    background: $header;
+    qproperty-drawBase: 0;
+}
+QTabBar::tab {
+    background: transparent;
+    color: $dim;
+    padding: 7px 14px;
+    border: 0;
+    border-bottom: 2px solid transparent;
+}
+QTabBar::tab:hover    { color: $text; }
+QTabBar::tab:selected {
+    color: $bright;
+    border-bottom-color: $accent;
+}
+
+/* ---------------------------------------------------------- tablolar */
+QTableWidget, QTableView, QTreeView, QListView {
+    background: $panel;
+    alternate-background-color: $chrome;
+    gridline-color: $line_soft;
+    border: 0;
+    selection-background-color: $accent;
+    selection-color: $bright;
+    outline: 0;
+}
+QTableWidget::item, QTableView::item {
+    padding: 3px 6px;
+    border: 0;
+}
+QHeaderView {
+    background: $chrome;
+    border: 0;
+}
+QHeaderView::section {
+    background: $chrome;
+    color: $dim;
+    padding: 5px 8px;
+    border: 0;
+    border-right: 1px solid $line;
+    border-bottom: 1px solid $line;
+    font-weight: normal;
+}
+QHeaderView::section:hover { color: $text; }
+QTableCornerButton::section {
+    background: $chrome;
+    border: 0;
+}
+
+/* --------------------------------------------------------- kaydırma */
+QScrollArea { border: 0; background: $panel; }
+QScrollBar:vertical {
+    background: transparent;
+    width: 11px;
+    margin: 0;
+}
+QScrollBar:horizontal {
+    background: transparent;
+    height: 11px;
+    margin: 0;
+}
+QScrollBar::handle:vertical, QScrollBar::handle:horizontal {
+    background: $button;
+    border-radius: 5px;
+    min-height: 28px;
+    min-width: 28px;
+}
+QScrollBar::handle:hover { background: $active; }
+QScrollBar::add-line, QScrollBar::sub-line { height: 0; width: 0; border: 0; }
+QScrollBar::add-page, QScrollBar::sub-page { background: transparent; }
+
+/* ---------------------------------------------------------- kaydırıcı */
+QSlider::groove:horizontal {
+    background: $field;
+    height: 3px;
+    border-radius: 2px;
+}
+QSlider::sub-page:horizontal {
+    background: $dim;
+    height: 3px;
+    border-radius: 2px;
+}
+QSlider::handle:horizontal {
+    background: $text;
+    width: 11px;
+    height: 11px;
+    margin: -4px 0;
+    border-radius: 6px;
+}
+QSlider::handle:horizontal:hover { background: $bright; }
+
+/* -------------------------------------------------------- ilerleme */
+QProgressBar {
+    background: $field;
+    border: 0;
+    border-radius: 3px;
+    height: 5px;
+    text-align: center;
+    color: $text;
+}
+QProgressBar::chunk {
+    background: $accent;
+    border-radius: 3px;
+}
+
+/* ------------------------------------------------------- durum çubuğu */
+QStatusBar {
+    background: $header;
+    color: $dim;
+    border-top: 1px solid $line;
+}
+QStatusBar::item { border: 0; }
+QStatusBar QLabel { color: $dim; }
+
+/* ------------------------------------------------------------ ayraç */
+QSplitter::handle  { background: $line; }
+QMainWindow::separator {
+    background: $line;
+    width: 1px;
+    height: 1px;
+}
+QFrame[frameShape="4"], QFrame[frameShape="5"] {
+    background: $line_soft;
+    border: 0;
+    max-height: 1px;
+}
