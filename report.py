@@ -69,7 +69,9 @@ def methods_table(version: str) -> pd.DataFrame:
             "Nucleus = DAPI mask eroded by NC_margin_px; cytoplasm = cell minus the DAPI mask dilated by NC_margin_px "
             "(default 0.5 µm; the ring belongs to neither compartment, guarding against FITC–DAPI misregistration). "
             "Nuc_CTCF / Cyto_CTCF use the same background; NC_ratio = (Nuc_Mean − BG) / (Cyto_Mean − BG); "
-            "Nuc_fraction = Nuc_CTCF / (Nuc_CTCF + Cyto_CTCF). Widefield images: out-of-focus cytoplasm above and "
+            "Nuc_fraction = Nuc_CTCF / (Nuc_CTCF + Cyto_CTCF). Cells whose measured cytoplasm is < 20 % of the cell area "
+            "are flagged (NC_flag = thin_cytoplasm) and left out of NC_ratio / Nuc_fraction statistics and means; their "
+            "whole-cell CTCF remains valid. Widefield images: out-of-focus cytoplasm above and "
             "below the nucleus adds to the nuclear value, so NC_ratio is biased toward 1 — compare conditions, "
             "not absolute values",
             "Scale bar length detected automatically; its µm value read from the label (Scale_source column)",
@@ -85,6 +87,7 @@ def write_excel(path: str | Path, results: pd.DataFrame, bg_results: pd.DataFram
         cols = [c for c in ("Group", "Experiment", "Image", "Image_path") if c in results]
         vals = [c for c in ("CTCF", "CTCF_per_Area", "Area", "Mean", "NC_ratio", "Nuc_fraction", "Nuc_CTCF",
                             "Cyto_CTCF") if c in results]
+        results = nc_valid(results)  # ortalamalarda N/C'ye bağlı değerler yalnızca geçerli hücrelerden
         if "Image_path" in results and vals:
             (results.groupby(cols, sort=False, dropna=False)[vals]
              .mean().assign(n_cells=results.groupby(cols, sort=False, dropna=False).size())
@@ -115,6 +118,21 @@ LEVELS = {"cell": "Hücre (her hücre bir değer)", "image": "Görüntü ortalam
 COMPARISONS = {"dunnett": "Her grup kontrole karşı (Dunnett)", "tukey": "Tüm gruplar birbirine karşı (Tukey HSD)"}
 
 
+NC_DEPENDENT = ("NC_ratio", "Nuc_fraction")  # ince sitoplazmalı hücrelerde güvenilmez
+
+
+def nc_valid(results: pd.DataFrame) -> pd.DataFrame:
+    """N/C'ye bağlı değerleri (NC_ratio, Nuc_fraction) NC_flag taşıyan hücrelerde boşaltır (NaN); diğer sütunlar aynı."""
+    if "NC_flag" not in results:
+        return results
+    bad = results["NC_flag"].fillna("").astype(str).ne("")
+    if not bad.any():
+        return results
+    out = results.copy()
+    out.loc[bad, [c for c in NC_DEPENDENT if c in out]] = np.nan
+    return out
+
+
 def aggregate(results: pd.DataFrame, metric: str, level: str = "cell") -> pd.DataFrame:
     """İstatistik birimi: hücre / görüntü ortalaması / deney ortalaması → (Group, value, n_cells) tablosu."""
     if level == "cell":
@@ -124,6 +142,11 @@ def aggregate(results: pd.DataFrame, metric: str, level: str = "cell") -> pd.Dat
         raise ValueError(T("Deney sütunu yok") if level == "experiment" else T("Görüntü sütunu yok"))
     return (results.groupby(["Group", key], sort=False)[metric]
             .agg(value="mean", n_cells="count").reset_index())
+
+
+def core_thin_pct() -> float:
+    import core
+    return core.QC_THIN_CYTOPLASM * 100
 
 
 def p_fmt(p: float) -> str:
@@ -169,6 +192,10 @@ def compare(results: pd.DataFrame, metric: str = "CTCF", level: str = "cell", co
     import warnings
     from scipy import stats as sps
     warnings.filterwarnings("ignore", category=RuntimeWarning, module="scipy")  # sıfır varyans → yukarıda uyarı
+    n_flagged = 0
+    if metric in NC_DEPENDENT and "NC_flag" in results:
+        n_flagged = int((results["NC_flag"].fillna("").astype(str).ne("") & results[metric].notna()).sum())
+        results = nc_valid(results)
     agg = aggregate(results, metric, level)
     groups = [g for g in (order or list(dict.fromkeys(agg["Group"]))) if g in set(agg["Group"])]
     if control in groups:
@@ -177,6 +204,8 @@ def compare(results: pd.DataFrame, metric: str = "CTCF", level: str = "cell", co
     data = [agg.loc[agg["Group"] == g, "value"].to_numpy(float) for g in groups]
     unit = {"cell": T("hücre"), "image": T("görüntü"), "experiment": T("deney")}[level]
     lines = ["n (" + unit + "): " + ", ".join(f"{g} = {len(d)}" for g, d in zip(groups, data))]
+    if n_flagged:
+        lines.append(T("ℹ️ {0} hücre ince sitoplazma nedeniyle (ölçülen sitoplazma < hücre alanının %{1:.0f}'si) {2} analizinden çıkarıldı; tüm hücre CTCF'leri geçerli (Excel: NC_flag).").format(n_flagged, core_thin_pct(), metric))
     pairs = []
     flat = [g for g, d in zip(groups, data) if len(d) > 1 and np.ptp(d) == 0]
     if flat:

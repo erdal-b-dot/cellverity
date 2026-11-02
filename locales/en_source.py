@@ -23,6 +23,9 @@ EN = {
     "Ölç": "Measure",
     "Örtüşme": "Overlap",
     "Durum": "Status",
+    "ince sitoplazma (yalnızca N/C güvenilmez)": "thin cytoplasm (only N/C unreliable)",
+    "ℹ️ {0} hücre ince sitoplazma nedeniyle (ölçülen sitoplazma < hücre alanının %{1:.0f}'si) {2} analizinden çıkarıldı; tüm hücre CTCF'leri geçerli (Excel: NC_flag).":
+        "ℹ️ {0} cells were left out of the {2} analysis because of thin cytoplasm (measured cytoplasm < {1:.0f} % of the cell area); their whole-cell CTCF values remain valid (Excel: NC_flag).",
     "<br>Çekirdek/sitoplazma bölmeleri (Nuc_/Cyto_): Fiji etiket görüntülerinden kendi seçimini oluşturup ölçtü; N/C oranı Fiji'nin değerlerinden yeniden hesaplandı.":
         "<br>Nuclear/cytoplasmic compartments (Nuc_/Cyto_): Fiji created its own selections from the label images and measured them; the N/C ratio was recalculated from Fiji's values.",
     "Kontrol": "Control",

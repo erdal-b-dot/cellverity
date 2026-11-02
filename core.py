@@ -387,9 +387,10 @@ def measure_backgrounds(img: np.ndarray, boxes, px_area: float, sat_value) -> pd
 QC_PYKNOTIC_AREA = 0.5        # çekirdek alanı < görüntüdeki çekirdek medyanının %50'si
 QC_PYKNOTIC_INTENSITY = 1.5   # VE DAPI parlaklığı > medyanın 1.5 katı
 QC_PARTIAL_NUCLEUS = 0.3      # hücrenin içindeki çekirdek alanı medyanın < %30'u → hücre parçası/yanlış bölme
+QC_THIN_CYTOPLASM = 0.2       # ölçülen sitoplazma < hücre alanının %20'si → N/C güvenilmez (yalnızca N/C'yi etkiler)
 QC_REASONS = {"saturated": "doymuş piksel", "no_nucleus": "çekirdek yok", "multinucleate": "birden çok çekirdek",
               "partial_nucleus": "çekirdek kısmi (hücre parçası?)", "pyknotic": "piknotik çekirdek",
-              "border": "görüntü kenarı"}
+              "border": "görüntü kenarı", "thin_cytoplasm": "ince sitoplazma (yalnızca N/C güvenilmez)"}
 # Elle dışlama gerekçeleri (Excel'e İngilizce kod olarak yazılır)
 MANUAL_REASONS = {"apoptotic": "apoptotik / piknotik", "mitotic": "mitotik", "overlapping": "çakışık / ayrılamıyor",
                   "out_of_focus": "odak dışı", "debris": "debris / hücre değil", "other": "diğer"}
@@ -480,6 +481,10 @@ def measure_cells(img: np.ndarray, labels: np.ndarray, cell_ids, bg_mean: float,
                 row["Nucleus_DAPI_mean"] = float(dapi[nm].mean()) if nm.any() else np.nan
             row.update(_compartments(img, m & nuc_core, m & ~nuc_halo, bg_mean, px_area))
             row["NC_margin_px"] = margin_px
+            # ince sitoplazma: tüm hücre CTCF'si geçerlidir, yalnızca N/C ve Nuc_fraction güvenilmez → QC_pass'i
+            # etkilemez; bu hücreler N/C istatistiğinden ve ortalamalarından gerekçesiyle çıkarılır
+            thin = row["Cyto_Area"] < QC_THIN_CYTOPLASM * row["Area"]
+            row["NC_flag"] = "thin_cytoplasm" if thin and not np.isnan(row["NC_ratio"]) else ""
         flags = qc_flags(row, nuc_ref)
         row["QC_flags"] = ";".join(flags)
         row["QC_pass"] = not flags

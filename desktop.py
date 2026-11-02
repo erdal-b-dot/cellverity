@@ -92,7 +92,7 @@ VIEW_MODES = ("FITC", "DAPI", T("Birleşik (FITC + DAPI)"))
 NUCLEUS_COLOR = (255, 0, 255)  # mor: hem yeşil hem mavi zeminde görünür
 TABLE_COLS = [("Cell", T("Hücre"), 0), ("Area", T("Alan"), 2), ("Mean", "Mean", 3), ("StdDev", "StdDev", 3),
               ("Min", "Min", 0), ("Max", "Max", 0), ("IntDen", "IntDen", 1), ("RawIntDen", "RawIntDen", 0),
-              ("CTCF", "CTCF", 1), ("NC_ratio", "N/C", 2), ("Saturated_px", T("Doymuş px"), 0), ("QC_flags", "QC", None)]
+              ("CTCF", "CTCF", 1), ("NC_ratio", "N/C", 2), ("NC_flag", "N/C QC", None), ("Saturated_px", T("Doymuş px"), 0), ("QC_flags", "QC", None)]
 RES_COLS = [("Group", T("Grup"), None), ("Experiment", T("Deney"), None), ("Image", T("Görüntü"), None), ("Cell", T("Hücre"), 0), ("Area", T("Alan"), 2),
             ("Mean", "Mean", 3), ("IntDen", "IntDen", 1), ("BG_Mean", "BG Mean", 3), ("CTCF", "CTCF", 1),
             ("NC_ratio", "N/C", 2), ("Objective", T("Objektif"), 0)]

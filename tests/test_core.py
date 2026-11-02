@@ -384,6 +384,18 @@ def test_nuclear_cytoplasmic():
     # halka olmadan (margin 0) bölmeler hücreyi tam paylaşır → Nuc_CTCF + Cyto_CTCF = CTCF
     row0 = core.measure_cells(img, labels, [1], 10.0, 0.1, 255, nuclei, nc_margin_um=0).iloc[0]
     assert abs(row0["Nuc_CTCF"] + row0["Cyto_CTCF"] - row0["CTCF"]) < 1e-6
+    assert row["NC_flag"] == ""  # sitoplazma geniş → bayrak yok
+    # ince sitoplazma: hücre çekirdeğin hemen dışında biter → bayrak; QC_pass ve tüm hücre CTCF'si etkilenmez
+    thin = (r <= 18).astype(np.int32)
+    rowt = core.measure_cells(img, thin, [1], 10.0, 0.1, 255, nuclei, nc_margin_um=0.2).iloc[0]
+    assert rowt["Cyto_Area"] < 0.2 * rowt["Area"] and rowt["NC_flag"] == "thin_cytoplasm" and rowt["QC_pass"]
+    import pandas as pd
+    import report
+    res = pd.DataFrame({"Group": ["A"] * 4 + ["B"] * 4, "NC_ratio": [2.0, 2.1, 1.9, 9.0, 3.0, 3.1, 2.9, 3.0],
+                        "CTCF": [1.0] * 8, "NC_flag": ["", "", "", "thin_cytoplasm", "", "", "", ""]})
+    _, data, txt, _ = report.compare(res, "NC_ratio")
+    assert len(data[0]) == 3 and 9.0 not in data[0] and "NC_flag" in txt  # bayraklı hücre N/C'den çıktı
+    assert len(report.compare(res, "CTCF")[1][0]) == 4  # CTCF analizinde aynı hücre kalır
     # çekirdek yoksa oran tanımsız (NaN), hata vermez
     rowe = core.measure_cells(img, labels, [1], 10.0, 0.1, 255, np.zeros_like(nuclei)).iloc[0]
     assert np.isnan(rowe["NC_ratio"])
