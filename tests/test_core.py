@@ -224,7 +224,13 @@ def test_fiji_bridge():
         tif, rois = fiji.write_package(Path(d), a, a.cell_ids, boxes, "t")
         df, ver = fiji.measure_in_fiji(exe, tif, rois, a.um_per_px)
     cmp = fiji.compare(cells, bg, df)
-    assert len(cmp) == 5 and not cmp.isna().any().any() and cmp["Max diff (%)"].max() < 1e-3, cmp
+    whole = cmp[cmp["ROI"].str.startswith(("Cell_", "BG_"))]
+    assert len(whole) == 5 and not whole.dropna(axis=1, how="all").isna().any().any(), cmp
+    # çekirdek/sitoplazma bölmeleri: Fiji etiket görüntüsünden kendi seçimini yapıp ölçer; N/C Fiji değerlerinden
+    nuc = cmp[cmp["ROI"].str.startswith("Nuc_")]
+    assert len(nuc) == 2 and len(cmp[cmp["ROI"].str.startswith("Cyto_")]) == 2, cmp
+    assert nuc["NC_ratio (Fiji)"].notna().all() and fiji.unmatched(cmp) == 0
+    assert cmp["Max diff (%)"].max() < 1e-3, cmp[["ROI", "Max diff (%)"]]
 
 
 def test_translations():
@@ -356,6 +362,33 @@ def test_quality_control_and_exclusions():
     assert (excl["Exclusion"] == "auto").all() and cells["QC_pass"].all()
 
 
+def test_nuclear_cytoplasmic():
+    """Çekirdek/sitoplazma bölmesi: değerleri bilinen yapay hücre (çekirdek 100, sitoplazma 50, arka plan 10).
+    Beklenen N/C = (100−10)/(50−10) = 2.25; halka (0.5 µm = 5 px) iki bölmeye de girmez; toplam CTCF değişmez."""
+    yy, xx = np.mgrid[:200, :200]
+    r = np.hypot(yy - 100, xx - 100)
+    img = np.full((200, 200), 10.0)
+    img[r <= 40] = 50.0
+    img[r <= 15] = 100.0
+    labels = (r <= 40).astype(np.int32)
+    nuclei = (r <= 15).astype(np.int32)
+    df = core.measure_cells(img, labels, [1], 10.0, 0.1, 255, nuclei, nc_margin_um=0.5)
+    row = df.iloc[0]
+    assert row["NC_margin_px"] == 5
+    assert abs(row["NC_ratio"] - 2.25) < 1e-9, row["NC_ratio"]
+    nuc_px, cyto_px = row["Nuc_px"], row["Cyto_px"]
+    assert nuc_px < (r <= 15).sum() and cyto_px < ((r <= 40) & (r > 15)).sum()  # halka dışarıda
+    assert abs(row["Nuc_fraction"] - nuc_px * 90 / (nuc_px * 90 + cyto_px * 40)) < 1e-9
+    whole = ((r <= 40).sum() * 0.01) * (img[r <= 40].mean() - 10)
+    assert abs(row["CTCF"] - whole) < 1e-6  # tüm hücre CTCF'si bölmeden etkilenmez
+    # halka olmadan (margin 0) bölmeler hücreyi tam paylaşır → Nuc_CTCF + Cyto_CTCF = CTCF
+    row0 = core.measure_cells(img, labels, [1], 10.0, 0.1, 255, nuclei, nc_margin_um=0).iloc[0]
+    assert abs(row0["Nuc_CTCF"] + row0["Cyto_CTCF"] - row0["CTCF"]) < 1e-6
+    # çekirdek yoksa oran tanımsız (NaN), hata vermez
+    rowe = core.measure_cells(img, labels, [1], 10.0, 0.1, 255, np.zeros_like(nuclei)).iloc[0]
+    assert np.isnan(rowe["NC_ratio"])
+
+
 if __name__ == "__main__":
     if not FITC.exists():
         sys.exit(f"Örnek görüntü yok: {FITC}")
@@ -369,6 +402,7 @@ if __name__ == "__main__":
     test_group_statistics()
     test_manual_edits()
     test_fiji_bridge()
+    test_nuclear_cytoplasmic()
     test_translations()
     test_chance_corrected_pairing()
     test_scale_bar_hard_cases()

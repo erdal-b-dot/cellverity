@@ -14,7 +14,10 @@ from i18n import T
 FRONT = ["Group", "Experiment", "Image", "Cell", "Area_unit", "Area", "Mean", "StdDev", "Min", "Max",
          "IntDen", "RawIntDen", "BG_Mean", "CTCF", "CTCF_per_Area"]
 METRICS = {"CTCF": "CTCF (a.u.)", "CTCF_per_Area": "CTCF / Area (a.u./{unit})", "Mean": "Mean intensity",
-           "IntDen": "Integrated density", "Area": "Area ({unit})"}
+           "IntDen": "Integrated density", "Area": "Area ({unit})",
+           # çekirdek/sitoplazma (DAPI gerekir)
+           "NC_ratio": "Nuclear / cytoplasmic ratio", "Nuc_fraction": "Nuclear fraction of signal",
+           "Nuc_CTCF": "Nuclear CTCF (a.u.)", "Cyto_CTCF": "Cytoplasmic CTCF (a.u.)"}
 PLOT_KINDS = {"bar": "Bar (ortalama ± SEM) + noktalar", "box": "Box + noktalar", "violin": "Violin + noktalar"}
 
 
@@ -52,7 +55,7 @@ def group_summary(results: pd.DataFrame, metric: str = "CTCF") -> pd.DataFrame:
 def methods_table(version: str) -> pd.DataFrame:
     return pd.DataFrame({"Item": [
         "Software", "CTCF", "IntDen", "StdDev", "ROI rule", "Background", "Cell segmentation",
-        "Nucleus segmentation", "Calibration", "Reference"],
+        "Nucleus segmentation", "Nuclear / cytoplasmic", "Calibration", "Reference"],
         "Description": [
             f"CellVerity {version}, formerly ICC CTCF Ölçer (Balcan, 2026; https://doi.org/10.5281/zenodo.23860020)",
             "CTCF = IntDen − (Area × Mean_background)",
@@ -63,6 +66,12 @@ def methods_table(version: str) -> pd.DataFrame:
             "Li threshold on the measured channel; touching cells split by watershed seeded with DAPI nuclei",
             "DAPI Otsu mask split by watershed from smoothed-intensity maxima; each nucleus trimmed at half of "
             "its own peak intensity above background (v2 'local'; Nucleus_method column)",
+            "Nucleus = DAPI mask eroded by NC_margin_px; cytoplasm = cell minus the DAPI mask dilated by NC_margin_px "
+            "(default 0.5 µm; the ring belongs to neither compartment, guarding against FITC–DAPI misregistration). "
+            "Nuc_CTCF / Cyto_CTCF use the same background; NC_ratio = (Nuc_Mean − BG) / (Cyto_Mean − BG); "
+            "Nuc_fraction = Nuc_CTCF / (Nuc_CTCF + Cyto_CTCF). Widefield images: out-of-focus cytoplasm above and "
+            "below the nucleus adds to the nuclear value, so NC_ratio is biased toward 1 — compare conditions, "
+            "not absolute values",
             "Scale bar length detected automatically; its µm value read from the label (Scale_source column)",
             "McCloy et al., 2014, Cell Cycle 13(9):1400–1412, doi:10.4161/cc.28401"]})
 
@@ -74,7 +83,8 @@ def write_excel(path: str | Path, results: pd.DataFrame, bg_results: pd.DataFram
         group_summary(results).to_excel(xw, sheet_name="Group_summary", index=False)
         # GraphPad vb. için hazır: alan (görüntü) ve deney ortalamaları
         cols = [c for c in ("Group", "Experiment", "Image", "Image_path") if c in results]
-        vals = [c for c in ("CTCF", "CTCF_per_Area", "Area", "Mean") if c in results]
+        vals = [c for c in ("CTCF", "CTCF_per_Area", "Area", "Mean", "NC_ratio", "Nuc_fraction", "Nuc_CTCF",
+                            "Cyto_CTCF") if c in results]
         if "Image_path" in results and vals:
             (results.groupby(cols, sort=False, dropna=False)[vals]
              .mean().assign(n_cells=results.groupby(cols, sort=False, dropna=False).size())

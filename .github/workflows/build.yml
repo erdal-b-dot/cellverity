@@ -10,7 +10,7 @@ jobs:
         include:
           - os: windows-latest
             name: Windows
-          - os: macos-13
+          - os: macos-15-intel   # macos-13 emekliye ayrıldı (2026-11-02 işi kuyrukta kaldı)
             name: mac_Intel
     runs-on: ${{ matrix.os }}
     steps:

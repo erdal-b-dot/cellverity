@@ -23,6 +23,8 @@ EN = {
     "Ölç": "Measure",
     "Örtüşme": "Overlap",
     "Durum": "Status",
+    "<br>Çekirdek/sitoplazma bölmeleri (Nuc_/Cyto_): Fiji etiket görüntülerinden kendi seçimini oluşturup ölçtü; N/C oranı Fiji'nin değerlerinden yeniden hesaplandı.":
+        "<br>Nuclear/cytoplasmic compartments (Nuc_/Cyto_): Fiji created its own selections from the label images and measured them; the N/C ratio was recalculated from Fiji's values.",
     "Kontrol": "Control",
     "FITC ve DAPI görüntülerini buraya sürükleyin\nveya  Dosya ▸ FITC aç  (⌘O / Ctrl+O)":
         "Drag FITC and DAPI images here\nor  File ▸ Open FITC  (⌘O / Ctrl+O)",

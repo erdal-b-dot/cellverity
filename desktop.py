@@ -92,10 +92,10 @@ VIEW_MODES = ("FITC", "DAPI", T("Birleşik (FITC + DAPI)"))
 NUCLEUS_COLOR = (255, 0, 255)  # mor: hem yeşil hem mavi zeminde görünür
 TABLE_COLS = [("Cell", T("Hücre"), 0), ("Area", T("Alan"), 2), ("Mean", "Mean", 3), ("StdDev", "StdDev", 3),
               ("Min", "Min", 0), ("Max", "Max", 0), ("IntDen", "IntDen", 1), ("RawIntDen", "RawIntDen", 0),
-              ("CTCF", "CTCF", 1), ("Saturated_px", T("Doymuş px"), 0), ("QC_flags", "QC", None)]
+              ("CTCF", "CTCF", 1), ("NC_ratio", "N/C", 2), ("Saturated_px", T("Doymuş px"), 0), ("QC_flags", "QC", None)]
 RES_COLS = [("Group", T("Grup"), None), ("Experiment", T("Deney"), None), ("Image", T("Görüntü"), None), ("Cell", T("Hücre"), 0), ("Area", T("Alan"), 2),
             ("Mean", "Mean", 3), ("IntDen", "IntDen", 1), ("BG_Mean", "BG Mean", 3), ("CTCF", "CTCF", 1),
-            ("Objective", T("Objektif"), 0)]
+            ("NC_ratio", "N/C", 2), ("Objective", T("Objektif"), 0)]
 SUM_COLS = [("Group", T("Grup"), None), ("n", "n", 0), ("Mean", T("Ortalama"), 1), ("SD", "SD", 1),
             ("SEM", "SEM", 1), ("Median", T("Medyan"), 1), ("Min", "Min", 1), ("Max", "Max", 1)]
 BG_COLS = [("BG", T("Kutu"), 0), ("x0", "x", 0), ("y0", "y", 0), ("Area_px", T("Piksel"), 0), ("Mean", "Mean", 3),
@@ -809,7 +809,8 @@ class PlotDialog(QDialog):
             self.control_box.setCurrentText(guess)
         self.control_box.setToolTip(T("Dunnett testinde ve normalizasyonda referans alınan grup (GraphPad'deki 'control column')."))
         self.metric_box = QComboBox()
-        self.metric_box.addItems(list(report.METRICS))
+        # yalnızca verisi olan değişkenler (ör. N/C için DAPI gerekir)
+        self.metric_box.addItems([m for m in report.METRICS if m in results and results[m].notna().any()])
         self.level_box = QComboBox()
         for k, v in report.LEVELS.items():
             self.level_box.addItem(T(v), k)
@@ -1893,12 +1894,13 @@ class MainWindow(QMainWindow):
         cells, bg = self._fiji_app
         cmp = fiji.compare(cells, bg, df)
         worst = cmp["Max diff (%)"].max()
-        missing = int(cmp.isna().any(axis=1).sum())
+        missing = fiji.unmatched(cmp)
         ok = worst < 1e-3 and not missing
         self.fiji_check = f"OK ({ver}, max diff {worst:.1e} %)" if ok else f"DIFFERENCE (max {worst:.3g} %)"  # Excel: hep İngilizce
         head = (T("<b>{0}</b> — {1} ROI ({2} hücre, {3} background kutusu), Fiji {4}. En büyük fark: <b>{5:.2g} %</b>").format(T("✅ Birebir aynı") if ok else T("⚠️ Fark var"), len(cmp), len(cells), len(bg), ver, worst)
                 + (T(", eşleşmeyen ROI: {0}").format(missing) if missing else "")
-                + T("<br>Fiji, programın dışa aktardığı TIFF ve RoiSet.zip'i kendi <i>Measure</i> motoruyla ölçtü (Area, Mean, StdDev, Min, Max, IntDen, RawIntDen). Bu sonuç, görüntü sonuç tablosuna eklendiğinde Excel'de <i>Fiji_check</i> sütununa yazılır."))
+                + T("<br>Fiji, programın dışa aktardığı TIFF ve RoiSet.zip'i kendi <i>Measure</i> motoruyla ölçtü (Area, Mean, StdDev, Min, Max, IntDen, RawIntDen). Bu sonuç, görüntü sonuç tablosuna eklendiğinde Excel'de <i>Fiji_check</i> sütununa yazılır.")
+                + (T("<br>Çekirdek/sitoplazma bölmeleri (Nuc_/Cyto_): Fiji etiket görüntülerinden kendi seçimini oluşturup ölçtü; N/C oranı Fiji'nin değerlerinden yeniden hesaplandı.") if cmp["ROI"].astype(str).str.startswith("Nuc_").any() else ""))
         self.statusBar().showMessage(T("Fiji doğrulaması: {0}").format(self.fiji_check), 10000)
         TableDialog(self, T("Fiji doğrulaması"), cmp, head).exec()
 

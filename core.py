@@ -422,10 +422,42 @@ def qc_flags(row: dict, ref: tuple[float, float] | None) -> list[str]:
     return flags
 
 
+NC_MIN_PX = 10   # bölme ölçümü için en az piksel (çekirdek ve sitoplazma ayrı ayrı)
+
+
+def compartment_masks(nuclei: np.ndarray, margin_px: int) -> tuple[np.ndarray, np.ndarray]:
+    """(çekirdek çekirdeği, çekirdek + halka) maskeleri. FITC ve DAPI ayrı pozlamalarla çekildiği için çekirdek
+    kenarında birkaç piksellik kayma olabilir: çekirdek margin_px kadar içeri daraltılır, sitoplazma ise çekirdeğin
+    margin_px genişliğindeki halkası dışarıda bırakılarak ölçülür (halka iki bölmeye de sayılmaz)."""
+    nuc = nuclei > 0
+    if margin_px <= 0:
+        return nuc, nuc
+    fp = morphology.disk(margin_px)
+    return ndi.binary_erosion(nuc, fp), ndi.binary_dilation(nuc, fp)
+
+
+def nc_margin_px(um_per_px: float | None, margin_um: float) -> int:
+    return int(round(margin_um / um_per_px)) if um_per_px else 0
+
+
+def compartment_label_images(labels: np.ndarray, nuclei: np.ndarray, cell_ids, um_per_px: float | None,
+                             margin_um: float = 0.5) -> tuple[np.ndarray, np.ndarray]:
+    """Çekirdek ve sitoplazma etiket görüntüleri (piksel değeri = hücre numarası) — measure_cells ile aynı bölmeler.
+    Fiji doğrulamasında Fiji bu görüntülerden kendi seçimlerini (Threshold → Create Selection) oluşturur."""
+    nuc_core, nuc_halo = compartment_masks(nuclei, nc_margin_px(um_per_px, margin_um))
+    keep = np.isin(labels, list(cell_ids))
+    lab = np.where(keep, labels, 0).astype(np.uint16)
+    return np.where(nuc_core, lab, 0).astype(np.uint16), np.where(~nuc_halo, lab, 0).astype(np.uint16)
+
+
 def measure_cells(img: np.ndarray, labels: np.ndarray, cell_ids, bg_mean: float,
                   um_per_px: float | None, sat_value, nuclei: np.ndarray | None = None,
-                  dapi: np.ndarray | None = None, nuc_ref: tuple[float, float] | None = None) -> pd.DataFrame:
+                  dapi: np.ndarray | None = None, nuc_ref: tuple[float, float] | None = None,
+                  nc_margin_um: float = 0.5) -> pd.DataFrame:
     px_area = um_per_px ** 2 if um_per_px else 1.0
+    margin_px = nc_margin_px(um_per_px, nc_margin_um)
+    if nuclei is not None:
+        nuc_core, nuc_halo = compartment_masks(nuclei, margin_px)
     rows = []
     for cid in cell_ids:
         m = labels == cid
@@ -446,6 +478,8 @@ def measure_cells(img: np.ndarray, labels: np.ndarray, cell_ids, bg_mean: float,
             row["Nucleus_area"] = float(nm.sum() * px_area)
             if dapi is not None:
                 row["Nucleus_DAPI_mean"] = float(dapi[nm].mean()) if nm.any() else np.nan
+            row.update(_compartments(img, m & nuc_core, m & ~nuc_halo, bg_mean, px_area))
+            row["NC_margin_px"] = margin_px
         flags = qc_flags(row, nuc_ref)
         row["QC_flags"] = ";".join(flags)
         row["QC_pass"] = not flags
@@ -454,6 +488,28 @@ def measure_cells(img: np.ndarray, labels: np.ndarray, cell_ids, bg_mean: float,
     if len(df):
         df.insert(1, "Area_unit", "µm²" if um_per_px else "px²")
     return df
+
+
+def _compartments(img: np.ndarray, nuc: np.ndarray, cyto: np.ndarray, bg_mean: float, px_area: float) -> dict:
+    """Çekirdek / sitoplazma ölçümü (aynı CTCF tanımıyla) ve çekirdek/sitoplazma oranı.
+    NC_ratio = (Nuc_Mean − BG) / (Cyto_Mean − BG): arka planı çıkarılmış ortalama yoğunlukların oranı
+    (translokasyonun standart ölçüsü; hücre büyüklüğünden bağımsız). Nuc_fraction = Nuc_CTCF / (Nuc_CTCF + Cyto_CTCF):
+    hücredeki toplam sinyalin çekirdekteki payı. Halka iki bölmeye de girmediği için Nuc_CTCF + Cyto_CTCF ≠ CTCF."""
+    out = {}
+    for name, mk in (("Nuc", nuc), ("Cyto", cyto)):
+        n = int(mk.sum())
+        mean = float(img[mk].mean()) if n else np.nan
+        area = n * px_area
+        out[f"{name}_Area"] = area
+        out[f"{name}_Mean"] = mean
+        out[f"{name}_CTCF"] = area * (mean - bg_mean) if n else np.nan
+        out[f"{name}_px"] = n
+    ok = out["Nuc_px"] >= NC_MIN_PX and out["Cyto_px"] >= NC_MIN_PX
+    cyto_net = out["Cyto_Mean"] - bg_mean if ok else np.nan
+    out["NC_ratio"] = (out["Nuc_Mean"] - bg_mean) / cyto_net if ok and cyto_net > 0 else np.nan
+    tot = out["Nuc_CTCF"] + out["Cyto_CTCF"] if ok else np.nan
+    out["Nuc_fraction"] = out["Nuc_CTCF"] / tot if ok and tot > 0 else np.nan
+    return out
 
 
 # ------------------------------------------------------- Tek adımda tüm akış
@@ -473,6 +529,7 @@ class Settings:
     min_nuc_um2: float = 15.0
     bg_size: int = 50
     bg_n: int = 3
+    nc_margin_um: float = 0.5          # çekirdek/sitoplazma arasındaki dışlanan halka (DAPI–FITC kayması için)
 
 
 @dataclass
@@ -563,7 +620,7 @@ def background_and_measure(a: Analysis, cell_ids, s: Settings | None = None, box
     bg = measure_backgrounds(a.fitc_ch, boxes, (a.um_per_px or 1) ** 2, sat)
     bg_mean = float(bg["Mean"].mean()) if len(bg) else 0.0
     cells = measure_cells(a.fitc_ch, a.labels, cell_ids, bg_mean, a.um_per_px, sat, a.nuclei, a.dapi_ch,
-                          nucleus_reference(a.nuclei, a.dapi_ch))
+                          nucleus_reference(a.nuclei, a.dapi_ch), s.nc_margin_um)
     return cells, bg, boxes
 
 
