@@ -102,6 +102,11 @@ BG_COLS = [("BG", T("Kutu"), 0), ("x0", "x", 0), ("y0", "y", 0), ("Area_px", T("
            ("StdDev", "StdDev", 3), ("Min", "Min", 0), ("Max", "Max", 0), ("RawIntDen", "RawIntDen", 0)]
 
 
+def measure_settings(panel) -> core.Settings:
+    """Ölçüm ayarları (background kutuları + N/C halkası) — paneldeki değerlerden."""
+    return core.Settings(bg_size=panel.bg_size.value(), bg_n=panel.bg_n.value(), nc_margin_um=panel.nc_margin.value())
+
+
 def make_table(cols) -> QTableWidget:
     t = QTableWidget(0, len(cols))
     t.setHorizontalHeaderLabels([c[1] for c in cols])
@@ -429,6 +434,22 @@ class InfoPanel(QWidget):
         bl.addWidget(self.bg_info)
         lay.addWidget(bg)
 
+        nc = QGroupBox(T("Çekirdek / sitoplazma (N/C)"))
+        nf = QFormLayout(nc)
+        self.nc_margin = QDoubleSpinBox()
+        self.nc_margin.setRange(0.0, 3.0)
+        self.nc_margin.setSingleStep(0.1)
+        self.nc_margin.setDecimals(1)
+        self.nc_margin.setValue(core.Settings.nc_margin_um)
+        self.nc_margin.setSuffix(" µm")
+        self.nc_margin.setToolTip(T("Çekirdek kenarında dışarıda bırakılan halka: çekirdek bu kadar daraltılır, sitoplazma bu kadar uzaktan başlar. FITC ve DAPI ayrı çekildiği için kenardaki kaymaya karşı korur. 0 = halka yok."))
+        nf.addRow(T("Kenar halkası"), self.nc_margin)
+        nc_hint = QLabel(T("DAPI görüntüsü varsa her hücrede çekirdek ve sitoplazma ayrı ölçülür (N/C sütunu). Sitoplazması hücre alanının %20'sinden küçük hücreler N/C analizinden çıkarılır."))
+        nc_hint.setWordWrap(True)
+        nc_hint.setStyleSheet("color:#666;")
+        nf.addRow(nc_hint)
+        lay.addWidget(nc)
+
         res = QGroupBox(T("Sonuçlar"))
         rl = QVBoxLayout(res)
         f3 = QFormLayout()
@@ -680,7 +701,7 @@ class BatchDialog(QDialog):
         if not todo:
             return
         p = self.main.panel
-        self.settings = core.Settings(bg_size=p.bg_size.value(), bg_n=p.bg_n.value())
+        self.settings = measure_settings(p)
         self.n_cells = 0
         self._start("measure", (todo, self.settings, self.edge.isChecked(), self.qc.isChecked()), self.on_measured)
 
@@ -937,6 +958,7 @@ class MainWindow(QMainWindow):
         p.bg_auto.toggled.connect(lambda _: self.update_measure())
         p.bg_size.valueChanged.connect(lambda _: self.update_measure())
         p.bg_n.valueChanged.connect(lambda _: self.update_measure())
+        p.nc_margin.valueChanged.connect(lambda _: self.update_measure())
         p.btn_bg_clear.clicked.connect(self.clear_manual_boxes)
         p.btn_add.clicked.connect(self.add_to_results)
         p.btn_excel.clicked.connect(lambda: self.export_results("xlsx"))
@@ -1504,7 +1526,7 @@ class MainWindow(QMainWindow):
         if a is None:
             return
         p = self.panel
-        s = core.Settings(bg_size=p.bg_size.value(), bg_n=p.bg_n.value())
+        s = measure_settings(p)
         if p.bg_auto.isChecked():
             key = (id(a), s.bg_size, s.bg_n)
             if self._auto_cache is None or self._auto_cache[0] != key:
@@ -1565,7 +1587,7 @@ class MainWindow(QMainWindow):
         ex_ids = [c for c in excl if c not in self.selected]
         ex_df = None
         if ex_ids:
-            s_ = core.Settings(bg_size=self.panel.bg_size.value(), bg_n=self.panel.bg_n.value())
+            s_ = measure_settings(self.panel)
             ex_df, _, _ = core.background_and_measure(a, ex_ids, s_, self.boxes)
             ex_df = ex_df.assign(Exclusion=[excl[c][0] for c in ex_df["Cell"]],
                                  Reason=[excl[c][1] for c in ex_df["Cell"]])
@@ -1857,7 +1879,7 @@ class MainWindow(QMainWindow):
     def _fiji_package(self, folder: Path):
         a = self.analysis
         ids = sorted(self.selected) or list(a.cell_ids)
-        return fiji.write_package(folder, a, ids, self.boxes, self.fitc[0].stem), ids
+        return fiji.write_package(folder, a, ids, self.boxes, self.fitc[0].stem, self.panel.nc_margin.value()), ids
 
     def fiji_verify(self):
         a = self.analysis
@@ -1869,8 +1891,7 @@ class MainWindow(QMainWindow):
         import tempfile
         self._fiji_tmp = tempfile.TemporaryDirectory()
         (tif, rois), ids = self._fiji_package(Path(self._fiji_tmp.name))
-        cells, bg, _ = core.background_and_measure(a, ids, core.Settings(bg_size=self.panel.bg_size.value(),
-                                                                         bg_n=self.panel.bg_n.value()), self.boxes)
+        cells, bg, _ = core.background_and_measure(a, ids, measure_settings(self.panel), self.boxes)
         self._fiji_app = (cells, bg)
         self.statusBar().showMessage(T("Fiji arka planda ölçüyor ({0} hücre + {1} kutu)…").format(len(ids), len(self.boxes)))
         QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)

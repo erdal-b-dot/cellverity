@@ -18,6 +18,24 @@ import pandas as pd
 import core
 from i18n import T
 
+# Çekirdek/sitoplazma bölmelerini ROI Manager'a ekler: etiket görüntüsünden Fiji'nin kendi seçimi (Create Selection)
+COMPARTMENT_MACRO = '''open("{labels}");
+lab = getTitle();
+ids = newArray({ids});
+for (i = 0; i < ids.length; i++) {{
+    selectImage(lab);
+    setThreshold(ids[i], ids[i]);
+    run("Create Selection");
+    if (selectionType() != -1) {{
+        roiManager("Add");
+        roiManager("Select", roiManager("count") - 1);
+        roiManager("Rename", "{prefix}_" + ids[i]);
+    }}
+}}
+selectImage(lab);
+close();
+'''
+
 # Fiji'nin Measure komutuyla aynı ölçüm (RoiManager GUI gerektirdiği için Analyzer doğrudan çağrılır)
 MEASURE_GROOVY = r'''#@ String tif
 #@ String rois
@@ -68,10 +86,14 @@ println("FIJI_OK " + rt.size() + " " + IJ.getFullVersion())
 '''
 
 OPEN_MACRO = '''open("{tif}");
+main = getTitle();
 run("Set Scale...", "distance={px} known={um:g} unit=µm");
-run("Set Measurements...", "area mean standard min integrated redirect=None decimal=3");
+run("Set Measurements...", "area mean standard min integrated display redirect=None decimal=3");
 roiManager("reset");
 roiManager("Open", "{rois}");
+{compartments}selectImage(main);
+run("Select None");
+roiManager("Deselect");
 roiManager("Show All with labels");
 roiManager("Deselect");
 roiManager("Measure");
@@ -212,8 +234,15 @@ def unmatched(cmp: pd.DataFrame) -> int:
 def open_in_fiji(fiji: Path, tif: Path, rois: Path, bar_px: int | None, bar_um: float) -> subprocess.Popen:
     """Fiji'yi arayüzüyle açar: görüntü + ölçek + ROI Manager'da ROI'ler + Measure (Results penceresi)."""
     macro = tif.parent / "ctcf_open_in_fiji.ijm"
+    comp = ""
+    for prefix, lab in zip(("Nuc", "Cyto"), compartment_paths(tif)):
+        if lab.exists():
+            import tifffile
+            ids = [int(i) for i in np.unique(tifffile.imread(lab)) if i > 0]
+            if ids:
+                comp += COMPARTMENT_MACRO.format(labels=lab.as_posix(), ids=", ".join(map(str, ids)), prefix=prefix)
     macro.write_text(OPEN_MACRO.format(tif=tif.as_posix(), rois=rois.as_posix(), px=bar_px or 1,
-                                       um=bar_um if bar_px else 1), encoding="utf-8")
+                                       um=bar_um if bar_px else 1, compartments=comp), encoding="utf-8")
     kw = {}
     if sys.platform == "win32":
         kw["creationflags"] = 0x00000008  # DETACHED_PROCESS

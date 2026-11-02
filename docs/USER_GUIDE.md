@@ -202,6 +202,20 @@ Known values for DP74 + cellSens: **20 µm = 138 px → 0.1449 µm/px (40×)**; 
 
 > ℹ️ **If the background is 0**, the camera/cellSens clipped the dark background to zero; CTCF = IntDen. Comparisons are valid if all images were acquired with the same settings.
 
+### 6.5.1 Nucleus / cytoplasm (N/C ratio)
+If a DAPI image is open, the program measures the **nucleus** and the **cytoplasm** of every cell separately. Nothing else is needed; the results appear in the **N/C** column. Translocation of a protein into the nucleus (e.g. nuclear accumulation of p53 on activation) is a direct read-out of pathway activity. Whole-cell CTCF does not show it; the N/C ratio does.
+
+- **Nucleus** = DAPI mask. **Cytoplasm** = cell − nucleus.
+- **Edge ring** (right panel ▸ *Nucleus / cytoplasm (N/C)*, default **0.5 µm**): FITC and DAPI are acquired with separate exposures, so the nuclear edge can be shifted by a few pixels. The nucleus is shrunk by this distance and the cytoplasm starts this far from the nucleus. The ring belongs to neither compartment. 0 = no ring.
+- **N/C ratio** = (nuclear mean − background) / (cytoplasmic mean − background). It is the ratio of background-corrected mean intensities and does not depend on cell size. Above 1, the signal is more concentrated in the nucleus.
+- **Nuclear fraction of signal** (`Nuc_fraction`) = nuclear CTCF / (nuclear + cytoplasmic CTCF).
+- **Thin cytoplasm:** if the measured cytoplasm is smaller than **20 %** of the cell area, the ratio comes from few pixels and is unreliable. The cell is flagged (*N/C QC* column: `thin_cytoplasm`) and left out of the N/C analysis **only**. Its whole-cell CTCF remains valid. The statistics text states how many cells were left out.
+- In plots and statistics, **NC_ratio**, **Nuc_fraction**, **Nuc_CTCF** and **Cyto_CTCF** can be chosen as the *Variable*.
+
+> ⚠️ **On a widefield microscope**, out-of-focus cytoplasm above and below the nucleus adds to the nuclear value, so the N/C ratio is biased toward 1. **Compare conditions (control vs treatment), not absolute values.** Confocal images are much less affected.
+
+> ℹ️ Because it is a ratio of two measurements, the N/C ratio is largely independent of exposure time (provided the camera is linear). Acquiring the compared images with identical settings is still the safest approach.
+
 ### 6.6 Adding to the results table
 - **Group / condition:** e.g. *Control*, *Drug 10 µM 24 h*. Plots and statistics group by this label.
 - **Experiment / replicate:** independent experiment (biological replicate): *1*, *2*, *3*… Needed for statistics on experiment means ([Section 10](#10-plots-and-statistics-comparing-groups)).
@@ -296,6 +310,8 @@ Each FITC is paired with the DAPI, among those **within ±3 file numbers in the 
 | Segmentation, Nucleus_method, DAPI_overlap, Touching_pairs | Cell separation details |
 | Selection, Manual_edits | How cells were selected; manual boundary edits |
 | QC_flags, QC_pass, Nuclei_in_cell, Nucleus_area, Nucleus_DAPI_mean | Quality-control flags and nuclear features |
+| Nuc_Area, Nuc_Mean, Nuc_CTCF, Cyto_Area, Cyto_Mean, Cyto_CTCF | Nuclear and cytoplasmic measurements ([6.5.1](#651-nucleus-cytoplasm-nc-ratio)) |
+| NC_ratio, Nuc_fraction, NC_flag, NC_margin_px | N/C ratio, nuclear fraction of signal, thin-cytoplasm flag, edge ring (pixels) |
 | Fiji_check | Result of the Fiji verification, if done |
 | App_version, Timestamp | Program version, date |
 
@@ -349,10 +365,10 @@ Save: plot as PNG (600 dpi), PDF, SVG; statistics as .txt.
 **Fiji menu:**
 
 ### 11.1 Verify with Fiji (⌘⇧F)
-Has **Fiji's own Measure engine** measure the selected cells and background boxes **in the background** (no Fiji window, ~5 seconds) and shows the results side by side with the program's. When the image is added to the results table, the outcome is written to the **Fiji_check** column (e.g. *OK (1.54p99, max diff 3.3e-07 %)*). Changing the selection, boxes or boundaries invalidates the earlier check.
+Has **Fiji's own Measure engine** measure the selected cells, the background boxes and (with DAPI) the **nuclear/cytoplasmic compartments** **in the background**. The compartments are exported as label images, Fiji creates its own selections (*Threshold → Create Selection*) and the N/C ratio is recalculated from Fiji's values. No Fiji window opens (~5 seconds); the results are shown side by side with the program's. When the image is added to the results table, the outcome is written to the **Fiji_check** column (e.g. *OK (1.54p99, max diff 3.3e-07 %)*). Changing the selection, boxes or boundaries invalidates the earlier check.
 
 ### 11.2 Open in Fiji
-Opens Fiji with its interface: image, scale, all ROIs in the ROI Manager, Measure results. Files: `Documents/CellVerity/Fiji/<image name>/`.
+Opens Fiji with its interface: image, scale, all ROIs in the ROI Manager (cells, background boxes and, with DAPI, the `Nuc_n` / `Cyto_n` compartments), Measure results (ROI name on every row). Files: `Documents/CellVerity/Fiji/<image name>/`.
 
 ### 11.3 Compare with manually traced ROIs (method validation)
 To quantify how close the automatic boundaries are to manual tracing (recommended for papers):

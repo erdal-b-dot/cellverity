@@ -299,6 +299,20 @@ Program Fiji'yi şu yerlerde kendisi arar: <code>İndirilenler/Fiji</code>, <cod
 <blockquote>
 <p>ℹ️ <strong>Background = 0 çıkıyorsa</strong> kamera/cellSens koyu arka planı sıfıra kırpmıştır; CTCF = IntDen olur. Tüm görüntüler aynı ayarla çekildiyse karşılaştırma geçerlidir.</p>
 </blockquote>
+<h3 id="651-cekirdek-sitoplazma-nc-orani">6.5.1 Çekirdek / sitoplazma (N/C oranı)</h3>
+<p>DAPI görüntüsü açıksa program her hücrede <strong>çekirdeği</strong> ve <strong>sitoplazmayı</strong> ayrı ölçer. Ek bir şey yapmanız gerekmez; sonuçlar <strong>N/C</strong> sütununda görünür. Bir proteinin çekirdeğe geçişi (translokasyon; ör. p53'ün aktive olunca çekirdekte birikmesi) yolak etkinliğinin doğrudan göstergesidir. Bunu tüm hücre CTCF'si göstermez, N/C oranı gösterir.</p>
+<ul>
+<li><strong>Çekirdek</strong> = DAPI maskesi. <strong>Sitoplazma</strong> = hücre − çekirdek.</li>
+<li><strong>Kenar halkası</strong> (sağ panel ▸ <em>Çekirdek / sitoplazma (N/C)</em>, varsayılan <strong>0.5 µm</strong>): FITC ve DAPI ayrı pozlamalarla çekildiği için çekirdek kenarında birkaç piksellik kayma olabilir. Çekirdek bu kadar içeri daraltılır, sitoplazma da çekirdekten bu kadar uzakta başlar. Aradaki halka iki bölmeye de sayılmaz. 0 = halka yok.</li>
+<li><strong>N/C oranı</strong> = (çekirdek ortalaması − background) / (sitoplazma ortalaması − background). Arka planı çıkarılmış ortalama yoğunlukların oranıdır, hücre büyüklüğünden bağımsızdır. 1'den büyükse sinyal çekirdekte daha yoğundur.</li>
+<li><strong>Çekirdekteki sinyal payı</strong> (<code>Nuc_fraction</code>) = çekirdek CTCF'si / (çekirdek + sitoplazma CTCF'si).</li>
+<li><strong>İnce sitoplazma:</strong> ölçülen sitoplazma hücre alanının <strong>%20'sinden</strong> küçükse oran az sayıda pikselden hesaplanır ve güvenilmez olur. Hücre işaretlenir (<em>N/C QC</em> sütunu: <code>thin_cytoplasm</code>) ve <strong>yalnızca</strong> N/C analizinden çıkarılır. Tüm hücre CTCF'si geçerli kalır. İstatistik metni kaç hücrenin çıkarıldığını yazar.</li>
+<li>Grafik ve istatistikte <em>Değişken</em> olarak <strong>NC_ratio</strong>, <strong>Nuc_fraction</strong>, <strong>Nuc_CTCF</strong>, <strong>Cyto_CTCF</strong> seçilebilir.</li>
+</ul>
+<blockquote>
+<p>⚠️ <strong>Geniş alan (widefield) mikroskobunda</strong> çekirdeğin üstündeki ve altındaki odak dışı sitoplazma çekirdek değerine eklenir. Bu yüzden N/C oranı 1'e doğru yanlıdır. <strong>Mutlak değerleri değil, koşulları karşılaştırın</strong> (kontrol ile ilaç). Konfokal görüntülerde bu yanlılık çok daha azdır.</p>
+<p>ℹ️ Oran, iki ölçümün birbirine bölünmesiyle elde edildiği için pozlama süresinden büyük ölçüde bağımsızdır (kamera doğrusal çalışıyorsa). Yine de karşılaştırılan görüntüleri aynı ayarla çekmek en güvenli yoldur.</p>
+</blockquote>
 <h3 id="66-sonuc-tablosuna-eklemek">6.6 Sonuç tablosuna eklemek</h3>
 <ul>
 <li><strong>Grup / koşul:</strong> ör. <em>Kontrol</em>, <em>Ax 10 µM 24 sa</em>. Grafik ve istatistik bu etikete göre gruplar.</li>
@@ -509,6 +523,14 @@ Program Fiji'yi şu yerlerde kendisi arar: <code>İndirilenler/Fiji</code>, <cod
 <td>Kalite kontrol bayrakları ve çekirdek özellikleri</td>
 </tr>
 <tr>
+<td>Nuc_Area, Nuc_Mean, Nuc_CTCF, Cyto_Area, Cyto_Mean, Cyto_CTCF</td>
+<td>Çekirdek ve sitoplazma ölçümleri (<a href="#651-cekirdek-sitoplazma-nc-orani">6.5.1</a>)</td>
+</tr>
+<tr>
+<td>NC_ratio, Nuc_fraction, NC_flag, NC_margin_px</td>
+<td>N/C oranı, çekirdekteki sinyal payı, ince sitoplazma bayrağı, kenar halkası (piksel)</td>
+</tr>
+<tr>
 <td>Fiji_check</td>
 <td>Fiji ile doğrulandıysa sonuç</td>
 </tr>
@@ -606,9 +628,9 @@ Program Fiji'yi şu yerlerde kendisi arar: <code>İndirilenler/Fiji</code>, <cod
 <h2 id="11-fiji-koprusu-ve-yontem-dogrulamasi">11. Fiji köprüsü ve yöntem doğrulaması</h2>
 <p><strong>Fiji menüsü:</strong></p>
 <h3 id="111-fiji-ile-dogrula-f">11.1 Fiji ile doğrula (⌘⇧F)</h3>
-<p>Seçili hücreleri ve background kutularını <strong>Fiji'nin kendi Measure motoruna arka planda</strong> ölçtürür (Fiji penceresi açılmaz, ~5 saniye) ve sonuçları programınkilerle yan yana gösterir. Sonuç, görüntü sonuç tablosuna eklenince Excel'de <strong>Fiji_check</strong> sütununa yazılır (ör. <em>OK (1.54p99, max fark 3.3e-07 %)</em>). Seçim, kutu ya da sınır değişirse önceki doğrulama geçersiz sayılır.</p>
+<p>Seçili hücreleri, background kutularını ve (DAPI varsa) <strong>çekirdek/sitoplazma bölmelerini</strong> <strong>Fiji'nin kendi Measure motoruna arka planda</strong> ölçtürür. Bölmeler etiket görüntüsü olarak aktarılır, Fiji kendi seçimini (<em>Threshold → Create Selection</em>) oluşturur, N/C oranı da Fiji'nin değerlerinden yeniden hesaplanır. Fiji penceresi açılmaz (~5 saniye); sonuçlar programınkilerle yan yana gösterilir. Sonuç, görüntü sonuç tablosuna eklenince Excel'de <strong>Fiji_check</strong> sütununa yazılır (ör. <em>OK (1.54p99, max fark 3.3e-07 %)</em>). Seçim, kutu ya da sınır değişirse önceki doğrulama geçersiz sayılır.</p>
 <h3 id="112-fijide-ac">11.2 Fiji'de aç</h3>
-<p>Fiji'yi arayüzüyle açar: görüntü, ölçek, ROI Manager'da tüm ROI'ler, Measure sonuçları. Dosyalar: <code>Belgeler/CellVerity/Fiji/&lt;görüntü adı&gt;/</code>.</p>
+<p>Fiji'yi arayüzüyle açar: görüntü, ölçek, ROI Manager'da tüm ROI'ler (hücreler, background kutuları, DAPI varsa <code>Nuc_n</code> / <code>Cyto_n</code> bölmeleri), Measure sonuçları (her satırda ROI adı). Dosyalar: <code>Belgeler/CellVerity/Fiji/&lt;görüntü adı&gt;/</code>.</p>
 <h3 id="113-elle-cizilmis-roilerle-karsilastir-yontem-dogrulamasi">11.3 Elle çizilmiş ROI'lerle karşılaştır (yöntem doğrulaması)</h3>
 <p>Programın otomatik sınırlarının elle çizime ne kadar yakın olduğunu ölçmek için (makale için önerilir):</p>
 <ol>

@@ -23,6 +23,12 @@ EN = {
     "Ölç": "Measure",
     "Örtüşme": "Overlap",
     "Durum": "Status",
+    "Çekirdek / sitoplazma (N/C)": "Nucleus / cytoplasm (N/C)",
+    "Kenar halkası": "Edge ring",
+    "Çekirdek kenarında dışarıda bırakılan halka: çekirdek bu kadar daraltılır, sitoplazma bu kadar uzaktan başlar. FITC ve DAPI ayrı çekildiği için kenardaki kaymaya karşı korur. 0 = halka yok.":
+        "Ring left out at the nuclear edge: the nucleus is shrunk by this distance and the cytoplasm starts this far away. Guards against edge misregistration, since FITC and DAPI are acquired separately. 0 = no ring.",
+    "DAPI görüntüsü varsa her hücrede çekirdek ve sitoplazma ayrı ölçülür (N/C sütunu). Sitoplazması hücre alanının %20'sinden küçük hücreler N/C analizinden çıkarılır.":
+        "With a DAPI image, the nucleus and the cytoplasm of every cell are measured separately (N/C column). Cells whose cytoplasm is smaller than 20 % of the cell area are left out of the N/C analysis.",
     "ince sitoplazma (yalnızca N/C güvenilmez)": "thin cytoplasm (only N/C unreliable)",
     "ℹ️ {0} hücre ince sitoplazma nedeniyle (ölçülen sitoplazma < hücre alanının %{1:.0f}'si) {2} analizinden çıkarıldı; tüm hücre CTCF'leri geçerli (Excel: NC_flag).":
         "ℹ️ {0} cells were left out of the {2} analysis because of thin cytoplasm (measured cytoplasm < {1:.0f} % of the cell area); their whole-cell CTCF values remain valid (Excel: NC_flag).",
