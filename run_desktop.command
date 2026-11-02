@@ -1,3 +1,3 @@
 #!/bin/zsh
-# ICC CTCF Ölçer 2.0 (masaüstü, geliştirme sürümü)
+# CellVerity (masaüstü, kaynak koddan)
 cd "${0:A:h}" && exec .venv/bin/python desktop.py "$@"

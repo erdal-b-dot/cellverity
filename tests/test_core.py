@@ -237,7 +237,7 @@ def test_translations():
     en = json.loads((ROOT / "locales" / "en.json").read_text(encoding="utf-8"))
     ph = re.compile(r"\{[^{}]*\}")
     trc = re.compile(r"[çğıöşüÇĞİÖŞÜ]")
-    allowed = {"ICC CTCF Ölçer", "ICC CTCF Ölçer ", "ilaçsız"}
+    allowed = {"ilaçsız"}
     missing, leftover = [], []
     for f in ("desktop.py", "report.py", "fiji.py"):
         tree = ast.parse((ROOT / f).read_text(encoding="utf-8"))
@@ -264,7 +264,8 @@ def test_translations():
                     inside.add(id(m))
         for n in ast.walk(tree):
             if isinstance(n, ast.Constant) and isinstance(n.value, str) and id(n) not in inside | docs \
-                    and trc.search(n.value) and n.value not in allowed:
+                    and trc.search(n.value) and n.value not in allowed \
+                    and "ICC CTCF Ölçer" not in n.value:  # eski ad (özel isim) çevrilmez
                 leftover.append(f"{f}:{n.lineno} {n.value[:50]}")
     bad_ph = [k[:50] for k, v in en.items() if sorted(ph.findall(k)) != sorted(ph.findall(v))]
     assert not missing, f"çevirisi yok: {missing}"

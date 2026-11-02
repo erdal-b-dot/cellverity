@@ -33,8 +33,8 @@ h1+p+hr+h2{break-before:avoid}table{display:table;break-inside:auto}tr,blockquot
 """
 
 
-GUIDES = {"tr": ("KULLANIM_KILAVUZU.md", "kilavuz.html", "KULLANIM_KILAVUZU.pdf", "ICC CTCF Ölçer Kılavuzu"),
-          "en": ("USER_GUIDE.md", "user_guide.html", "USER_GUIDE.pdf", "ICC CTCF Ölçer User Guide")}
+GUIDES = {"tr": ("KULLANIM_KILAVUZU.md", "kilavuz.html", "KULLANIM_KILAVUZU.pdf", "CellVerity Kılavuzu"),
+          "en": ("USER_GUIDE.md", "user_guide.html", "USER_GUIDE.pdf", "CellVerity User Guide")}
 
 
 def build(lang="tr"):

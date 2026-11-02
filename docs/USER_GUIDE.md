@@ -1,8 +1,10 @@
-# ICC CTCF Ölçer 2 — User Guide
+# CellVerity — User Guide
 
-*Version 2.0.0 · Erdal Balcan, Manisa Celal Bayar University · MIT license · DOI: [10.5281/zenodo.23860021](https://doi.org/10.5281/zenodo.23860021)*
+*Formerly ICC CTCF Ölçer*
 
-Source code and downloads: https://github.com/erdal-b-dot/icc-ctcf-olcer · Türkçe kılavuz: `KULLANIM_KILAVUZU.md`
+*Version 2.1.0 · Erdal Balcan, Manisa Celal Bayar University · MIT license · DOI (all versions): [10.5281/zenodo.23860020](https://doi.org/10.5281/zenodo.23860020)*
+
+Source code and downloads: https://github.com/erdal-b-dot/cellverity · Türkçe kılavuz: `KULLANIM_KILAVUZU.md`
 
 ---
 
@@ -52,25 +54,25 @@ Your images are **never sent anywhere**; the program works offline.
 ## 2. Installation
 
 ### 2.1 Ready-to-run app (recommended — no Python needed)
-Download from **https://github.com/erdal-b-dot/icc-ctcf-olcer/releases** (newest version at the top).
+Download from **https://github.com/erdal-b-dot/cellverity/releases** (newest version at the top).
 
 | Computer | File | Minimum system |
 |---|---|---|
-| Apple Silicon Mac (M1/M2/M3/M4) | `ICC_CTCF_Olcer_<version>_mac_AppleSilicon.dmg` | macOS 12.3 |
-| Intel Mac | `ICC_CTCF_Olcer_<version>_mac_Intel.dmg` | macOS 12.0 (Monterey) |
-| Windows 10/11 (64-bit) | `ICC_CTCF_Olcer_<version>_Windows.zip` | Windows 10 |
+| Apple Silicon Mac (M1/M2/M3/M4) | `CellVerity_<version>_mac_AppleSilicon.dmg` | macOS 12.3 |
+| Intel Mac | `CellVerity_<version>_mac_Intel.dmg` | macOS 12.0 (Monterey) |
+| Windows 10/11 (64-bit) | `CellVerity_<version>_Windows.zip` | Windows 10 |
 
 > To find your Mac's processor: Apple menu ▸ **About This Mac**. "Chip: Apple M…" means Apple Silicon; "Processor: Intel…" means Intel.
 
 **macOS:**
-1. Double-click the `.dmg` → drag **ICC CTCF Ölçer** onto the **Applications** folder shown next to it. Then eject the disk (⏏) in the Finder sidebar.
+1. Double-click the `.dmg` → drag **CellVerity** onto the **Applications** folder shown next to it. Then eject the disk (⏏) in the Finder sidebar.
 2. **On first launch** do not double-click: **right-click the app ▸ Open ▸ Open**. (The app is not notarized by Apple, so macOS shows an "unidentified developer" warning; this is needed only once.)
 3. If you see *"is damaged and can't be opened"* (happens with downloaded files), run once in Terminal:
-   `xattr -cr "/Applications/ICC CTCF Ölçer.app"`
+   `xattr -cr "/Applications/CellVerity.app"`
 
 **Windows:**
 1. Right-click the zip ▸ **Extract All**. Put the folder e.g. in `Documents` (do not run it from inside the zip).
-2. Double-click `ICC CTCF Olcer.exe`. If *"Windows protected your PC"* appears: **More info ▸ Run anyway**.
+2. Double-click `CellVerity.exe`. If *"Windows protected your PC"* appears: **More info ▸ Run anyway**.
 3. Desktop shortcut: right-click the exe ▸ Send to ▸ Desktop (create shortcut).
 
 ### 2.2 Running from source
@@ -110,7 +112,7 @@ However good the program is, the validity of the measurement depends on the imag
 
 ## 4. Quick start (5 minutes)
 
-> Example images to try: the [`examples/`](https://github.com/erdal-b-dot/icc-ctcf-olcer/tree/main/examples) folder in the repository (two FITC + DAPI pairs with expected results, CC BY 4.0).
+> Example images to try: the [`examples/`](https://github.com/erdal-b-dot/cellverity/tree/main/examples) folder in the repository (two FITC + DAPI pairs with expected results, CC BY 4.0).
 
 1. Open the program.
 2. In Finder/Explorer, **select the FITC and DAPI files together** and drag them onto the window. The program tells which one is DAPI by its colour.
@@ -303,7 +305,7 @@ Each FITC is paired with the DAPI, among those **within ±3 file numbers in the 
 - **ImageJ/Fiji comparison package (ZIP):** measured channel (TIFF) + ROIs (RoiSet.zip) + instructions (`HOW_TO_USE.txt`).
 
 ### 9.4 Not losing your work
-- **Autosave:** after every addition, `Documents/ICC CTCF Olcer/otomatik_kayit.xlsx`. Even after a crash or power cut nothing is lost; on restart the program asks *"Continue where you left off?"*
+- **Autosave:** after every addition, `Documents/CellVerity/otomatik_kayit.xlsx`. Even after a crash or power cut nothing is lost; on restart the program asks *"Continue where you left off?"*
 - **Open previous results (Excel)…:** load a saved Excel file and continue measuring (the same image is not counted twice).
 - Quitting with unsaved results asks whether to save.
 
@@ -350,7 +352,7 @@ Save: plot as PNG (600 dpi), PDF, SVG; statistics as .txt.
 Has **Fiji's own Measure engine** measure the selected cells and background boxes **in the background** (no Fiji window, ~5 seconds) and shows the results side by side with the program's. When the image is added to the results table, the outcome is written to the **Fiji_check** column (e.g. *OK (1.54p99, max diff 3.3e-07 %)*). Changing the selection, boxes or boundaries invalidates the earlier check.
 
 ### 11.2 Open in Fiji
-Opens Fiji with its interface: image, scale, all ROIs in the ROI Manager, Measure results. Files: `Documents/ICC CTCF Olcer/Fiji/<image name>/`.
+Opens Fiji with its interface: image, scale, all ROIs in the ROI Manager, Measure results. Files: `Documents/CellVerity/Fiji/<image name>/`.
 
 ### 11.3 Compare with manually traced ROIs (method validation)
 To quantify how close the automatic boundaries are to manual tracing (recommended for papers):
@@ -424,17 +426,18 @@ To quantify how close the automatic boundaries are to manual tracing (recommende
 
 **Example methods text (adapt to your settings):**
 
-> Corrected total cell fluorescence (CTCF) was quantified as CTCF = integrated density − (cell area × mean background fluorescence) (McCloy et al., 2014) using ICC CTCF Ölçer v2.0.0 (Balcan, 2026; https://doi.org/10.5281/zenodo.23860021), an open-source tool whose measurements are identical to ImageJ/Fiji for the same regions of interest (verified with Fiji 1.54p). Images were acquired on an Olympus BX43 fluorescence microscope with an Olympus DP74 camera (cellSens Entry); FITC fluorescence was measured on the green channel of the unprocessed images (40× objective, 0.145 µm/pixel; calibration read from the embedded scale bar). Cells were segmented from the FITC channel (Li threshold) and touching cells were separated by watershed seeded with DAPI-stained nuclei. Background was the mean of three 50 × 50 pixel cell-free regions per field. Cells touching the image border were excluded. Automatic boundaries were compared with manual Fiji tracing in n = … cells from … images (Bland–Altman bias …%, 95% limits of agreement … to …%; mean Dice …). Statistics were performed on the means of N = … independent experiments using one-way ANOVA followed by Dunnett's test versus control.
+> Corrected total cell fluorescence (CTCF) was quantified as CTCF = integrated density − (cell area × mean background fluorescence) (McCloy et al., 2014) using CellVerity v2.1.0 (formerly ICC CTCF Ölçer; Balcan, 2026; https://doi.org/10.5281/zenodo.23860020), an open-source tool whose measurements are identical to ImageJ/Fiji for the same regions of interest (verified with Fiji 1.54p). Images were acquired on an Olympus BX43 fluorescence microscope with an Olympus DP74 camera (cellSens Entry); FITC fluorescence was measured on the green channel of the unprocessed images (40× objective, 0.145 µm/pixel; calibration read from the embedded scale bar). Cells were segmented from the FITC channel (Li threshold) and touching cells were separated by watershed seeded with DAPI-stained nuclei. Background was the mean of three 50 × 50 pixel cell-free regions per field. Cells touching the image border were excluded. Automatic boundaries were compared with manual Fiji tracing in n = … cells from … images (Bland–Altman bias …%, 95% limits of agreement … to …%; mean Dice …). Statistics were performed on the means of N = … independent experiments using one-way ANOVA followed by Dunnett's test versus control.
 
 The **Methods** sheet in Excel and the *App_version, Nucleus_method, Scale_source, BG_box_px, BG_n, Selection, Manual_edits, Fiji_check* columns in the **Cells** sheet contain everything needed to fill in this text.
 
 **Citation (reference list):**
 
-> Balcan E. (2026). *ICC CTCF Ölçer: per-cell corrected total cell fluorescence (CTCF) quantification for immunocytochemistry images* (Version 2.0.0) [Computer software]. Zenodo. https://doi.org/10.5281/zenodo.23860021
+> Balcan E. (2026). *CellVerity: verifiable per-cell fluorescence (CTCF) quantification for immunocytochemistry images* (Version 2.1.0) [Computer software]. Zenodo. https://doi.org/10.5281/zenodo.23860020
 
 | DOI | When to use |
 |---|---|
-| **10.5281/zenodo.23860021** | **This version** (2.0.0) as used in your paper — recommended for reproducibility |
+| **DOI of the version you used** (v2.1.0: see the Zenodo page) | Recommended for reproducibility — readers can download exactly the version you used |
+| 10.5281/zenodo.23860021 | v2.0.0 (released as *ICC CTCF Ölçer*) |
 | 10.5281/zenodo.23860020 | **All versions** of the program (concept DOI; always resolves to the newest version) |
 
 The version used is recorded in the **App_version** column in Excel; if you measured with a newer version, take that version's DOI from the Zenodo page (https://doi.org/10.5281/zenodo.23860020 → "Versions").
@@ -448,7 +451,7 @@ For the CTCF method: McCloy RA, Rogers S, Caldon CE, Lorca T, Castro A, Burgess 
 | Problem | Solution |
 |---|---|
 | Mac: *"unidentified developer"* | Right-click the app ▸ Open ▸ Open (once) |
-| Mac: *"is damaged and can't be opened"* | Terminal: `xattr -cr "/Applications/ICC CTCF Ölçer.app"` |
+| Mac: *"is damaged and can't be opened"* | Terminal: `xattr -cr "/Applications/CellVerity.app"` |
 | Mac (Apple Silicon, Monterey): does not open | Update macOS to 12.3 or later |
 | Windows: *"Windows protected your PC"* | More info ▸ Run anyway |
 | Slow first start | A font cache is built on first launch (once, ~10–30 s) |
@@ -461,7 +464,7 @@ For the CTCF method: McCloy RA, Rogers S, Caldon CE, Lorca T, Castro A, Burgess 
 | Fiji bridge does not work | Fiji ▸ Choose Fiji location… ; open and close Fiji once yourself (first-run updates) |
 | Interface in the wrong language | View ▸ Language / Dil, then restart |
 
-Questions and bug reports: https://github.com/erdal-b-dot/icc-ctcf-olcer/issues
+Questions and bug reports: https://github.com/erdal-b-dot/cellverity/issues
 
 ---
 

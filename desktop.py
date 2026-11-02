@@ -1,4 +1,4 @@
-"""ICC CTCF Ölçer 2.0 — bağımsız masaüstü arayüzü (PySide6/Qt).
+"""CellVerity (eski adı ICC CTCF Ölçer) — bağımsız masaüstü arayüzü (PySide6/Qt).
 
 Hesaplamalar core.py'dedir (ölçüm tanımları ImageJ/Fiji ile birebir aynı). v2 çekirdek algılaması
 parlak çekirdek gövdesini kullanır (core.Settings.nuc_bright_core); v1.0.0 Streamlit sürümü eskisini kullanır.
@@ -29,7 +29,7 @@ import core
 import i18n
 from i18n import T
 
-SETTINGS_ID = ("ErdalBalcan", "ICC CTCF Olcer")
+SETTINGS_ID = ("ErdalBalcan", "ICC CTCF Olcer")  # iç anahtar; değiştirmeyin (dil/Fiji tercihleri korunur)
 
 
 def _initial_language() -> str:
@@ -44,10 +44,11 @@ import fiji
 import report
 from batch import guess_kind
 
-APP_NAME = "ICC CTCF Ölçer"
-VERSION = "2.1.0-dev"
+APP_NAME = "CellVerity"
+VERSION = "2.1.0"
 IMAGE_FILTER = T("Görüntüler (*.jpg *.jpeg *.tif *.tiff *.png)")
-AUTOSAVE = Path.home() / "Documents" / "ICC CTCF Olcer" / "otomatik_kayit.xlsx"
+AUTOSAVE = Path.home() / "Documents" / "CellVerity" / "otomatik_kayit.xlsx"
+OLD_AUTOSAVE = Path.home() / "Documents" / "ICC CTCF Olcer" / "otomatik_kayit.xlsx"  # 2.1 öncesi
 
 
 def result_meta(a: core.Analysis, fitc: Path, dapi: Path | None, group: str, bg_mode: str, bg_size: int,
@@ -1588,7 +1589,7 @@ class MainWindow(QMainWindow):
         self.refresh_results()
 
     def autosave(self):
-        """Her eklemeden sonra Belgeler/ICC CTCF Olcer/otomatik_kayit.xlsx — çökme/elektrik kesintisine karşı."""
+        """Her eklemeden sonra Belgeler/CellVerity/otomatik_kayit.xlsx — çökme/elektrik kesintisine karşı."""
         try:
             AUTOSAVE.parent.mkdir(parents=True, exist_ok=True)
             report.write_excel(AUTOSAVE, self.results, self.bg_results, VERSION, self.validation,
@@ -1643,15 +1644,16 @@ class MainWindow(QMainWindow):
                                      8000)
 
     def offer_restore(self):
-        if not AUTOSAVE.exists():
+        src = AUTOSAVE if AUTOSAVE.exists() else OLD_AUTOSAVE  # eski ad döneminden kalan kayıt da bulunsun
+        if not src.exists():
             return
         try:
-            n = len(pd.read_excel(AUTOSAVE, sheet_name="Cells"))
+            n = len(pd.read_excel(src, sheet_name="Cells"))
         except Exception:
             return
-        when = datetime.fromtimestamp(AUTOSAVE.stat().st_mtime).strftime("%d.%m.%Y %H:%M")
+        when = datetime.fromtimestamp(src.stat().st_mtime).strftime("%d.%m.%Y %H:%M")
         if n and message(self, "question", T("Son oturumdan otomatik kaydedilmiş {0} hücrelik sonuç var ({1}).\n\nKaldığınız yerden devam edilsin mi?").format(n, when), ask=True):
-            self.load_excel(AUTOSAVE)
+            self.load_excel(src)
 
     def batch_dialog(self):
         BatchDialog(self).exec()
@@ -1688,7 +1690,7 @@ class MainWindow(QMainWindow):
                 if rec.get("Area_unit") == "µm²" else (rec["Area"] / np.pi) ** 0.5
             px, py = cx - x0, cy - y0
             d.ellipse([px - r_px, py - r_px, px + r_px, py + r_px], outline=(255, 220, 0), width=2)
-            f = Path(tempfile.gettempdir()) / f"icc_ctcf_thumb_{abs(hash(key))}.png"
+            f = Path(tempfile.gettempdir()) / f"cellverity_thumb_{abs(hash(key))}.png"
             crop.save(f)
             self._thumbs[key] = f
         from PySide6.QtGui import QCursor

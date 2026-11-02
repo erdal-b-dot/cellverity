@@ -1,7 +1,7 @@
 # Example data / Örnek veri
 
-Two raw FITC + DAPI image pairs for trying out ICC CTCF Ölçer and checking an installation.
-*ICC CTCF Ölçer'i denemek ve kurulumu kontrol etmek için iki ham FITC + DAPI görüntü çifti.*
+Two raw FITC + DAPI image pairs for trying out CellVerity and checking an installation.
+*CellVerity'yi denemek ve kurulumu kontrol etmek için iki ham FITC + DAPI görüntü çifti.*
 
 | Pair | FITC | DAPI | Field |
 |---|---|---|---|
@@ -30,7 +30,7 @@ Small differences can occur between program versions if the segmentation method 
 Images © 2021 Erdal Balcan, Manisa Celal Bayar University. Licensed under **[Creative Commons Attribution 4.0 International (CC BY 4.0)](https://creativecommons.org/licenses/by/4.0/)** — see `LICENSE`.
 You may share and adapt them for any purpose, provided you give appropriate credit:
 
-> Balcan E. (2026). Example immunocytochemistry images (PARC, FITC/DAPI). In: *ICC CTCF Ölçer* [Computer software]. Zenodo. https://doi.org/10.5281/zenodo.23860020
+> Balcan E. (2026). Example immunocytochemistry images (PARC, FITC/DAPI). In: *CellVerity* [Computer software]. Zenodo. https://doi.org/10.5281/zenodo.23860020
 
 *Görüntüler CC BY 4.0 lisanslıdır: kaynak gösterilerek her amaçla paylaşılabilir ve uyarlanabilir.*
 The program code is licensed separately under MIT (`../LICENSE`).

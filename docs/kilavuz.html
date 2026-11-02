@@ -1,4 +1,4 @@
-<!doctype html><html lang='tr'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>ICC CTCF Ölçer Kılavuzu</title><style>
+<!doctype html><html lang='tr'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>CellVerity Kılavuzu</title><style>
 :root{--bg:#fff;--fg:#1d1f23;--muted:#5b6170;--line:#e3e5ea;--code:#f4f5f7;--accent:#2f7d32;--warn:#a15c00}
 @media (prefers-color-scheme:dark){:root{--bg:#16181c;--fg:#e6e7ea;--muted:#a2a7b3;--line:#2c3038;--code:#22252b;--accent:#7fca7f;--warn:#e0a24a}}
 html{background:var(--bg)}body{max-width:920px;margin:0 auto;padding:24px 16px 80px;background:var(--bg);color:var(--fg);
@@ -14,9 +14,10 @@ hr{border:0;border-top:1px solid var(--line);margin:2em 0}
 body{max-width:none;font-size:10.5pt;padding:0}a{color:inherit;text-decoration:none}h2{break-before:page}
 h1+p+hr+h2{break-before:avoid}table{display:table;break-inside:auto}tr,blockquote,pre{break-inside:avoid}
 @page{size:A4;margin:16mm 14mm}}
-</style></head><body><h1 id="icc-ctcf-olcer-2-kullanim-kilavuzu">ICC CTCF Ölçer 2 — Kullanım Kılavuzu</h1>
-<p><em>Sürüm 2.0.0 · Erdal Balcan, Manisa Celal Bayar Üniversitesi · MIT lisansı · DOI: <a href="https://doi.org/10.5281/zenodo.23860021">10.5281/zenodo.23860021</a></em></p>
-<p>Kaynak kod ve indirmeler: https://github.com/erdal-b-dot/icc-ctcf-olcer · English guide: <code>USER_GUIDE.md</code></p>
+</style></head><body><h1 id="cellverity-kullanim-kilavuzu">CellVerity — Kullanım Kılavuzu</h1>
+<p><em>Eski adı: ICC CTCF Ölçer</em></p>
+<p><em>Sürüm 2.1.0 · Erdal Balcan, Manisa Celal Bayar Üniversitesi · MIT lisansı · DOI (tüm sürümler): <a href="https://doi.org/10.5281/zenodo.23860020">10.5281/zenodo.23860020</a></em></p>
+<p>Kaynak kod ve indirmeler: https://github.com/erdal-b-dot/cellverity · English guide: <code>USER_GUIDE.md</code></p>
 <hr />
 <h2 id="icindekiler">İçindekiler</h2>
 <ol>
@@ -87,17 +88,17 @@ h1+p+hr+h2{break-before:avoid}table{display:table;break-inside:auto}tr,blockquot
 <tbody>
 <tr>
 <td>Apple Silicon Mac (M1/M2/M3/M4)</td>
-<td><code>ICC_CTCF_Olcer_2.0.0_mac_AppleSilicon.dmg</code></td>
+<td><code>CellVerity_&lt;sürüm&gt;_mac_AppleSilicon.dmg</code></td>
 <td>macOS 12.3</td>
 </tr>
 <tr>
 <td>Intel Mac (ör. eski iMac)</td>
-<td><code>ICC_CTCF_Olcer_2.0.0_mac_Intel.dmg</code></td>
+<td><code>CellVerity_&lt;sürüm&gt;_mac_Intel.dmg</code></td>
 <td>macOS 12.0 (Monterey)</td>
 </tr>
 <tr>
 <td>Windows 10/11 (64-bit)</td>
-<td><code>ICC_CTCF_Olcer_2.0.0_Windows.zip</code></td>
+<td><code>CellVerity_&lt;sürüm&gt;_Windows.zip</code></td>
 <td>Windows 10</td>
 </tr>
 </tbody>
@@ -107,15 +108,15 @@ h1+p+hr+h2{break-before:avoid}table{display:table;break-inside:auto}tr,blockquot
 Monterey'de Apple Silicon paketi için <strong>macOS 12.3 veya üstü</strong> gerekir: Sistem Tercihleri ▸ Yazılım Güncelleme.</p>
 </blockquote>
 <p><strong>Mac'te:</strong>
-1. <code>.dmg</code> dosyasına çift tıklayın → açılan pencerede <strong>ICC CTCF Ölçer</strong> simgesini yandaki <strong>Uygulamalar</strong> klasörüne sürükleyin. Sonra pencereyi kapatıp Finder kenar çubuğundaki diski çıkarın (⏏).
+1. <code>.dmg</code> dosyasına çift tıklayın → açılan pencerede <strong>CellVerity</strong> simgesini yandaki <strong>Uygulamalar</strong> klasörüne sürükleyin. Sonra pencereyi kapatıp Finder kenar çubuğundaki diski çıkarın (⏏).
 2. <strong>İlk açılışta</strong> çift tıklamayın: uygulamaya <strong>sağ tıklayın ▸ Aç ▸ Aç</strong>. (Program Apple'a ücretli imzalatılmadığı için macOS "tanınmayan geliştirici" uyarısı verir; bu bir kez yapılır.)
 3. "Hasarlı, Çöp Sepeti'ne taşıyın" uyarısı çıkarsa (internetten indirilen dosyalarda olur), Terminal'de bir kez şunu çalıştırın:
-   <code>xattr -cr "/Applications/ICC CTCF Ölçer.app"</code></p>
+   <code>xattr -cr "/Applications/CellVerity.app"</code></p>
 <p><strong>Windows'ta:</strong>
 1. Zip'e sağ tıklayın ▸ <strong>Tümünü ayıkla</strong>. Klasörü örneğin <code>Belgeler</code> içine koyun (zip'in içinden çalıştırmayın).
-2. <code>ICC CTCF Olcer.exe</code>'ye çift tıklayın. "Windows bilgisayarınızı korudu" çıkarsa <strong>Ek bilgi ▸ Yine de çalıştır</strong>.
+2. <code>CellVerity.exe</code>'ye çift tıklayın. "Windows bilgisayarınızı korudu" çıkarsa <strong>Ek bilgi ▸ Yine de çalıştır</strong>.
 3. Masaüstü kısayolu: exe'ye sağ tıklayın ▸ Gönder ▸ Masaüstü (kısayol oluştur).</p>
-<p><strong>İndirme adresi:</strong> https://github.com/erdal-b-dot/icc-ctcf-olcer/releases (en yeni sürüm en üstte).</p>
+<p><strong>İndirme adresi:</strong> https://github.com/erdal-b-dot/cellverity/releases (en yeni sürüm en üstte).</p>
 <p><strong>Başka bir bilgisayara aktarmak:</strong> paket dosyasını paylaşım bağlantısı, USB bellek ya da e-postayla (≈100 MB) gönderin, ya da yukarıdaki indirme adresini paylaşın. Yeni paket üretmek: kaynak kod klasöründe <code>./build_mac.sh</code> (Mac) / <code>build_windows.bat</code> (Windows).</p>
 <h3 id="22-gelistirici-kurulumu-kaynak-koddan">2.2 Geliştirici kurulumu (kaynak koddan)</h3>
 <p>Python ortamıyla çalıştırmak isterseniz (güncellemeleri <code>git pull</code> ile almak için):
@@ -142,7 +143,7 @@ Program Fiji'yi şu yerlerde kendisi arar: <code>İndirilenler/Fiji</code>, <cod
 <hr />
 <h2 id="4-hizli-baslangic-5-dakika">4. Hızlı başlangıç (5 dakika)</h2>
 <blockquote>
-<p>Denemek için örnek görüntüler: repodaki <a href="https://github.com/erdal-b-dot/icc-ctcf-olcer/tree/main/examples"><code>examples/</code></a> klasörü (beklenen sonuçlarıyla iki FITC + DAPI çifti, CC BY 4.0).</p>
+<p>Denemek için örnek görüntüler: repodaki <a href="https://github.com/erdal-b-dot/cellverity/tree/main/examples"><code>examples/</code></a> klasörü (beklenen sonuçlarıyla iki FITC + DAPI çifti, CC BY 4.0).</p>
 </blockquote>
 <ol>
 <li>Programı açın.</li>
@@ -525,7 +526,7 @@ Program Fiji'yi şu yerlerde kendisi arar: <code>İndirilenler/Fiji</code>, <cod
 </ul>
 <h3 id="94-kaybetmemek-icin">9.4 Kaybetmemek için</h3>
 <ul>
-<li><strong>Otomatik kayıt:</strong> her eklemeden sonra <code>Belgeler/ICC CTCF Olcer/otomatik_kayit.xlsx</code>. Program çökse ya da elektrik gitse bile kaybolmaz; yeniden açınca <em>"devam edilsin mi?"</em> diye sorar.</li>
+<li><strong>Otomatik kayıt:</strong> her eklemeden sonra <code>Belgeler/CellVerity/otomatik_kayit.xlsx</code>. Program çökse ya da elektrik gitse bile kaybolmaz; yeniden açınca <em>"devam edilsin mi?"</em> diye sorar.</li>
 <li><strong>Önceki sonuçları aç (Excel)…:</strong> kaydettiğiniz bir Excel'i yükleyip ölçmeye devam edin (aynı görüntü iki kez sayılmaz).</li>
 <li>Kaydedilmemiş sonuçla programı kapatırsanız kaydetmek isteyip istemediğiniz sorulur.</li>
 </ul>
@@ -607,7 +608,7 @@ Program Fiji'yi şu yerlerde kendisi arar: <code>İndirilenler/Fiji</code>, <cod
 <h3 id="111-fiji-ile-dogrula-f">11.1 Fiji ile doğrula (⌘⇧F)</h3>
 <p>Seçili hücreleri ve background kutularını <strong>Fiji'nin kendi Measure motoruna arka planda</strong> ölçtürür (Fiji penceresi açılmaz, ~5 saniye) ve sonuçları programınkilerle yan yana gösterir. Sonuç, görüntü sonuç tablosuna eklenince Excel'de <strong>Fiji_check</strong> sütununa yazılır (ör. <em>OK (1.54p99, max fark 3.3e-07 %)</em>). Seçim, kutu ya da sınır değişirse önceki doğrulama geçersiz sayılır.</p>
 <h3 id="112-fijide-ac">11.2 Fiji'de aç</h3>
-<p>Fiji'yi arayüzüyle açar: görüntü, ölçek, ROI Manager'da tüm ROI'ler, Measure sonuçları. Dosyalar: <code>Belgeler/ICC CTCF Olcer/Fiji/&lt;görüntü adı&gt;/</code>.</p>
+<p>Fiji'yi arayüzüyle açar: görüntü, ölçek, ROI Manager'da tüm ROI'ler, Measure sonuçları. Dosyalar: <code>Belgeler/CellVerity/Fiji/&lt;görüntü adı&gt;/</code>.</p>
 <h3 id="113-elle-cizilmis-roilerle-karsilastir-yontem-dogrulamasi">11.3 Elle çizilmiş ROI'lerle karşılaştır (yöntem doğrulaması)</h3>
 <p>Programın otomatik sınırlarının elle çizime ne kadar yakın olduğunu ölçmek için (makale için önerilir):</p>
 <ol>
@@ -827,12 +828,12 @@ Program Fiji'yi şu yerlerde kendisi arar: <code>İndirilenler/Fiji</code>, <cod
 <h2 id="13-makale-icin-yontem-metni-ve-atif">13. Makale için: yöntem metni ve atıf</h2>
 <p><strong>Örnek yöntem metni (İngilizce, kendi ayarlarınıza göre düzenleyin):</strong></p>
 <blockquote>
-<p>Corrected total cell fluorescence (CTCF) was quantified as CTCF = integrated density − (cell area × mean background fluorescence) (McCloy et al., 2014) using ICC CTCF Ölçer v2.0.0 (Balcan, 2026; https://doi.org/10.5281/zenodo.23860021), an open-source tool whose measurements are identical to ImageJ/Fiji for the same regions of interest (verified with Fiji 1.54p). Images were acquired on an Olympus BX43 fluorescence microscope with an Olympus DP74 camera (cellSens Entry); FITC fluorescence was measured on the green channel of the unprocessed images (40× objective, 0.145 µm/pixel; calibration read from the embedded scale bar). Cells were segmented from the FITC channel (Li threshold) and touching cells were separated by watershed seeded with DAPI-stained nuclei. Background was the mean of three 50 × 50 pixel cell-free regions per field. Cells touching the image border were excluded. Automatic boundaries were compared with manual Fiji tracing in n = … cells from … images (Bland–Altman bias …%, 95% limits of agreement … to …%; mean Dice …). Statistics were performed on the means of N = … independent experiments using one-way ANOVA followed by Dunnett's test versus control.</p>
+<p>Corrected total cell fluorescence (CTCF) was quantified as CTCF = integrated density − (cell area × mean background fluorescence) (McCloy et al., 2014) using CellVerity v2.1.0 (formerly ICC CTCF Ölçer; Balcan, 2026; https://doi.org/10.5281/zenodo.23860020), an open-source tool whose measurements are identical to ImageJ/Fiji for the same regions of interest (verified with Fiji 1.54p). Images were acquired on an Olympus BX43 fluorescence microscope with an Olympus DP74 camera (cellSens Entry); FITC fluorescence was measured on the green channel of the unprocessed images (40× objective, 0.145 µm/pixel; calibration read from the embedded scale bar). Cells were segmented from the FITC channel (Li threshold) and touching cells were separated by watershed seeded with DAPI-stained nuclei. Background was the mean of three 50 × 50 pixel cell-free regions per field. Cells touching the image border were excluded. Automatic boundaries were compared with manual Fiji tracing in n = … cells from … images (Bland–Altman bias …%, 95% limits of agreement … to …%; mean Dice …). Statistics were performed on the means of N = … independent experiments using one-way ANOVA followed by Dunnett's test versus control.</p>
 </blockquote>
 <p>Excel'deki <strong>Methods</strong> sayfası ve <strong>Cells</strong> sayfasındaki <em>App_version, Nucleus_method, Scale_source, BG_box_px, BG_n, Selection, Manual_edits, Fiji_check</em> sütunları bu metni doldurmak için gereken bilgileri içerir.</p>
 <p><strong>Atıf (kaynakçaya):</strong></p>
 <blockquote>
-<p>Balcan E. (2026). <em>ICC CTCF Ölçer: per-cell corrected total cell fluorescence (CTCF) quantification for immunocytochemistry images</em> (Version 2.0.0) [Computer software]. Zenodo. https://doi.org/10.5281/zenodo.23860021</p>
+<p>Balcan E. (2026). <em>CellVerity: verifiable per-cell fluorescence (CTCF) quantification for immunocytochemistry images</em> (Version 2.1.0) [Computer software]. Zenodo. https://doi.org/10.5281/zenodo.23860020</p>
 </blockquote>
 <table>
 <thead>
@@ -843,8 +844,12 @@ Program Fiji'yi şu yerlerde kendisi arar: <code>İndirilenler/Fiji</code>, <cod
 </thead>
 <tbody>
 <tr>
-<td><strong>10.5281/zenodo.23860021</strong></td>
-<td>Makalede kullandığınız <strong>bu sürüm</strong> (2.0.0) — önerilen; tekrarlanabilirlik için sürüm belli olur</td>
+<td><strong>Kullandığınız sürümün DOI'si</strong> (v2.1.0: Zenodo sayfasında)</td>
+<td>Önerilen; okuyucu tam olarak sizin kullandığınız sürümü indirebilir</td>
+</tr>
+<tr>
+<td>10.5281/zenodo.23860021</td>
+<td>v2.0.0 (<em>ICC CTCF Ölçer</em> adıyla yayımlandı)</td>
 </tr>
 <tr>
 <td>10.5281/zenodo.23860020</td>
@@ -869,7 +874,7 @@ Program Fiji'yi şu yerlerde kendisi arar: <code>İndirilenler/Fiji</code>, <cod
 </tr>
 <tr>
 <td>Mac: <em>"hasarlı, Çöp Sepeti'ne taşıyın"</em></td>
-<td>Terminal: <code>xattr -cr "/Applications/ICC CTCF Ölçer.app"</code></td>
+<td>Terminal: <code>xattr -cr "/Applications/CellVerity.app"</code></td>
 </tr>
 <tr>
 <td>Mac (Apple Silicon, Monterey): açılmıyor</td>
@@ -917,7 +922,7 @@ Program Fiji'yi şu yerlerde kendisi arar: <code>İndirilenler/Fiji</code>, <cod
 </tr>
 </tbody>
 </table>
-<p>Soru ve hata bildirimi: https://github.com/erdal-b-dot/icc-ctcf-olcer/issues</p>
+<p>Soru ve hata bildirimi: https://github.com/erdal-b-dot/cellverity/issues</p>
 <hr />
 <h2 id="15-teknik-ayrintilar">15. Teknik ayrıntılar</h2>
 <p><strong>Ölçüm tanımları (ImageJ ile aynı):</strong>

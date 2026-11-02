@@ -1,4 +1,6 @@
-# ICC CTCF Ölçer
+# CellVerity
+
+*Formerly ICC CTCF Ölçer*
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23860020.svg)](https://doi.org/10.5281/zenodo.23860020)
 
@@ -22,16 +24,16 @@ CTCF = Integrated density − (Cell area × Mean background)        (McCloy et a
 - **Turkish and English** interface; autosave; images never leave your computer
 
 ## Download
-Stand-alone apps (no Python needed): **[Releases](https://github.com/erdal-b-dot/icc-ctcf-olcer/releases)**
+Stand-alone apps (no Python needed): **[Releases](https://github.com/erdal-b-dot/cellverity/releases)**
 
 | Computer | File | Requires |
 |---|---|---|
-| Apple Silicon Mac (M1–M4) | `…_mac_AppleSilicon.dmg` | macOS 12.3+ |
-| Intel Mac | `…_mac_Intel.dmg` | macOS 12.0+ |
-| Windows 10/11 | `…_Windows.zip` | Windows 10+ |
+| Apple Silicon Mac (M1–M4) | `CellVerity_…_mac_AppleSilicon.dmg` | macOS 12.3+ |
+| Intel Mac | `CellVerity_…_mac_Intel.dmg` | macOS 12.0+ |
+| Windows 10/11 | `CellVerity_…_Windows.zip` | Windows 10+ |
 
 macOS: open the DMG, drag the app to Applications; on first launch **right-click ▸ Open** (the app is not notarized).
-Windows: extract the zip, run `ICC CTCF Olcer.exe`; if SmartScreen appears: **More info ▸ Run anyway**.
+Windows: extract the zip, run `CellVerity.exe`; if SmartScreen appears: **More info ▸ Run anyway**.
 
 **User guide:** [English](docs/USER_GUIDE.md) ([PDF](docs/USER_GUIDE.pdf)) · [Türkçe](docs/KULLANIM_KILAVUZU.md) ([PDF](docs/KULLANIM_KILAVUZU.pdf)) — also in the app: Help ▸ User guide (F1).
 
@@ -46,9 +48,9 @@ Windows: extract the zip, run `ICC CTCF Olcer.exe`; if SmartScreen appears: **Mo
 **Scope:** developed and validated with images acquired by the author on an **Olympus BX43** fluorescence microscope with an **Olympus DP74** colour camera and **cellSens Entry** software (FITC + DAPI). Measurements work on other images; if the scale-bar label cannot be read, the program warns you and asks for the value.
 
 ## Citation
-Balcan E. (2026). *ICC CTCF Ölçer: per-cell corrected total cell fluorescence (CTCF) quantification for immunocytochemistry images* (Version 2.0.0) [Computer software]. Zenodo. https://doi.org/10.5281/zenodo.23860021
+Balcan E. (2026). *CellVerity: verifiable per-cell fluorescence (CTCF) quantification for immunocytochemistry images* (Version 2.1.0) [Computer software]. Zenodo. https://doi.org/10.5281/zenodo.23860020
 
-- This version (2.0.0): [10.5281/zenodo.23860021](https://doi.org/10.5281/zenodo.23860021)
+- v2.0.0 (as ICC CTCF Ölçer): [10.5281/zenodo.23860021](https://doi.org/10.5281/zenodo.23860021)
 - All versions (resolves to the latest): [10.5281/zenodo.23860020](https://doi.org/10.5281/zenodo.23860020)
 
 Please also cite the CTCF method: McCloy RA et al. (2014) *Cell Cycle* 13(9):1400–1412, https://doi.org/10.4161/cc.28401. See `CITATION.cff`.
@@ -74,18 +76,18 @@ Build stand-alone packages: `./build_mac.sh` (Apple Silicon + Intel DMGs) · `bu
 | `app.py` | v1 browser interface (Streamlit, Turkish) — kept for reference |
 | `tests/test_core.py` | Validation tests (Fiji-verified values, statistics, translations) |
 
-Issues and suggestions: [GitHub Issues](https://github.com/erdal-b-dot/icc-ctcf-olcer/issues). License: MIT.
+Issues and suggestions: [GitHub Issues](https://github.com/erdal-b-dot/cellverity/issues). License: MIT.
 
 ---
 
 ## Türkçe
 
-**ICC CTCF Ölçer**, immunositokimya floresan görüntülerinde hücre başına **CTCF** ölçen bir masaüstü programıdır. ImageJ'deki elle yapılan iş akışını otomatikleştirir; ölçümleri ImageJ/Fiji ile birebir aynıdır.
+**CellVerity** (eski adı ICC CTCF Ölçer), immunositokimya floresan görüntülerinde hücre başına **CTCF** ölçen bir masaüstü programıdır. ImageJ'deki elle yapılan iş akışını otomatikleştirir; ölçümleri ImageJ/Fiji ile birebir aynıdır.
 
-- **İndirme:** [Releases](https://github.com/erdal-b-dot/icc-ctcf-olcer/releases) — Mac (Apple Silicon / Intel) `.dmg`, Windows `.zip`. Python gerekmez.
+- **İndirme:** [Releases](https://github.com/erdal-b-dot/cellverity/releases) — Mac (Apple Silicon / Intel) `.dmg`, Windows `.zip`. Python gerekmez.
 - **Örnek veri:** [`examples/`](examples/) — iki ham FITC + DAPI çifti ve beklenen sonuçlar (CC BY 4.0).
 - **Kullanım kılavuzu:** [KULLANIM_KILAVUZU.md](docs/KULLANIM_KILAVUZU.md) ([PDF](docs/KULLANIM_KILAVUZU.pdf)); programda Yardım ▸ Kullanım kılavuzu (F1).
 - **Dil:** Arayüz bilgisayarın diline göre Türkçe ya da İngilizce açılır; Görünüm ▸ Dil / Language ile değiştirilir.
 - **Özellikler:** ölçek çubuğundan otomatik kalibrasyon; FITC'den hücre, DAPI'den çekirdek bulma; değen hücreleri çekirdeklere göre ayırma; otomatik/taşınabilir/elle background; sınır düzeltme (böl, birleştir, sil, çiz); klasörü toplu ölçme; Dunnett dahil grup istatistiği (hücre/görüntü/deney ortalaması); ayrıntılı Excel; Fiji köprüsü ve Bland–Altman doğrulaması.
-- **Atıf:** yukarıdaki *Citation* bölümü; DOI 10.5281/zenodo.23860021.
+- **Atıf:** yukarıdaki *Citation* bölümü; DOI (tüm sürümler) 10.5281/zenodo.23860020.
 - Eski tarayıcı sürümü (v1, Streamlit): `v1.0.0` etiketi.

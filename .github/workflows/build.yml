@@ -20,9 +20,9 @@ jobs:
         shell: bash
       - run: |
           if [ "$RUNNER_OS" = "Windows" ]; then PI=.build/Scripts/pyinstaller; else PI=.build/bin/pyinstaller; fi
-          $PI --noconfirm --clean --distpath dist --workpath build icc_ctcf.spec
+          $PI --noconfirm --clean --distpath dist --workpath build cellverity.spec
         shell: bash
       - uses: actions/upload-artifact@v4
         with:
-          name: ICC_CTCF_Olcer_${{ matrix.name }}
+          name: CellVerity_${{ matrix.name }}
           path: dist/

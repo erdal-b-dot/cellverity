@@ -1,15 +1,15 @@
 cff-version: 1.2.0
 message: "Bu yazılımı kullanırsanız lütfen aşağıdaki şekilde atıf yapın."
-title: "ICC CTCF Ölçer: immunositokimya görüntülerinde hücre başına CTCF ölçüm aracı"
+title: "CellVerity: verifiable per-cell fluorescence (CTCF) quantification for immunocytochemistry images"
 type: software
 authors:
   - family-names: Balcan
     given-names: Erdal
     affiliation: "Manisa Celal Bayar Üniversitesi"
     orcid: "https://orcid.org/0000-0001-7675-1386"
-version: 2.0.0
-date-released: 2026-11-01
-repository-code: "https://github.com/erdal-b-dot/icc-ctcf-olcer"
+version: 2.1.0
+date-released: 2026-11-02
+repository-code: "https://github.com/erdal-b-dot/cellverity"
 doi: "10.5281/zenodo.23860020"
 identifiers:
   - type: doi

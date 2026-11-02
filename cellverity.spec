@@ -1,4 +1,4 @@
-# PyInstaller tarifi — ICC CTCF Ölçer 2 (masaüstü). Derleme: ./build_mac.sh  /  build_windows.bat
+# PyInstaller tarifi — CellVerity (eski adı ICC CTCF Ölçer) masaüstü programı. Derleme: ./build_mac.sh  /  build_windows.bat
 import sys
 from PyInstaller.utils.hooks import collect_submodules
 
@@ -18,11 +18,11 @@ a = Analysis(
     noarchive=False,
 )
 pyz = PYZ(a.pure)
-exe = EXE(pyz, a.scripts, [], exclude_binaries=True, name="ICC CTCF Olcer", console=False,
+exe = EXE(pyz, a.scripts, [], exclude_binaries=True, name="CellVerity", console=False,
           icon="assets/icon.ico" if sys.platform == "win32" else "assets/icon.icns")
-coll = COLLECT(exe, a.binaries, a.datas, name="ICC CTCF Olcer")
+coll = COLLECT(exe, a.binaries, a.datas, name="CellVerity")
 if sys.platform == "darwin":
-    app = BUNDLE(coll, name="ICC CTCF Ölçer.app", icon="assets/icon.icns", bundle_identifier="tr.edu.cbu.icc-ctcf",
+    app = BUNDLE(coll, name="CellVerity.app", icon="assets/icon.icns", bundle_identifier="tr.edu.cbu.cellverity",
                  # Dil beyanı olmazsa macOS paketlenmiş uygulamaya sistem dili Türkçe olsa da İngilizce bildirir
                  info_plist={"CFBundleShortVersionString": "2.1.0", "NSHighResolutionCapable": True,
                              "CFBundleDevelopmentRegion": "tr", "CFBundleLocalizations": ["tr", "en"],

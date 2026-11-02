@@ -1,7 +1,7 @@
 {
-  "title": "ICC CTCF Ölçer: per-cell corrected total cell fluorescence (CTCF) quantification for immunocytochemistry images",
+  "title": "CellVerity: verifiable per-cell fluorescence (CTCF) quantification for immunocytochemistry images",
   "upload_type": "software",
-  "description": "<p>Desktop application (macOS, Windows) that automates the ImageJ corrected total cell fluorescence (CTCF) workflow for immunocytochemistry images: CTCF = integrated density − (cell area × mean background). It reads the scale-bar calibration from cellSens images, segments cells from the FITC channel and separates touching cells using DAPI-stained nuclei, places background regions automatically (movable/manual), supports manual boundary correction (split, merge, delete, draw), batch processing of folders with FITC–DAPI pairing by image overlap, group statistics (one-way ANOVA, Kruskal–Wallis, Dunnett versus a chosen control, Tukey; statistics on cell, image or independent-experiment means) and Excel export with full provenance. Measurements are identical to ImageJ/Fiji for the same regions of interest; a built-in Fiji bridge re-measures the same ROIs with Fiji's own Analyzer and reports the differences, and manually traced Fiji ROI sets can be compared with the automatic boundaries (Bland–Altman, Dice).</p>",
+  "description": "<p>CellVerity (formerly ICC CTCF Ölçer) is a desktop application (macOS, Windows) that automates the ImageJ corrected total cell fluorescence (CTCF) workflow for immunocytochemistry images: CTCF = integrated density − (cell area × mean background). It reads the scale-bar calibration from cellSens images, segments cells from the FITC channel and separates touching cells using DAPI-stained nuclei, places background regions automatically (movable/manual), supports manual boundary correction (split, merge, delete, draw), batch processing of folders with FITC–DAPI pairing by image overlap, group statistics (one-way ANOVA, Kruskal–Wallis, Dunnett versus a chosen control, Tukey; statistics on cell, image or independent-experiment means) and Excel export with full provenance. Measurements are identical to ImageJ/Fiji for the same regions of interest; a built-in Fiji bridge re-measures the same ROIs with Fiji's own Analyzer and reports the differences, and manually traced Fiji ROI sets can be compared with the automatic boundaries (Bland–Altman, Dice).</p>",
   "creators": [
     {
       "name": "Balcan, Erdal",
@@ -19,7 +19,10 @@
     "Fiji",
     "cell segmentation",
     "DAPI",
-    "image analysis"
+    "image analysis",
+    "CellVerity",
+    "quality control",
+    "reproducibility"
   ],
   "language": "eng",
   "related_identifiers": [
@@ -29,6 +32,6 @@
       "resource_type": "publication-article"
     }
   ],
-  "version": "2.0.0",
+  "version": "2.1.0",
   "notes": "Developed and validated with images acquired on an Olympus BX43 fluorescence microscope, Olympus DP74 colour camera and cellSens Entry software. Example images in examples/ are licensed CC BY 4.0 (© 2021 Erdal Balcan); program code is MIT-licensed."
 }
