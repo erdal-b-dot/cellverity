@@ -303,6 +303,7 @@ Her FITC, **aynı klasörde ±3 numara içindeki** DAPI'ler arasından, **çekir
 ### 9.2 Cells sayfasındaki önemli sütunlar
 | Sütun | Anlamı |
 |---|---|
+| Protein | Ölçülen protein / hedef ([10.2](#102-protein-paneli-birden-cok-protein-yolak-duzeyi)) |
 | Area, Mean, StdDev, Min, Max, IntDen, RawIntDen | ImageJ ile aynı tanımlar |
 | BG_Mean, CTCF, CTCF_per_Area | Background ortalaması, CTCF, CTCF/alan (= Mean − BG_Mean) |
 | Saturated_px | Doymuş piksel sayısı (0 olmalı) |
@@ -359,6 +360,20 @@ Aynı deneyden gelen hücreler birbirinden bağımsız değildir. Her hücreyi a
 Dunnett p değerleri sayısal integrasyonla hesaplanır; program sabit tohum kullanır, **aynı veri her zaman aynı p'yi** verir.
 
 Kaydet: grafik PNG (600 dpi), PDF, SVG; istatistik metni .txt.
+
+### 10.2 Protein paneli (birden çok protein, yolak düzeyi)
+Bir ilacın yolak üzerindeki etkisini görmek için proteinlerin **aynı hücrede** ölçülmesi gerekmez. Aynı deneyde X proteini bir grup kuyuda, Y proteini başka kuyularda tek kanalla ölçülebilir.
+
+1. Her görüntüyü eklerken sağ paneldeki **Protein / hedef** alanına proteini yazın (ör. *p53*). Toplu ölçümde klasör düzeni `Protein/Deney_1/Kontrol/…` ise protein klasör adından okunur; değilse pencerede bütün klasör için tek bir ad girilebilir.
+2. **Sonuçlar ▸ Protein paneli… (⌘⇧G).**
+
+- Farklı proteinler farklı antikorlarla ölçüldüğü için **ham CTCF değerleri proteinler arasında karşılaştırılamaz**. Her protein, **aynı deneydeki kendi kontrolüne** oranlanır (kat değişimi; deney ortalamaları üzerinden).
+- Grafik: büyük nokta = geometrik ortalama kat değişimi, çizgi = %95 güven aralığı, küçük noktalar = bağımsız deneyler, kesikli çizgi = kontrol (1).
+- Test: log₂(kat değişimi) = 0 için tek örneklem t-testi (GraphPad'deki *ratio paired t test* eşdeğeri), her proteinde gruplar arası **Holm** düzeltmesi. n = bağımsız deney (en az 3 önerilir).
+- Kontrol grubu olmayan deney atlanır ve metinde belirtilir. Excel'de **Protein_panel** (özet) ve **Protein_panel_experiments** (deney başına kat değişimi) sayfaları yazılır.
+- Birden çok protein varsa **Grafik ve istatistik** penceresi protein seçtirir; gruplar arası testler her protein için ayrı yapılır.
+
+> ℹ️ Bu görünüm proteinlerin **yolak düzeyindeki** birlikte değişimini gösterir (ör. ilaçla p53 artarken MDM2 de artıyor mu?). Aynı hücredeki ilişkiyi göstermez; bunun için çift boyama gerekir.
 
 ---
 

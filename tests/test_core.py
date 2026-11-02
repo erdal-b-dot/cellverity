@@ -401,6 +401,51 @@ def test_nuclear_cytoplasmic():
     assert np.isnan(rowe["NC_ratio"])
 
 
+def test_protein_panel():
+    """Protein paneli: her protein aynı deneydeki kendi kontrolüne oranlanır; log2 kat değişimi için tek örneklem t,
+    protein içinde Holm. Kontrolü olmayan deney atlanır. Excel'de Protein_panel sayfaları; özetler proteine göre ayrı."""
+    import tempfile
+    import pandas as pd
+    from scipy import stats as sps
+    import batch
+    import report
+    fcs = {"p53": {"D10": [1.8, 2.0, 2.2], "D50": [2.9, 3.0, 3.3]}, "MDM2": {"D10": [1.4, 1.5, 1.7], "D50": [0.9, 1.1, 1.2]}}
+    rows = []
+    for prot, base in (("p53", 1000.0), ("MDM2", 50000.0)):
+        for e in range(3):
+            ctrl = base * (1 + 0.1 * e)  # deneyler arası fark: oranlamayla ortadan kalkmalı
+            for v in (0.9, 1.1):  # iki hücre, ortalaması ctrl
+                rows.append({"Protein": prot, "Experiment": str(e + 1), "Group": "Kontrol", "CTCF": ctrl * v})
+            for g in ("D10", "D50"):
+                for v in (0.9, 1.1):
+                    rows.append({"Protein": prot, "Experiment": str(e + 1), "Group": g, "CTCF": ctrl * fcs[prot][g][e] * v})
+    rows.append({"Protein": "p53", "Experiment": "4", "Group": "D10", "CTCF": 5.0})  # kontrolsüz deney → atlanır
+    res = pd.DataFrame(rows)
+    fc, s, txt = report.protein_panel(res, "CTCF", "Kontrol")
+    for prot in fcs:
+        ps = []
+        for g in ("D10", "D50"):
+            row = s[(s["Protein"] == prot) & (s["Group"] == g)].iloc[0]
+            lv = np.log2(fcs[prot][g])
+            assert row["n_experiments"] == 3 and abs(row["FC_geomean"] - 2 ** lv.mean()) < 1e-9
+            assert abs(row["p"] - sps.ttest_1samp(lv, 0).pvalue) < 1e-12
+            assert row["CI95_low"] < row["FC_geomean"] < row["CI95_high"]
+            ps.append(row["p"])
+        holm = sorted(ps)  # iki test: küçük p × 2, büyük p = max(önceki, kendisi)
+        adj = {holm[0]: min(1, 2 * holm[0]), holm[1]: max(min(1, 2 * holm[0]), holm[1])}
+        for g, pv in zip(("D10", "D50"), ps):
+            assert abs(s[(s["Protein"] == prot) & (s["Group"] == g)].iloc[0]["p_Holm"] - adj[pv]) < 1e-12
+    assert len(fc[fc["Experiment"] == "4"]) == 0 and "4" in txt  # atlandığı metinde yazar (dil bağımsız)
+    assert set(report.group_summary(res)["Protein"]) == {"p53", "MDM2"}  # proteinler karışmaz
+    with tempfile.TemporaryDirectory() as d:
+        report.write_excel(Path(d) / "p.xlsx", res.assign(Image="x", Image_path="x"), pd.DataFrame(), "test")
+        sheets = pd.ExcelFile(Path(d) / "p.xlsx").sheet_names
+    assert "Protein_panel" in sheets and "Protein_panel_experiments" in sheets
+    f = Path("/v/sec")
+    assert batch.protein_of(f / "p53" / "Deney_1" / "Kontrol" / "a.jpg", f) == "p53"
+    assert batch.protein_of(f / "Deney_1" / "Kontrol" / "a.jpg", f) == ""
+
+
 if __name__ == "__main__":
     if not FITC.exists():
         sys.exit(f"Örnek görüntü yok: {FITC}")
@@ -415,6 +460,7 @@ if __name__ == "__main__":
     test_manual_edits()
     test_fiji_bridge()
     test_nuclear_cytoplasmic()
+    test_protein_panel()
     test_translations()
     test_chance_corrected_pairing()
     test_scale_bar_hard_cases()

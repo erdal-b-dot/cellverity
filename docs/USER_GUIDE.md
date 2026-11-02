@@ -301,6 +301,7 @@ Each FITC is paired with the DAPI, among those **within ±3 file numbers in the 
 ### 9.2 Key columns in the Cells sheet
 | Column | Meaning |
 |---|---|
+| Protein | Protein / target measured ([10.2](#102-protein-panel-several-proteins-pathway-level)) |
 | Area, Mean, StdDev, Min, Max, IntDen, RawIntDen | Same definitions as ImageJ |
 | BG_Mean, CTCF, CTCF_per_Area | Background mean, CTCF, CTCF/area (= Mean − BG_Mean) |
 | Saturated_px | Saturated pixel count (should be 0) |
@@ -357,6 +358,20 @@ Cells from the same experiment are not independent. Counting every cell as a rep
 Dunnett p values are computed by numerical integration; the program uses a fixed seed, so **the same data always give the same p**.
 
 Save: plot as PNG (600 dpi), PDF, SVG; statistics as .txt.
+
+### 10.2 Protein panel (several proteins, pathway level)
+To see a drug's effect on a pathway, the proteins do **not** need to be measured in the same cell. In the same experiment, protein X can be measured in one set of wells and protein Y in others, each with a single channel.
+
+1. When adding each image, type the protein in the **Protein / target** field of the right panel (e.g. *p53*). In batch mode, a `Protein/Experiment_1/Control/…` folder layout gives the protein from the folder name; otherwise one name for the whole folder can be entered in the dialog.
+2. **Results ▸ Protein panel… (⌘⇧G).**
+
+- Different proteins are measured with different antibodies, so **raw CTCF values cannot be compared between proteins**. Each protein is normalised to **its own control in the same experiment** (fold change; from experiment means).
+- Plot: large dot = geometric-mean fold change, line = 95 % confidence interval, small dots = independent experiments, dashed line = control (1).
+- Test: one-sample t-test of log₂(fold change) = 0 (equivalent to GraphPad's *ratio paired t test*), **Holm** correction across groups within each protein. n = independent experiments (at least 3 recommended).
+- An experiment without a control group is skipped and reported. Excel gets **Protein_panel** (summary) and **Protein_panel_experiments** (fold change per experiment) sheets.
+- With several proteins, the **Plots and statistics** dialog asks for a protein; group comparisons are done separately for each protein.
+
+> ℹ️ This view shows how the proteins change together **at the pathway level** (e.g. does MDM2 rise when p53 rises with the drug?). It does not show the relationship within the same cell; that needs double staining.
 
 ---
 

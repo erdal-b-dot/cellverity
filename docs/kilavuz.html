@@ -487,6 +487,10 @@ Program Fiji'yi şu yerlerde kendisi arar: <code>İndirilenler/Fiji</code>, <cod
 </thead>
 <tbody>
 <tr>
+<td>Protein</td>
+<td>Ölçülen protein / hedef (<a href="#102-protein-paneli-birden-cok-protein-yolak-duzeyi">10.2</a>)</td>
+</tr>
+<tr>
 <td>Area, Mean, StdDev, Min, Max, IntDen, RawIntDen</td>
 <td>ImageJ ile aynı tanımlar</td>
 </tr>
@@ -624,6 +628,24 @@ Program Fiji'yi şu yerlerde kendisi arar: <code>İndirilenler/Fiji</code>, <cod
 <p><strong>Öneri:</strong> yayında istatistiği <strong>bağımsız deney ortalamaları</strong> (en az 3 deney) üzerinden yapın; hücre düzeyindeki noktaları grafikte gösterebilirsiniz. Program hücre düzeyinde test yaparsanız uyarır.</p>
 <p>Dunnett p değerleri sayısal integrasyonla hesaplanır; program sabit tohum kullanır, <strong>aynı veri her zaman aynı p'yi</strong> verir.</p>
 <p>Kaydet: grafik PNG (600 dpi), PDF, SVG; istatistik metni .txt.</p>
+<h3 id="102-protein-paneli-birden-cok-protein-yolak-duzeyi">10.2 Protein paneli (birden çok protein, yolak düzeyi)</h3>
+<p>Bir ilacın yolak üzerindeki etkisini görmek için proteinlerin <strong>aynı hücrede</strong> ölçülmesi gerekmez. Aynı deneyde X proteini bir grup kuyuda, Y proteini başka kuyularda tek kanalla ölçülebilir.</p>
+<ol>
+<li>Her görüntüyü eklerken sağ paneldeki <strong>Protein / hedef</strong> alanına proteini yazın (ör. <em>p53</em>). Toplu ölçümde klasör düzeni <code>Protein/Deney_1/Kontrol/…</code> ise protein klasör adından okunur; değilse pencerede bütün klasör için tek bir ad girilebilir.</li>
+<li>
+<p><strong>Sonuçlar ▸ Protein paneli… (⌘⇧G).</strong></p>
+</li>
+<li>
+<p>Farklı proteinler farklı antikorlarla ölçüldüğü için <strong>ham CTCF değerleri proteinler arasında karşılaştırılamaz</strong>. Her protein, <strong>aynı deneydeki kendi kontrolüne</strong> oranlanır (kat değişimi; deney ortalamaları üzerinden).</p>
+</li>
+<li>Grafik: büyük nokta = geometrik ortalama kat değişimi, çizgi = %95 güven aralığı, küçük noktalar = bağımsız deneyler, kesikli çizgi = kontrol (1).</li>
+<li>Test: log₂(kat değişimi) = 0 için tek örneklem t-testi (GraphPad'deki <em>ratio paired t test</em> eşdeğeri), her proteinde gruplar arası <strong>Holm</strong> düzeltmesi. n = bağımsız deney (en az 3 önerilir).</li>
+<li>Kontrol grubu olmayan deney atlanır ve metinde belirtilir. Excel'de <strong>Protein_panel</strong> (özet) ve <strong>Protein_panel_experiments</strong> (deney başına kat değişimi) sayfaları yazılır.</li>
+<li>Birden çok protein varsa <strong>Grafik ve istatistik</strong> penceresi protein seçtirir; gruplar arası testler her protein için ayrı yapılır.</li>
+</ol>
+<blockquote>
+<p>ℹ️ Bu görünüm proteinlerin <strong>yolak düzeyindeki</strong> birlikte değişimini gösterir (ör. ilaçla p53 artarken MDM2 de artıyor mu?). Aynı hücredeki ilişkiyi göstermez; bunun için çift boyama gerekir.</p>
+</blockquote>
 <hr />
 <h2 id="11-fiji-koprusu-ve-yontem-dogrulamasi">11. Fiji köprüsü ve yöntem doğrulaması</h2>
 <p><strong>Fiji menüsü:</strong></p>

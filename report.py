@@ -11,7 +11,7 @@ import pandas as pd
 
 from i18n import T
 
-FRONT = ["Group", "Experiment", "Image", "Cell", "Area_unit", "Area", "Mean", "StdDev", "Min", "Max",
+FRONT = ["Protein", "Group", "Experiment", "Image", "Cell", "Area_unit", "Area", "Mean", "StdDev", "Min", "Max",
          "IntDen", "RawIntDen", "BG_Mean", "CTCF", "CTCF_per_Area"]
 METRICS = {"CTCF": "CTCF (a.u.)", "CTCF_per_Area": "CTCF / Area (a.u./{unit})", "Mean": "Mean intensity",
            "IntDen": "Integrated density", "Area": "Area ({unit})",
@@ -46,7 +46,8 @@ def add_background(bg_results: pd.DataFrame, bg: pd.DataFrame, image: str, image
 def group_summary(results: pd.DataFrame, metric: str = "CTCF") -> pd.DataFrame:
     if not len(results):
         return pd.DataFrame()
-    return (results.groupby("Group", sort=False)[metric]
+    keys = ["Protein", "Group"] if len(proteins(results)) > 1 else "Group"  # proteinler karışmasın
+    return (results.groupby(keys, sort=False, dropna=False)[metric]
             .agg(n="count", Mean="mean", SD="std", Median="median", Min="min", Max="max")
             .assign(SEM=lambda d: d["SD"] / np.sqrt(d["n"]))
             .reset_index())
@@ -84,7 +85,7 @@ def write_excel(path: str | Path, results: pd.DataFrame, bg_results: pd.DataFram
         ordered(results).to_excel(xw, sheet_name="Cells", index=False)
         group_summary(results).to_excel(xw, sheet_name="Group_summary", index=False)
         # GraphPad vb. için hazır: alan (görüntü) ve deney ortalamaları
-        cols = [c for c in ("Group", "Experiment", "Image", "Image_path") if c in results]
+        cols = [c for c in ("Protein", "Group", "Experiment", "Image", "Image_path") if c in results]
         vals = [c for c in ("CTCF", "CTCF_per_Area", "Area", "Mean", "NC_ratio", "Nuc_fraction", "Nuc_CTCF",
                             "Cyto_CTCF") if c in results]
         results = nc_valid(results)  # ortalamalarda N/C'ye bağlı değerler yalnızca geçerli hücrelerden
@@ -93,9 +94,16 @@ def write_excel(path: str | Path, results: pd.DataFrame, bg_results: pd.DataFram
              .mean().assign(n_cells=results.groupby(cols, sort=False, dropna=False).size())
              .reset_index().to_excel(xw, sheet_name="Image_means", index=False))
         if "Experiment" in results and results["Experiment"].notna().any():
-            (results.groupby(["Group", "Experiment"], sort=False)[vals]
-             .mean().assign(n_cells=results.groupby(["Group", "Experiment"], sort=False).size())
+            ek = [c for c in ("Protein", "Group", "Experiment") if c in results]
+            (results.groupby(ek, sort=False, dropna=False)[vals]
+             .mean().assign(n_cells=results.groupby(ek, sort=False, dropna=False).size())
              .reset_index().to_excel(xw, sheet_name="Experiment_means", index=False))
+        if proteins(results) and "Experiment" in results:  # protein paneli: kontrole göre kat değişimi (CTCF)
+            groups = list(dict.fromkeys(results["Group"]))
+            fc, summ, _ = protein_panel(results, "CTCF", guess_control(groups) or groups[0])
+            if len(fc):
+                summ.to_excel(xw, sheet_name="Protein_panel", index=False)
+                fc.to_excel(xw, sheet_name="Protein_panel_experiments", index=False)
         bg_results.to_excel(xw, sheet_name="Background", index=False)
         methods_table(version).to_excel(xw, sheet_name="Methods", index=False)
         if excluded is not None and len(excluded):  # dışlanan her hücre gerekçesiyle (QC otomatik / elle)
@@ -368,3 +376,162 @@ def bland_altman_plot(val: pd.DataFrame, metric: str = "CTCF", fig=None):
     if fig.get_layout_engine() is None:
         fig.tight_layout()
     return fig, agreement_text(st, metric)
+
+
+# ------------------------------------------------------------------ Protein paneli
+# Farklı proteinler farklı antikorlarla ölçüldüğü için ham CTCF değerleri proteinler arasında karşılaştırılamaz.
+# Her protein, aynı deneydeki kendi kontrol grubuna oranlanır (kat değişimi); proteinler farklı hücrelerde ölçülmüş
+# olabilir (her deney kendi içinde eşleşmiş). Test: log2(kat değişimi) = 0 (tek örneklem t, GraphPad'in
+# "ratio paired t test" eşdeğeri), protein içinde gruplar arası Holm düzeltmesi.
+PANEL_COLORS = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4", "#008300"]  # dataviz kategorik sıra (doğrulandı)
+
+
+CONTROL_PREFIXES = ("kontrol", "control", "ctrl", "ilaçsız", "untreated", "vehicle", "mock")
+
+
+def guess_control(groups: list[str]) -> str | None:
+    return next((g for g in groups if str(g).lower().startswith(CONTROL_PREFIXES)), None)
+
+
+def proteins(results: pd.DataFrame) -> list[str]:
+    if "Protein" not in results:
+        return []
+    return [p for p in dict.fromkeys(results["Protein"].fillna("").astype(str).str.strip()) if p]
+
+
+def _holm(p: list[float]) -> list[float]:
+    order = np.argsort(p)
+    adj, running = [0.0] * len(p), 0.0
+    for rank, i in enumerate(order):
+        running = max(running, min(1.0, (len(p) - rank) * p[i]))
+        adj[i] = running
+    return adj
+
+
+def protein_panel(results: pd.DataFrame, metric: str = "CTCF", control: str | None = None,
+                  order: list[str] | None = None):
+    """→ (fc, summary, text). fc: her protein × deney × grup için deney ortalaması, kontrol değeri ve kat değişimi.
+    summary: protein × grup → n deney, geometrik ortalama kat değişimi, %95 GA, p, Holm p."""
+    from scipy import stats as sps
+    lines, notes = [], []
+    if metric in NC_DEPENDENT:
+        results = nc_valid(results)
+    r = results.copy()
+    r["Protein"] = r.get("Protein", pd.Series("", index=r.index)).fillna("").astype(str).str.strip()
+    r["Experiment"] = r.get("Experiment", pd.Series("", index=r.index)).fillna("").astype(str).str.strip()
+    r = r[(r["Protein"] != "") & r[metric].notna()]
+    if r["Experiment"].eq("").any():
+        notes.append(T("ℹ️ Deney etiketi boş olan hücreler panele alınmadı (kat değişimi aynı deneyin kontrolüne göre hesaplanır)."))
+        r = r[r["Experiment"] != ""]
+    groups = [g for g in (order or list(dict.fromkeys(r["Group"]))) if g in set(r["Group"])]
+    if control is None or control not in groups:
+        control = groups[0] if groups else None
+    em = r.groupby(["Protein", "Experiment", "Group"], sort=False)[metric].agg(value="mean", n_cells="count").reset_index()
+    rows = []
+    for (prot, exp), d in em.groupby(["Protein", "Experiment"], sort=False):
+        ctrl = d.loc[d["Group"] == control, "value"]
+        if ctrl.empty or not ctrl.iloc[0] > 0:
+            notes.append(T("ℹ️ {0} / deney {1}: kontrol grubu ({2}) yok ya da değeri ≤ 0 → bu deney atlandı.").format(prot, exp, control))
+            continue
+        for _, row in d.iterrows():
+            if row["Group"] != control:
+                rows.append({"Protein": prot, "Experiment": exp, "Group": row["Group"], "value": row["value"],
+                             "control_value": ctrl.iloc[0], "FC": row["value"] / ctrl.iloc[0], "n_cells": row["n_cells"]})
+    fc = pd.DataFrame(rows, columns=["Protein", "Experiment", "Group", "value", "control_value", "FC", "n_cells"])
+    summ = []
+    for prot in [p for p in dict.fromkeys(r["Protein"])]:
+        part = []
+        for g in [g for g in groups if g != control]:
+            v = fc.loc[(fc["Protein"] == prot) & (fc["Group"] == g) & (fc["FC"] > 0), "FC"].to_numpy(float)
+            if not len(v):
+                continue
+            lv = np.log2(v)
+            n = len(lv)
+            gm = 2 ** lv.mean()
+            if n >= 2:
+                se = lv.std(ddof=1) / np.sqrt(n)
+                tq = sps.t.ppf(0.975, n - 1)
+                lo, hi = 2 ** (lv.mean() - tq * se), 2 ** (lv.mean() + tq * se)
+                p = float(sps.ttest_1samp(lv, 0).pvalue) if np.ptp(lv) > 0 else np.nan
+            else:
+                lo = hi = p = np.nan
+            part.append({"Protein": prot, "Group": g, "n_experiments": n, "FC_geomean": gm, "CI95_low": lo,
+                         "CI95_high": hi, "p": p})
+        ps = [x["p"] for x in part if pd.notna(x["p"])]
+        adj = iter(_holm(ps)) if ps else iter([])
+        for x in part:
+            x["p_Holm"] = next(adj) if pd.notna(x["p"]) else np.nan
+            x["stars"] = p_stars(x["p_Holm"]) if pd.notna(x["p_Holm"]) else ""
+        summ += part
+    summary = pd.DataFrame(summ, columns=["Protein", "Group", "n_experiments", "FC_geomean", "CI95_low", "CI95_high",
+                                          "p", "p_Holm", "stars"])
+    lines.append(T("Protein paneli — {0}, kontrol = {1}. Her protein, aynı deneydeki kendi kontrolüne oranlandı (kat değişimi); ham değerler proteinler arasında karşılaştırılamaz (farklı antikorlar).").format(metric, control))
+    lines.append(T("Test: log2(kat değişimi) = 0, tek örneklem t (oran eşleştirilmiş t-testi); her proteinde gruplar arası Holm düzeltmesi. n = bağımsız deney."))
+    lines.append("")
+    for _, s in summary.iterrows():
+        ci = (f"[{s['CI95_low']:.2f}–{s['CI95_high']:.2f}]" if pd.notna(s["CI95_low"]) else "[—]")
+        pt = (f"{p_fmt(s['p_Holm'])} ({s['stars']})" if pd.notna(s["p_Holm"]) else T("test yok (n < 2)"))
+        lines.append(f"{s['Protein']} · {s['Group']}: ×{s['FC_geomean']:.2f} {ci}, n = {int(s['n_experiments'])}, {pt}")
+    if len(summary) and summary["n_experiments"].min() < 3:
+        lines += ["", T("ℹ️ Bazı karşılaştırmalarda 3'ten az bağımsız deney var: test gücü düşük; en az 3 deney önerilir.")]
+    for prot in dict.fromkeys(r["Protein"]):
+        w = mixed_exposures(r[r["Protein"] == prot])
+        if w:
+            lines += ["", f"{prot}: {w}"]
+    if notes:
+        lines += [""] + list(dict.fromkeys(notes))
+    return fc, summary, "\n".join(lines)
+
+
+def panel_plot(results: pd.DataFrame, metric: str = "CTCF", control: str | None = None,
+               order: list[str] | None = None, fig=None, stars: bool = True):
+    """Kat değişimi grafiği: grup başına her protein bir sütun; büyük nokta = geometrik ortalama, çizgi = %95 GA,
+    küçük noktalar = bağımsız deneyler, kesikli çizgi = kontrol (1)."""
+    import matplotlib
+    own = fig is None
+    if own:
+        matplotlib.use("Agg")
+        import matplotlib.pyplot as plt
+        fig = plt.figure(figsize=(7, 4.5), dpi=150, layout="constrained")
+    fig.clear()
+    ax = fig.add_subplot(111)
+    fc, summary, txt = protein_panel(results, metric, control, order)
+    prots = list(dict.fromkeys(summary["Protein"]))
+    groups = list(dict.fromkeys(summary["Group"]))
+    if not len(summary):
+        ax.text(0.5, 0.5, T("Panel için Protein ve Deney etiketli, kontrol grubu içeren veri gerekir."),
+                ha="center", va="center", transform=ax.transAxes, wrap=True)
+        ax.set_axis_off()
+        return fig, txt
+    w = 0.8 / max(len(prots), 1)
+    rng = np.random.default_rng(0)
+    top = 1.0
+    for k, prot in enumerate(prots):
+        col = PANEL_COLORS[k % len(PANEL_COLORS)] if k < len(PANEL_COLORS) else "#888888"
+        for i, g in enumerate(groups):
+            x = i - 0.4 + w * (k + 0.5)
+            s = summary[(summary["Protein"] == prot) & (summary["Group"] == g)]
+            if s.empty:
+                continue
+            s = s.iloc[0]
+            pts = fc.loc[(fc["Protein"] == prot) & (fc["Group"] == g), "FC"].to_numpy(float)
+            ax.scatter(x + rng.uniform(-w * 0.18, w * 0.18, len(pts)), pts, s=16, color=col, alpha=0.55,
+                       edgecolor="white", linewidth=0.6, zorder=3)
+            if pd.notna(s["CI95_low"]):
+                ax.plot([x, x], [s["CI95_low"], s["CI95_high"]], color=col, lw=2, solid_capstyle="round", zorder=4)
+            ax.scatter([x], [s["FC_geomean"]], s=64, color=col, edgecolor="white", linewidth=1.5, zorder=5,
+                       label=prot if i == 0 else None)
+            hi = np.nanmax([s["CI95_high"], s["FC_geomean"], *pts])
+            top = max(top, hi)
+            if stars and s["stars"]:
+                ax.text(x, hi * 1.04, s["stars"], ha="center", va="bottom", fontsize=9, color="#333333")
+    ax.axhline(1, color="#888888", ls="--", lw=1, zorder=1)
+    ax.set_xticks(range(len(groups)))
+    ax.set_xticklabels(groups, rotation=20 if max(map(len, groups)) > 10 else 0, ha="right" if max(map(len, groups)) > 10 else "center")
+    ax.set_ylabel(T("Kat değişimi (kontrol = 1) — {0}").format(metric))
+    ax.set_ylim(bottom=0, top=top * 1.15)
+    ax.spines[["top", "right"]].set_visible(False)
+    ax.grid(axis="y", color="#e6e6e6", lw=0.8, zorder=0)
+    ax.set_axisbelow(True)
+    ax.legend(title=T("Protein"), frameon=False, loc="upper left", bbox_to_anchor=(1.0, 1.0))
+    return fig, txt

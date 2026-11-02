@@ -66,11 +66,18 @@ class Item:
     overlap: float | None = None
     group: str = ""
     experiment: str = ""  # bağımsız deney / biyolojik tekrar
+    protein: str = ""     # ölçülen protein / hedef (Protein/Deney/Grup/görüntü düzeninden)
     status: str = ""      # dilden bağımsız kod: "ready" | "no_dapi" | "skipped"
     reason: str = ""      # skipped: "unreadable" | "processed" | "no_exif" | "unknown_kind" | "unpaired_dapi"
     detail: str = ""      # ek bilgi (yazılım adı, hata türü)
     exposure: float | None = None  # FITC pozlama süresi (s, EXIF)
     use: bool = True
+
+
+def protein_of(p: Path, folder: Path) -> str:
+    """Seçilen/Protein/Deney_1/Kontrol/img → 'Protein' (dört düzeyli düzen); değilse boş."""
+    parts = p.relative_to(folder).parts
+    return parts[-4] if len(parts) >= 4 else ""
 
 
 def group_experiment(p: Path, folder: Path) -> tuple[str, str]:
@@ -128,9 +135,10 @@ def scan(folder: Path, recursive: bool = True, progress=None) -> list[Item]:
         if scored and scored[0][0] >= MIN_OVERLAP:
             ov, d = scored[0]
             used.add(d)
-            items.append(Item(p, d, ov, group, exp, "ready", exposure=expo))
+            items.append(Item(p, d, ov, group, exp, protein_of(p, folder), "ready", exposure=expo))
         else:
-            items.append(Item(p, None, scored[0][0] if scored else None, group, exp, "no_dapi", exposure=expo))
+            items.append(Item(p, None, scored[0][0] if scored else None, group, exp, protein_of(p, folder),
+                              "no_dapi", exposure=expo))
     for d in dapis:
         if d not in used:
             g, e = group_experiment(d, folder)

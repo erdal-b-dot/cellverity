@@ -23,6 +23,35 @@ EN = {
     "Ölç": "Measure",
     "Örtüşme": "Overlap",
     "Durum": "Status",
+    "ör. p53": "e.g. p53",
+    "Bu görüntüde ölçülen protein / hedef. Birden çok protein ölçüldüyse Sonuçlar ▸ Protein paneli\nher proteini aynı deneydeki kendi kontrolüne oranlayarak yan yana gösterir.":
+        "Protein / target measured in this image. If several proteins were measured, Results ▸ Protein panel\nshows them side by side, each normalised to its own control in the same experiment.",
+    "Protein / hedef": "Protein / target",
+    "Protein / hedef:": "Protein / target:",
+    "Klasör düzeni Protein/Deney/Grup/görüntü ise protein klasör adından okunur; değilse buraya yazılan ad tüm görüntülere verilir.":
+        "With a Protein/Experiment/Group/image folder layout the protein is read from the folder name; otherwise the name entered here is given to all images.",
+    "Protein paneli": "Protein panel",
+    "Protein paneli…": "Protein panel…",
+    "Protein": "Protein",
+    "Farklı proteinler farklı antikorlarla ölçüldüğü için ham değerleri karşılaştırılamaz. Her protein, <b>aynı deneydeki kendi kontrolüne</b> oranlanır; proteinler farklı hücrelerde ölçülmüş olabilir. n = bağımsız deney.":
+        "Different proteins are measured with different antibodies, so their raw values cannot be compared. Each protein is normalised to <b>its own control in the same experiment</b>; the proteins may have been measured in different cells. n = independent experiments.",
+    "Grafik ve istatistik tek bir protein için yapılır; proteinleri yan yana görmek için Sonuçlar ▸ Protein paneli.":
+        "Plots and statistics are for one protein at a time; to see proteins side by side use Results ▸ Protein panel.",
+    "<b>Grup sırası</b> (sürükleyerek değiştirin)": "<b>Group order</b> (drag to change)",
+    "Test: log2(kat değişimi) = 0, tek örneklem t (oran eşleştirilmiş t-testi); her proteinde gruplar arası Holm düzeltmesi. n = bağımsız deney.":
+        "Test: log2(fold change) = 0, one-sample t (ratio paired t test); Holm correction across groups within each protein. n = independent experiments.",
+    "ℹ️ Deney etiketi boş olan hücreler panele alınmadı (kat değişimi aynı deneyin kontrolüne göre hesaplanır).":
+        "ℹ️ Cells without an experiment label were left out of the panel (fold change is computed against the control of the same experiment).",
+    "test yok (n < 2)": "no test (n < 2)",
+    "ℹ️ Bazı karşılaştırmalarda 3'ten az bağımsız deney var: test gücü düşük; en az 3 deney önerilir.":
+        "ℹ️ Some comparisons have fewer than 3 independent experiments: low test power; at least 3 experiments are recommended.",
+    "Panel için Protein ve Deney etiketli, kontrol grubu içeren veri gerekir.":
+        "The panel needs data labelled with Protein and Experiment that include a control group.",
+    "Protein paneli — {0}, kontrol = {1}. Her protein, aynı deneydeki kendi kontrolüne oranlandı (kat değişimi); ham değerler proteinler arasında karşılaştırılamaz (farklı antikorlar).":
+        "Protein panel — {0}, control = {1}. Each protein was normalised to its own control in the same experiment (fold change); raw values cannot be compared between proteins (different antibodies).",
+    "Kat değişimi (kontrol = 1) — {0}": "Fold change (control = 1) — {0}",
+    "ℹ️ {0} / deney {1}: kontrol grubu ({2}) yok ya da değeri ≤ 0 → bu deney atlandı.":
+        "ℹ️ {0} / experiment {1}: no control group ({2}) or its value is ≤ 0 → this experiment was skipped.",
     "Çekirdek / sitoplazma (N/C)": "Nucleus / cytoplasm (N/C)",
     "Kenar halkası": "Edge ring",
     "Çekirdek kenarında dışarıda bırakılan halka: çekirdek bu kadar daraltılır, sitoplazma bu kadar uzaktan başlar. FITC ve DAPI ayrı çekildiği için kenardaki kaymaya karşı korur. 0 = halka yok.":

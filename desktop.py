@@ -52,9 +52,10 @@ OLD_AUTOSAVE = Path.home() / "Documents" / "ICC CTCF Olcer" / "otomatik_kayit.xl
 
 
 def result_meta(a: core.Analysis, fitc: Path, dapi: Path | None, group: str, bg_mode: str, bg_size: int,
-                bg_n: int, note: str = "", experiment: str = "", edits: str = "", fiji_check: str = "") -> dict:
+                bg_n: int, note: str = "", experiment: str = "", edits: str = "", fiji_check: str = "",
+                protein: str = "") -> dict:
     """Her hücre satırına yazılan bağlam (yöntem bölümü ve tekrarlanabilirlik için)."""
-    return {"Group": group, "Experiment": experiment, "Image": fitc.name, "Image_path": str(fitc), "DAPI_image": dapi.name if dapi else "",
+    return {"Protein": protein, "Group": group, "Experiment": experiment, "Image": fitc.name, "Image_path": str(fitc), "DAPI_image": dapi.name if dapi else "",
             "Channel": "G", "Exposure_s": a.meta.get("exposure_s", np.nan), "ISO": a.meta.get("iso", np.nan),
             "um_per_px": a.um_per_px or np.nan, "Scale_bar_um": a.bar_um,
             "Scale_source": a.bar_um_source, "Objective": a.objective[0] if a.objective else np.nan,
@@ -93,10 +94,10 @@ NUCLEUS_COLOR = (255, 0, 255)  # mor: hem yeşil hem mavi zeminde görünür
 TABLE_COLS = [("Cell", T("Hücre"), 0), ("Area", T("Alan"), 2), ("Mean", "Mean", 3), ("StdDev", "StdDev", 3),
               ("Min", "Min", 0), ("Max", "Max", 0), ("IntDen", "IntDen", 1), ("RawIntDen", "RawIntDen", 0),
               ("CTCF", "CTCF", 1), ("NC_ratio", "N/C", 2), ("NC_flag", "N/C QC", None), ("Saturated_px", T("Doymuş px"), 0), ("QC_flags", "QC", None)]
-RES_COLS = [("Group", T("Grup"), None), ("Experiment", T("Deney"), None), ("Image", T("Görüntü"), None), ("Cell", T("Hücre"), 0), ("Area", T("Alan"), 2),
+RES_COLS = [("Protein", "Protein", None), ("Group", T("Grup"), None), ("Experiment", T("Deney"), None), ("Image", T("Görüntü"), None), ("Cell", T("Hücre"), 0), ("Area", T("Alan"), 2),
             ("Mean", "Mean", 3), ("IntDen", "IntDen", 1), ("BG_Mean", "BG Mean", 3), ("CTCF", "CTCF", 1),
             ("NC_ratio", "N/C", 2), ("Objective", T("Objektif"), 0)]
-SUM_COLS = [("Group", T("Grup"), None), ("n", "n", 0), ("Mean", T("Ortalama"), 1), ("SD", "SD", 1),
+SUM_COLS = [("Protein", "Protein", None), ("Group", T("Grup"), None), ("n", "n", 0), ("Mean", T("Ortalama"), 1), ("SD", "SD", 1),
             ("SEM", "SEM", 1), ("Median", T("Medyan"), 1), ("Min", "Min", 1), ("Max", "Max", 1)]
 BG_COLS = [("BG", T("Kutu"), 0), ("x0", "x", 0), ("y0", "y", 0), ("Area_px", T("Piksel"), 0), ("Mean", "Mean", 3),
            ("StdDev", "StdDev", 3), ("Min", "Min", 0), ("Max", "Max", 0), ("RawIntDen", "RawIntDen", 0)]
@@ -459,6 +460,10 @@ class InfoPanel(QWidget):
         self.experiment = QLineEdit("1")
         self.experiment.setToolTip(T("Bağımsız deney (biyolojik tekrar) numarası/adı, ör. 1, 2, 3 ya da 'Deney_1'.\nİstatistiği deney ortalamaları üzerinden yapmak için gerekir."))
         f3.addRow(T("Deney / tekrar"), self.experiment)
+        self.protein = QLineEdit()
+        self.protein.setPlaceholderText(T("ör. p53"))
+        self.protein.setToolTip(T("Bu görüntüde ölçülen protein / hedef. Birden çok protein ölçüldüyse Sonuçlar ▸ Protein paneli\nher proteini aynı deneydeki kendi kontrolüne oranlayarak yan yana gösterir."))
+        f3.addRow(T("Protein / hedef"), self.protein)
         rl.addLayout(f3)
         self.btn_add = QPushButton(T("➕ Sonuç tablosuna ekle"))
         self.btn_add.setStyleSheet("font-weight:bold; padding:6px;")
@@ -596,6 +601,13 @@ class BatchDialog(QDialog):
         self.qc.setChecked(main.panel.qc_auto.isChecked())
         self.qc.setToolTip(T("Dışlanan her hücre gerekçesiyle Excel'in Excluded_cells sayfasına yazılır."))
         lay.addWidget(self.qc)
+        prow = QHBoxLayout()
+        prow.addWidget(QLabel(T("Protein / hedef:")))
+        self.protein = QLineEdit(main.panel.protein.text())
+        self.protein.setPlaceholderText(T("ör. p53"))
+        self.protein.setToolTip(T("Klasör düzeni Protein/Deney/Grup/görüntü ise protein klasör adından okunur; değilse buraya yazılan ad tüm görüntülere verilir."))
+        prow.addWidget(self.protein, 1)
+        lay.addLayout(prow)
         self.bar = QProgressBar()
         self.bar.hide()
         self.status = QLabel()
@@ -712,7 +724,7 @@ class BatchDialog(QDialog):
         meta = result_meta(a, it.fitc, it.dapi, it.group, "auto", self.settings.bg_size, len(bg),
                            "batch: all cells" + (", edge excluded" if self.edge.isChecked() else "")
                            + (", QC filter" if self.qc.isChecked() else ""),
-                           it.experiment)
+                           it.experiment, protein=it.protein or self.protein.text().strip())
         self.main.add_measurement(cells, bg, meta, excluded)
         self.n_cells += len(cells)
 
@@ -845,6 +857,13 @@ class PlotDialog(QDialog):
         self.kind_box = QComboBox()
         for k, v in report.PLOT_KINDS.items():
             self.kind_box.addItem(T(v), k)
+        self.protein_box = QComboBox()
+        prots = report.proteins(results)
+        if len(prots) > 1:  # farklı proteinler aynı grafikte karışmasın
+            self.protein_box.addItems(prots)
+            self.protein_box.setToolTip(T("Grafik ve istatistik tek bir protein için yapılır; proteinleri yan yana görmek için Sonuçlar ▸ Protein paneli."))
+            form.addRow(T("Protein"), self.protein_box)
+            self.protein_box.currentIndexChanged.connect(self.draw)
         form.addRow(T("Kontrol grubu"), self.control_box)
         form.addRow(T("Değişken"), self.metric_box)
         form.addRow(T("İstatistik birimi"), self.level_box)
@@ -886,9 +905,14 @@ class PlotDialog(QDialog):
         self.order_list.model().rowsMoved.connect(lambda *_: self.draw())
         self.draw()
 
+    def data(self):
+        if self.protein_box.count():
+            return self.results[self.results["Protein"].fillna("").astype(str).str.strip() == self.protein_box.currentText()]
+        return self.results
+
     def draw(self):
         order = [self.order_list.item(i).text() for i in range(self.order_list.count())]
-        _, txt = report.plot(self.results, self.metric_box.currentText(), self.kind_box.currentData(),
+        _, txt = report.plot(self.data(), self.metric_box.currentText(), self.kind_box.currentData(),
                              self.norm_box.isChecked(), fig=self.fig, level=self.level_box.currentData(),
                              control=self.control_box.currentText(), order=order,
                              comparison=self.cmp_box.currentData(), stars=self.stars_box.isChecked())
@@ -911,6 +935,89 @@ class PlotDialog(QDialog):
         if path:
             head = (T("Değişken: {0}\nİstatistik birimi: {1}\nKontrol: {2}\n\n").format(self.metric_box.currentText(), self.level_box.currentText(), self.control_box.currentText()))
             Path(path).write_text(head + self.stats.toPlainText(), encoding="utf-8")
+
+
+class PanelDialog(QDialog):
+    """Protein paneli: her protein aynı deneydeki kendi kontrolüne oranlanır (kat değişimi), proteinler yan yana."""
+
+    def __init__(self, parent, results):
+        super().__init__(parent)
+        from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
+        from matplotlib.figure import Figure
+        self.results = results
+        self.setWindowTitle(T("Protein paneli"))
+        self.resize(1100, 680)
+        lay = QHBoxLayout(self)
+        self.fig = Figure(dpi=110, layout="constrained")
+        self.canvas = FigureCanvasQTAgg(self.fig)
+        lay.addWidget(self.canvas, 3)
+        side = QVBoxLayout()
+        intro = QLabel(T("Farklı proteinler farklı antikorlarla ölçüldüğü için ham değerleri karşılaştırılamaz. Her protein, <b>aynı deneydeki kendi kontrolüne</b> oranlanır; proteinler farklı hücrelerde ölçülmüş olabilir. n = bağımsız deney."))
+        intro.setWordWrap(True)
+        side.addWidget(intro)
+        groups = list(dict.fromkeys(results["Group"]))
+        form = QFormLayout()
+        self.control_box = QComboBox()
+        self.control_box.addItems(groups)
+        if report.guess_control(groups):
+            self.control_box.setCurrentText(report.guess_control(groups))
+        self.metric_box = QComboBox()
+        self.metric_box.addItems([m for m in report.METRICS if m in results and results[m].notna().any()])
+        form.addRow(T("Kontrol grubu"), self.control_box)
+        form.addRow(T("Değişken"), self.metric_box)
+        side.addLayout(form)
+        side.addWidget(QLabel(T("<b>Grup sırası</b> (sürükleyerek değiştirin)")))
+        from PySide6.QtWidgets import QListWidget
+        self.order_list = QListWidget()
+        self.order_list.addItems(groups)
+        self.order_list.setDragDropMode(QAbstractItemView.DragDropMode.InternalMove)
+        self.order_list.setMaximumHeight(110)
+        side.addWidget(self.order_list)
+        self.stars_box = QCheckBox(T("Anlamlılık yıldızlarını göster"))
+        self.stars_box.setChecked(True)
+        side.addWidget(self.stars_box)
+        self.stats = QPlainTextEdit()
+        self.stats.setReadOnly(True)
+        side.addWidget(self.stats, 1)
+        row = QHBoxLayout()
+        for fmt in ("png", "pdf", "svg"):
+            b = QPushButton(f"{fmt.upper()}{' 600 dpi' if fmt == 'png' else ''}")
+            b.clicked.connect(lambda _, f=fmt: self.save(f))
+            row.addWidget(b)
+        b = QPushButton(T("İstatistik metni"))
+        b.clicked.connect(self.save_txt)
+        row.addWidget(b)
+        side.addWidget(QLabel(T("<b>Kaydet</b>")))
+        side.addLayout(row)
+        lay.addLayout(side, 2)
+        for w in (self.control_box, self.metric_box):
+            w.currentIndexChanged.connect(self.draw)
+        self.stars_box.toggled.connect(self.draw)
+        self.order_list.model().rowsMoved.connect(lambda *_: self.draw())
+        self.draw()
+
+    def draw(self):
+        order = [self.order_list.item(i).text() for i in range(self.order_list.count())]
+        _, txt = report.panel_plot(self.results, self.metric_box.currentText(), self.control_box.currentText(),
+                                   order, fig=self.fig, stars=self.stars_box.isChecked())
+        self.stats.setPlainText(txt)
+        self.canvas.draw()
+
+    def _path(self, ext, title):
+        stamp = datetime.now().strftime("%Y%m%d_%H%M")
+        start = str(Path.home() / f"Protein_panel_{self.metric_box.currentText()}_{stamp}.{ext}")
+        path, _ = QFileDialog.getSaveFileName(self, title, start, f"{ext.upper()} (*.{ext})")
+        return path
+
+    def save(self, fmt):
+        path = self._path(fmt, T("Grafiği kaydet"))
+        if path:
+            self.fig.savefig(path, format=fmt, dpi=600 if fmt == "png" else None, bbox_inches="tight")
+
+    def save_txt(self):
+        path = self._path("txt", T("İstatistik metnini kaydet"))
+        if path:
+            Path(path).write_text(self.stats.toPlainText(), encoding="utf-8")
 
 
 # ---------------------------------------------------------------- Ana pencere
@@ -1037,6 +1144,7 @@ class MainWindow(QMainWindow):
         self.a_xlsx = act(T("Excel olarak kaydet…"), lambda: self.export_results("xlsx"), "Ctrl+E")
         self.a_csv = act(T("CSV olarak kaydet…"), lambda: self.export_results("csv"))
         self.a_plot = act(T("Grafik ve istatistik…"), self.show_plot, "Ctrl+G")
+        self.a_panel = act(T("Protein paneli…"), self.show_panel, "Ctrl+Shift+G")
         self.a_roi = act(T("ROI görüntüsü (PNG)…"), self.export_roi_png)
         self.a_ij = act(T("ImageJ/Fiji karşılaştırma paketi (ZIP)…"), self.export_imagej)
         self.a_reset = act(T("Biriken sonuçları sıfırla…"), self.reset_results)
@@ -1046,7 +1154,7 @@ class MainWindow(QMainWindow):
         m = self.menuBar().addMenu(T("Sonuçlar"))
         m.addActions([self.a_add, self.a_batch])
         m.addSeparator()
-        m.addActions([self.a_xlsx, self.a_csv, self.a_load, self.a_plot])
+        m.addActions([self.a_xlsx, self.a_csv, self.a_load, self.a_plot, self.a_panel])
         m.addSeparator()
         m.addActions([self.a_roi, self.a_ij])
         m.addSeparator()
@@ -1581,7 +1689,8 @@ class MainWindow(QMainWindow):
         meta = result_meta(a, fpath, self.dapi[0] if self.dapi else None, group,
                            "auto" if self.panel.bg_auto.isChecked() else "manual",
                            self.panel.bg_size.value(), len(self.cur_bg), "manual click",
-                           self.panel.experiment.text().strip(), "; ".join(self.edit_log), self.fiji_check)
+                           self.panel.experiment.text().strip(), "; ".join(self.edit_log), self.fiji_check,
+                           self.panel.protein.text().strip())
         replaced = len(self.results) and (self.results["Image_path"] == str(fpath)).any()
         excl = self.excluded_ids()
         ex_ids = [c for c in excl if c not in self.selected]
@@ -1782,6 +1891,7 @@ class MainWindow(QMainWindow):
             w.setEnabled(len(r) > 0)
         for a_ in (self.a_xlsx, self.a_csv, self.a_plot, self.a_reset):
             a_.setEnabled(len(r) > 0)
+        self.a_panel.setEnabled(len(r) > 0 and bool(report.proteins(r)))
 
     def _save_path(self, title, name, filt):
         start = str((self.fitc[0].parent if self.fitc else Path.home()) / name)
@@ -1847,6 +1957,10 @@ class MainWindow(QMainWindow):
     def show_plot(self):
         if len(self.results):
             PlotDialog(self, self.results).exec()
+
+    def show_panel(self):
+        if len(self.results) and report.proteins(self.results):
+            PanelDialog(self, self.results).exec()
 
     def closeEvent(self, e):
         if self._dirty and len(self.results):

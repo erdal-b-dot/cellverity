@@ -486,6 +486,10 @@ The program looks for Fiji in <code>Downloads/Fiji</code>, <code>Applications/Fi
 </thead>
 <tbody>
 <tr>
+<td>Protein</td>
+<td>Protein / target measured (<a href="#102-protein-panel-several-proteins-pathway-level">10.2</a>)</td>
+</tr>
+<tr>
 <td>Area, Mean, StdDev, Min, Max, IntDen, RawIntDen</td>
 <td>Same definitions as ImageJ</td>
 </tr>
@@ -623,6 +627,24 @@ The program looks for Fiji in <code>Downloads/Fiji</code>, <code>Applications/Fi
 <p><strong>Recommendation:</strong> in publications, run statistics on <strong>means of independent experiments</strong> (at least 3); individual cells can still be shown as points in the plot. The program warns when you test at the cell level.</p>
 <p>Dunnett p values are computed by numerical integration; the program uses a fixed seed, so <strong>the same data always give the same p</strong>.</p>
 <p>Save: plot as PNG (600 dpi), PDF, SVG; statistics as .txt.</p>
+<h3 id="102-protein-panel-several-proteins-pathway-level">10.2 Protein panel (several proteins, pathway level)</h3>
+<p>To see a drug's effect on a pathway, the proteins do <strong>not</strong> need to be measured in the same cell. In the same experiment, protein X can be measured in one set of wells and protein Y in others, each with a single channel.</p>
+<ol>
+<li>When adding each image, type the protein in the <strong>Protein / target</strong> field of the right panel (e.g. <em>p53</em>). In batch mode, a <code>Protein/Experiment_1/Control/…</code> folder layout gives the protein from the folder name; otherwise one name for the whole folder can be entered in the dialog.</li>
+<li>
+<p><strong>Results ▸ Protein panel… (⌘⇧G).</strong></p>
+</li>
+<li>
+<p>Different proteins are measured with different antibodies, so <strong>raw CTCF values cannot be compared between proteins</strong>. Each protein is normalised to <strong>its own control in the same experiment</strong> (fold change; from experiment means).</p>
+</li>
+<li>Plot: large dot = geometric-mean fold change, line = 95 % confidence interval, small dots = independent experiments, dashed line = control (1).</li>
+<li>Test: one-sample t-test of log₂(fold change) = 0 (equivalent to GraphPad's <em>ratio paired t test</em>), <strong>Holm</strong> correction across groups within each protein. n = independent experiments (at least 3 recommended).</li>
+<li>An experiment without a control group is skipped and reported. Excel gets <strong>Protein_panel</strong> (summary) and <strong>Protein_panel_experiments</strong> (fold change per experiment) sheets.</li>
+<li>With several proteins, the <strong>Plots and statistics</strong> dialog asks for a protein; group comparisons are done separately for each protein.</li>
+</ol>
+<blockquote>
+<p>ℹ️ This view shows how the proteins change together <strong>at the pathway level</strong> (e.g. does MDM2 rise when p53 rises with the drug?). It does not show the relationship within the same cell; that needs double staining.</p>
+</blockquote>
 <hr />
 <h2 id="11-fiji-bridge-and-method-validation">11. Fiji bridge and method validation</h2>
 <p><strong>Fiji menu:</strong></p>
