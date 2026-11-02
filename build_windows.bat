@@ -7,11 +7,11 @@ set "PATH=%USERPROFILE%\.local\bin;%PATH%"
 uv venv --clear --python 3.12 .build-win || goto :err
 uv pip install --python .build-win\Scripts\python.exe -r requirements-desktop.txt pyinstaller==6.16.0 || goto :err
 .build-win\Scripts\pyinstaller --noconfirm --clean --distpath dist\win --workpath build\win icc_ctcf.spec || goto :err
-if exist ornek\Image_392.jpg (
-  "dist\win\ICC CTCF Olcer\ICC CTCF Olcer.exe" --selftest ornek\Image_392.jpg ornek\Image_393.jpg
+if exist examples\PARC_control\Image_11305.jpg (
+  "dist\win\ICC CTCF Olcer\ICC CTCF Olcer.exe" --selftest examples\PARC_control\Image_11305.jpg examples\PARC_control\Image_11306.jpg
   type selftest_result.json
   echo.
-  echo Beklenen: area [478.58, 495.48], ctcf [70203.4, 69111.2]
+  echo Beklenen / Expected: "cells": 47, "nuclei": 46, "bar_um": 20.0, "english": true
 )
 for /f "tokens=2 delims==" %%v in ('findstr /b "VERSION = " desktop.py') do set VER=%%~v
 set VER=%VER: =%
