@@ -4,7 +4,7 @@
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23860020.svg)](https://doi.org/10.5281/zenodo.23860020)
 
-**Per-cell corrected total cell fluorescence (CTCF) for immunocytochemistry images** — a desktop application (macOS, Windows) that automates the ImageJ CTCF workflow, with measurements identical to ImageJ/Fiji.
+**Per-cell corrected total cell fluorescence (CTCF) for immunocytochemistry images** — a desktop application (macOS, Windows, Linux) that automates the ImageJ CTCF workflow, with measurements identical to ImageJ/Fiji.
 
 ```
 CTCF = Integrated density − (Cell area × Mean background)        (McCloy et al., 2014, Cell Cycle 13:1400–1412)
@@ -31,9 +31,12 @@ Stand-alone apps (no Python needed): **[Releases](https://github.com/erdal-b-dot
 | Apple Silicon Mac (M1–M4) | `CellVerity_…_mac_AppleSilicon.dmg` | macOS 12.3+ |
 | Intel Mac | `CellVerity_…_mac_Intel.dmg` | macOS 12.0+ |
 | Windows 10/11 | `CellVerity_…_Windows.zip` | Windows 10+ |
+| Linux (x86_64), from v2.2.0 | `CellVerity_…_Linux_x86_64.AppImage` (or `.tar.gz`) | Ubuntu 22.04+, Debian 12+, Fedora 36+ (glibc 2.35+) |
+| Linux (ARM64), from v2.2.0 | `CellVerity_…_Linux_aarch64.AppImage` (or `.tar.gz`) | glibc 2.39+ (e.g. Ubuntu 24.04+) |
 
 macOS: open the DMG, drag the app to Applications; on first launch **right-click ▸ Open** (the app is not notarized).
 Windows: extract the zip, run `CellVerity.exe`; if SmartScreen appears: **More info ▸ Run anyway**.
+Linux: `chmod +x CellVerity_*.AppImage` and run it (Ubuntu 22.04/24.04 may first need `sudo apt install libfuse2` / `libfuse2t64`); without FUSE, use the `.tar.gz`: extract and run `CellVerity/CellVerity`.
 
 **User guide:** [English](docs/USER_GUIDE.md) ([PDF](docs/USER_GUIDE.pdf)) · [Türkçe](docs/KULLANIM_KILAVUZU.md) ([PDF](docs/KULLANIM_KILAVUZU.pdf)) — also in the app: Help ▸ User guide (F1).
 
@@ -64,7 +67,7 @@ install_windows.bat         # Windows
 start_desktop.bat
 .venv/bin/python tests/test_core.py   # validation tests
 ```
-Build stand-alone packages: `./build_mac.sh` (Apple Silicon + Intel DMGs) · `build_windows.bat`.
+Build stand-alone packages: `./build_mac.sh` (Apple Silicon + Intel DMGs) · `build_windows.bat` · `./build_linux.sh` (AppImage + tar.gz; in Docker on macOS, `--native` on Ubuntu).
 
 | File | Purpose |
 |---|---|
@@ -85,7 +88,7 @@ Issues and suggestions: [GitHub Issues](https://github.com/erdal-b-dot/cellverit
 
 **CellVerity** (eski adı ICC CTCF Ölçer), immunositokimya floresan görüntülerinde hücre başına **CTCF** ölçen bir masaüstü programıdır. ImageJ'deki elle yapılan iş akışını otomatikleştirir; ölçümleri ImageJ/Fiji ile birebir aynıdır.
 
-- **İndirme:** [Releases](https://github.com/erdal-b-dot/cellverity/releases) — Mac (Apple Silicon / Intel) `.dmg`, Windows `.zip`. Python gerekmez.
+- **İndirme:** [Releases](https://github.com/erdal-b-dot/cellverity/releases) — Mac (Apple Silicon / Intel) `.dmg`, Windows `.zip`, Linux `.AppImage` / `.tar.gz` (v2.2.0'dan itibaren). Python gerekmez.
 - **Örnek veri:** [`examples/`](examples/) — iki ham FITC + DAPI çifti ve beklenen sonuçlar (CC BY 4.0).
 - **Kullanım kılavuzu:** [KULLANIM_KILAVUZU.md](docs/KULLANIM_KILAVUZU.md) ([PDF](docs/KULLANIM_KILAVUZU.pdf)); programda Yardım ▸ Kullanım kılavuzu (F1).
 - **Dil:** Arayüz bilgisayarın diline göre Türkçe ya da İngilizce açılır; Görünüm ▸ Dil / Language ile değiştirilir.

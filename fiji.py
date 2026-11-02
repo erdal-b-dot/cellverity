@@ -72,8 +72,10 @@ def candidates() -> list[Path]:
                  Path("C:/Program Files/Fiji"), Path("C:/Program Files/Fiji.app")]
         names = ["fiji-windows-x64.exe", "ImageJ-win64.exe", "fiji.bat"]
     else:
-        roots = [home / "Fiji", home / "Fiji.app", Path("/opt/Fiji"), Path("/opt/Fiji.app")]
-        names = ["fiji", "ImageJ-linux64"]
+        roots = [home / "Fiji", home / "Fiji.app", home / "Downloads" / "Fiji", home / "Downloads" / "Fiji.app",
+                 home / "Applications" / "Fiji", home / "Applications" / "Fiji.app",
+                 Path("/opt/Fiji"), Path("/opt/Fiji.app"), Path("/usr/local/Fiji"), Path("/usr/local/Fiji.app")]
+        names = ["fiji", "fiji-linux-x64", "fiji-linux-arm64", "ImageJ-linux64"]
     return [r / n for r in roots for n in names]
 
 
@@ -91,7 +93,7 @@ def resolve(path: str | Path) -> Path | None:
     if p.is_file():
         return p
     for n in ("fiji", "fiji-windows-x64.exe", "ImageJ-win64.exe", "fiji.bat", "Contents/MacOS/ImageJ-macosx",
-              "Contents/MacOS/fiji-macos", "ImageJ-linux64"):
+              "Contents/MacOS/fiji-macos", "fiji-linux-x64", "fiji-linux-arm64", "ImageJ-linux64"):
         if (p / n).is_file():
             return p / n
     if p.name == "Fiji.app" and (p.parent / "fiji").is_file():  # yeni düzen: Fiji/Fiji.app + Fiji/fiji
