@@ -132,10 +132,10 @@ def test_report_exports(tmp=None):
     with tempfile.TemporaryDirectory() as d:
         path = Path(d) / "t.xlsx"
         report.write_excel(path, res, pd.DataFrame({"BG": [1]}), "test")
-        x = pd.ExcelFile(path)
-        assert x.sheet_names == ["Cells", "Group_summary", "Image_means", "Background", "Methods"]
-        assert len(pd.read_excel(x, "Cells")) == 20
-        assert pd.read_excel(x, "Group_summary")["n"].tolist() == [10, 10]
+        with pd.ExcelFile(path) as x:   # Windows: kapatılmazsa geçici klasör silinemez (WinError 32)
+            assert x.sheet_names == ["Cells", "Group_summary", "Image_means", "Background", "Methods"]
+            assert len(pd.read_excel(x, "Cells")) == 20
+            assert pd.read_excel(x, "Group_summary")["n"].tolist() == [10, 10]
 
 
 def test_batch_pairing():
@@ -356,23 +356,31 @@ def test_quality_control_and_exclusions():
     assert (excl["Exclusion"] == "auto").all() and cells["QC_pass"].all()
 
 
+# ornek/ klasöründeki yayımlanmamış görüntüler olmadan çalışamayanlar. Geri kalanlar depodaki
+# examples/ veriyle ya da üretilmiş veriyle her bilgisayarda çalışır; bazıları eksik dosyayı
+# kendi içinde atlar.
+NEEDS_SAMPLE = {"test_image_392", "test_analyze_matches_manual_pipeline", "test_v2_bright_core_nuclei",
+                "test_v2_local_nuclei", "test_scale_label_reading", "test_manual_edits"}
+
 if __name__ == "__main__":
-    if not FITC.exists():
-        sys.exit(f"Örnek görüntü yok: {FITC}")
-    test_image_392()
-    test_analyze_matches_manual_pipeline()
-    test_v2_bright_core_nuclei()
-    test_v2_local_nuclei()
-    test_scale_label_reading()
-    test_report_exports()
-    test_batch_pairing()
-    test_group_statistics()
-    test_manual_edits()
-    test_fiji_bridge()
-    test_translations()
-    test_chance_corrected_pairing()
-    test_scale_bar_hard_cases()
-    test_examples_expected_results()
-    test_exposure_metadata_and_warning()
-    test_quality_control_and_exclusions()
-    print("✅ Doğrulama testi geçti: hesaplamalar Fiji ile doğrulanmış değerlerle aynı.")
+    # Çıktı dosyaya ya da boruya yönlendirilince Windows yerel kod sayfasına (cp1254) düşer ve
+    # ✅ gibi karakterler UnicodeEncodeError verir.
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    except (AttributeError, OSError):
+        pass
+    # Testler adlarından bulunur: yeni bir test eklenince listeye yazmayı unutmak diye bir şey olmasın.
+    tests = [(n, f) for n, f in sorted(globals().items())
+             if n.startswith("test_") and callable(f) and getattr(f, "__module__", "") == "__main__"]
+    have_sample = FITC.exists()
+    ran = [n for n, f in tests if not (n in NEEDS_SAMPLE and not have_sample)]
+    for name, fn in tests:
+        if name in ran:
+            fn()
+    print(f"✅ {len(ran)} test geçti.")
+    if have_sample:
+        print("✅ Hesaplamalar Fiji ile doğrulanmış değerlerle aynı.")
+    else:
+        print(f"ℹ️  {len(tests) - len(ran)} test atlandı: {FITC.parent} klasöründe örnek görüntü yok "
+              "(yayımlanmamış veri). Fiji ile doğrulanmış değerleri denetleyen testler bunlardır; "
+              "geri kalanlar depodaki examples/ verisiyle çalıştı.")
