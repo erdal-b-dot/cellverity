@@ -383,3 +383,9 @@ QFrame[frameShape="4"], QFrame[frameShape="5"] {
     border: 0;
     max-height: 1px;
 }
+
+/* ------------------------------------------- açılır menüde seçili araç */
+QMenu::item:checked {
+    background: $active;
+    color: $bright;
+}

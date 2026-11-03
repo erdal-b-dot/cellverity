@@ -537,6 +537,7 @@ def test_toolbar_fits_small_screen():
     try:
         for lang in ("tr", "en"):
             i18n.set_language(lang)
+            desktop.refresh_labels()
             w = desktop.MainWindow()
             w.resize(1280, 800)
             w.show()

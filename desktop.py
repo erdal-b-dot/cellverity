@@ -49,7 +49,6 @@ APP_NAME = "CellVerity"
 VERSION = "2.2.0-dev"
 CONCEPT_DOI = "10.5281/zenodo.23860020"  # tüm sürümler (her zaman en yenisine yönlendirir)
 RELEASE_DOIS = {"2.0.0": "10.5281/zenodo.23860021", "2.1.0": "10.5281/zenodo.23884562"}  # sürüme özel DOI'ler
-IMAGE_FILTER = T("Görüntüler (*.jpg *.jpeg *.tif *.tiff *.png)")
 AUTOSAVE = Path.home() / "Documents" / "CellVerity" / "otomatik_kayit.xlsx"
 OLD_AUTOSAVE = Path.home() / "Documents" / "ICC CTCF Olcer" / "otomatik_kayit.xlsx"  # 2.1 öncesi
 
@@ -92,18 +91,26 @@ def message(parent, kind: str, text: str, ask: bool = False) -> bool:
     return box.exec() == QMessageBox.StandardButton.Yes
 
 
-VIEW_MODES = ("FITC", "DAPI", T("Birleşik (FITC + DAPI)"))
-NUCLEUS_COLOR = (255, 0, 255)  # mor: hem yeşil hem mavi zeminde görünür
-TABLE_COLS = [("Cell", T("Hücre"), 0), ("Area", T("Alan"), 2), ("Mean", "Mean", 3), ("StdDev", "StdDev", 3),
-              ("Min", "Min", 0), ("Max", "Max", 0), ("IntDen", "IntDen", 1), ("RawIntDen", "RawIntDen", 0),
-              ("CTCF", "CTCF", 1), ("NC_ratio", "N/C", 2), ("NC_flag", "N/C QC", None), ("Saturated_px", T("Doymuş px"), 0), ("QC_flags", "QC", None)]
-RES_COLS = [("Protein", "Protein", None), ("Group", T("Grup"), None), ("Experiment", T("Deney"), None), ("Image", T("Görüntü"), None), ("Cell", T("Hücre"), 0), ("Area", T("Alan"), 2),
-            ("Mean", "Mean", 3), ("IntDen", "IntDen", 1), ("BG_Mean", "BG Mean", 3), ("CTCF", "CTCF", 1),
-            ("NC_ratio", "N/C", 2), ("Objective", T("Objektif"), 0)]
-SUM_COLS = [("Protein", "Protein", None), ("Group", T("Grup"), None), ("n", "n", 0), ("Mean", T("Ortalama"), 1), ("SD", "SD", 1),
-            ("SEM", "SEM", 1), ("Median", T("Medyan"), 1), ("Min", "Min", 1), ("Max", "Max", 1)]
-BG_COLS = [("BG", T("Kutu"), 0), ("x0", "x", 0), ("y0", "y", 0), ("Area_px", T("Piksel"), 0), ("Mean", "Mean", 3),
-           ("StdDev", "StdDev", 3), ("Min", "Min", 0), ("Max", "Max", 0), ("RawIntDen", "RawIntDen", 0)]
+def refresh_labels():
+    """Dile bağlı modül etiketleri (tablo başlıkları, görüntü modu, dosya süzgeci). Dil değişince yeniden çağrılır
+    (açılışta dil bunlardan önce seçilir; ekran görüntüsü/test gibi sonradan dil değiştiren kullanımlar için)."""
+    global IMAGE_FILTER, VIEW_MODES, NUCLEUS_COLOR, TABLE_COLS, RES_COLS, SUM_COLS, BG_COLS
+    IMAGE_FILTER = T("Görüntüler (*.jpg *.jpeg *.tif *.tiff *.png)")
+    VIEW_MODES = ("FITC", "DAPI", T("Birleşik (FITC + DAPI)"))
+    NUCLEUS_COLOR = (255, 0, 255)  # mor: hem yeşil hem mavi zeminde görünür
+    TABLE_COLS = [("Cell", T("Hücre"), 0), ("Area", T("Alan"), 2), ("Mean", "Mean", 3), ("StdDev", "StdDev", 3),
+                  ("Min", "Min", 0), ("Max", "Max", 0), ("IntDen", "IntDen", 1), ("RawIntDen", "RawIntDen", 0),
+                  ("CTCF", "CTCF", 1), ("NC_ratio", "N/C", 2), ("NC_flag", "N/C QC", None), ("Saturated_px", T("Doymuş px"), 0), ("QC_flags", "QC", None)]
+    RES_COLS = [("Protein", "Protein", None), ("Group", T("Grup"), None), ("Experiment", T("Deney"), None), ("Image", T("Görüntü"), None), ("Cell", T("Hücre"), 0), ("Area", T("Alan"), 2),
+                ("Mean", "Mean", 3), ("IntDen", "IntDen", 1), ("BG_Mean", "BG Mean", 3), ("CTCF", "CTCF", 1),
+                ("NC_ratio", "N/C", 2), ("Objective", T("Objektif"), 0)]
+    SUM_COLS = [("Protein", "Protein", None), ("Group", T("Grup"), None), ("n", "n", 0), ("Mean", T("Ortalama"), 1), ("SD", "SD", 1),
+                ("SEM", "SEM", 1), ("Median", T("Medyan"), 1), ("Min", "Min", 1), ("Max", "Max", 1)]
+    BG_COLS = [("BG", T("Kutu"), 0), ("x0", "x", 0), ("y0", "y", 0), ("Area_px", T("Piksel"), 0), ("Mean", "Mean", 3),
+               ("StdDev", "StdDev", 3), ("Min", "Min", 0), ("Max", "Max", 0), ("RawIntDen", "RawIntDen", 0)]
+
+
+refresh_labels()
 
 
 def measure_settings(panel) -> core.Settings:
@@ -1257,6 +1264,16 @@ class MainWindow(QMainWindow):
             self.edit_group.addAction(a_)
             self.edit_acts[key] = a_
         self.edit_acts["select"].setChecked(True)
+        # Beş araç tek açılır düğmede (simgeleriyle): araç çubuğunda yer açılır, diğer düğmeler tam adlarıyla kalır.
+        from PySide6.QtWidgets import QMenu, QToolButton
+        self.edit_menu = QMenu(T("Sınır düzeltme"), self)
+        self.edit_menu.addActions(list(self.edit_acts.values()))
+        self.edit_btn = QToolButton(self)
+        self.edit_btn.setMenu(self.edit_menu)
+        self.edit_btn.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)  # tek tıkla açılır
+        self.edit_btn.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
+        self.edit_btn.setToolTip(T("Sınır düzeltme aracı — tıklayın: Seç, Böl, Birleştir, Sil, Çiz"))
+        self._update_edit_btn("select")
         self.a_undo = act(T("Geri al"), self.undo, QKeySequence.StandardKey.Undo, icon="undo")
         self.a_redo = act(T("Yinele"), self.redo, QKeySequence.StandardKey.Redo, icon="redo")
         self.a_undo.setEnabled(False)
@@ -1320,8 +1337,6 @@ class MainWindow(QMainWindow):
         # Araç çubuğunda kısa adlar (menülerde uzun adlar kalır): simge + yazıyla iki çubuk dar ekranda
         # (1280 px) da sığsın; yoksa sondaki 'Fiji ile doğrula' görünmez oluyordu.
         for a_, short in ((self.a_close, T("Kapat")), (self.a_fit, T("Sığdır")), (self.a_nuc, T("Çekirdekler")),
-                          (self.a_add, T("Tabloya ekle")), (self.a_batch, T("Toplu ölç…")),
-                          (self.a_xlsx, T("Excel…")), (self.a_plot, T("Grafik…")),
                           (self.a_fiji_verify, T("Fiji ile doğrula"))):
             a_.setIconText(short)
         tb = self.addToolBar(T("Araçlar"))
@@ -1344,8 +1359,7 @@ class MainWindow(QMainWindow):
         tb2.setMovable(False)
         tb2.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
         tb2.setIconSize(QSize(16, 16))
-        tb2.addWidget(QLabel(T(" Sınır düzeltme: ")))
-        tb2.addActions(list(self.edit_acts.values()))
+        tb2.addWidget(self.edit_btn)
         tb2.addSeparator()
         tb2.addActions([self.a_undo, self.a_redo])
         self.edit_info = QLabel()
@@ -1362,8 +1376,12 @@ class MainWindow(QMainWindow):
         avail = self.width() - 12
         for tb in getattr(self, "_toolbars", []):
             tb.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
+            if hasattr(self, "edit_btn") and self.edit_btn.parent() is not None:
+                self.edit_btn.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
             if tb.sizeHint().width() > avail:
                 tb.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonIconOnly)
+                if hasattr(self, "edit_btn") and tb.isAncestorOf(self.edit_btn):
+                    self.edit_btn.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonIconOnly)
 
     def resizeEvent(self, e):
         super().resizeEvent(e)
@@ -1653,7 +1671,13 @@ class MainWindow(QMainWindow):
             self.update_measure()
 
     # ------------------------------------------------- elle sınır düzeltme
+    def _update_edit_btn(self, mode):
+        a_ = self.edit_acts[mode]
+        self.edit_btn.setIcon(a_.icon())
+        self.edit_btn.setText(T("Sınır düzeltme: {0}").format(a_.text()))
+
     def set_edit_mode(self, mode):
+        self._update_edit_btn(mode)
         self._merge_first = None
         self.view.set_mode(mode)
         hints = {"select": "", "split": T("Ayırma çizgisini hücrenin bir kenarından öbürüne çekin."),

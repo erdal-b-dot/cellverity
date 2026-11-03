@@ -258,6 +258,8 @@
  "Sonuçlar": "Results",
  "Sürüm bilgisi panoya kopyalandı (hata bildirirken yapıştırın).": "Version info copied to the clipboard (paste it when reporting a problem).",
  "Sınır düzeltme": "Boundary editing",
+ "Sınır düzeltme aracı — tıklayın: Seç, Böl, Birleştir, Sil, Çiz": "Boundary editing tool — click: Select, Split, Merge, Delete, Draw",
+ "Sınır düzeltme: {0}": "Boundary editing: {0}",
  "Sığdır": "Fit",
  "Tabloya ekle": "Add to table",
  "Tek yönlü ANOVA: {0} ({1})": "One-way ANOVA: {0} ({1})",

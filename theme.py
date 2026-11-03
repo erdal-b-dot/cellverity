@@ -85,6 +85,7 @@ QLabel#banner[state="good"] { background: $good_bg; color: $good; }
 QLabel#banner[state="warn"] { background: $warn_bg; color: $warn; }
 QLabel#banner[state="none"] { background: transparent; padding: 0; }
 QPushButton#primary { font-weight: bold; padding: 6px 14px; }
+QMenu::item:checked { font-weight: bold; }
 """
 
 

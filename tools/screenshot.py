@@ -39,6 +39,7 @@ def main():
     theme.set_mode(a.theme)
     theme.apply(app)
     i18n.set_language(a.lang)
+    desktop.refresh_labels()
     w = desktop.MainWindow()
     # Ekranda gösterme: pencere boyutu sunucunun (küçük) sanal ekranıyla sınırlanmasın; çizim yine yerel platformla
     from PySide6.QtCore import Qt

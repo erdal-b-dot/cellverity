@@ -23,6 +23,8 @@ EN = {
     "Ölç": "Measure",
     "Örtüşme": "Overlap",
     "Durum": "Status",
+    "Sınır düzeltme aracı — tıklayın: Seç, Böl, Birleştir, Sil, Çiz": "Boundary editing tool — click: Select, Split, Merge, Delete, Draw",
+    "Sınır düzeltme: {0}": "Boundary editing: {0}",
     "Excel…": "Excel…",
     "Toplu ölç…": "Batch…",
     "Tabloya ekle": "Add to table",
