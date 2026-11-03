@@ -1,0 +1,36 @@
+# Belgeler için arayüz ekran görüntüleri — gerçek Windows ve macOS yazı tipi/çizimiyle (elle başlatılır).
+# Çıktı: Artifacts ▸ CellVerity_screenshots (tools/screenshot.py).
+name: Screenshots
+on:
+  workflow_dispatch:
+env:
+  PYTHONUTF8: "1"
+jobs:
+  shot:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            name: windows
+            extra: ""
+          - os: macos-14
+            name: macos
+            extra: "--no-menubar"   # macOS'ta menü ekranın üstündedir
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.3.3
+      - run: uv venv --python 3.12 .venv && uv pip install --python .venv -r requirements-desktop.txt
+        shell: bash
+      - run: |
+          if [ "$RUNNER_OS" = "Windows" ]; then PY=.venv/Scripts/python; else PY=.venv/bin/python; fi
+          for lang in en tr; do
+            $PY tools/screenshot.py shots/${{ matrix.name }}_${lang}_full.png --lang $lang ${{ matrix.extra }}
+            $PY tools/screenshot.py shots/${{ matrix.name }}_${lang}_1440x900.png --lang $lang --width 1440 --height 900 ${{ matrix.extra }}
+          done
+        shell: bash
+      - uses: actions/upload-artifact@v7
+        with:
+          name: CellVerity_screenshots_${{ matrix.name }}
+          path: shots/
