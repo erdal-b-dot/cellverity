@@ -16,6 +16,20 @@ import core  # noqa: E402
 FITC = ROOT / "ornek" / "Image_392.jpg"
 DAPI = ROOT / "ornek" / "Image_393.jpg"
 
+
+class Skip(Exception):
+    """Test için gereken veri yok (betik olarak çalıştırınca 'atlandı' yazılır)."""
+
+
+def require_private():
+    """Yayımlanmamış örnek görüntüler (ornek/) gereken testler: yoksa atlanır (pytest'te de)."""
+    if not (FITC.exists() and DAPI.exists()):
+        try:
+            import pytest
+        except ImportError:
+            raise Skip("ornek/ yok (yayımlanmamış görüntüler)")
+        pytest.skip("ornek/ yok (yayımlanmamış görüntüler)")
+
 # (Area µm², Mean, IntDen) — 2026-10-31, DAPI modu, varsayılan ayarlar
 EXPECTED = [(498.26, 146.71, 73097.7), (475.80, 139.17, 66216.8)]
 
@@ -43,6 +57,7 @@ def run_default_pipeline():
 
 def test_analyze_matches_manual_pipeline():
     """core.analyze() (masaüstü sürümün kullandığı akış) adım adım akışla birebir aynı olmalı."""
+    require_private()
     sb, upp, cells_ref, bg_ref = run_default_pipeline()
     fitc_arr, meta = core.load_image(open(FITC, "rb"))
     a = core.analyze(fitc_arr, meta, core.load_image(open(DAPI, "rb"))[0], core.Settings(nuc_method="otsu"))
@@ -55,6 +70,7 @@ def test_analyze_matches_manual_pipeline():
 
 
 def test_image_392():
+    require_private()
     sb, upp, cells, bg = run_default_pipeline()
     assert sb.bar_px == 138, sb.bar_px
     assert abs(upp - 0.1449) < 1e-4
@@ -70,6 +86,7 @@ def test_image_392():
 def test_v2_bright_core_nuclei():
     """v2 çekirdek algılaması (parlak çekirdek gövdesi). Değerler 2026-10-31 tarihli; elle çizimle
     karşılaştırma: Dice 0.938 / 0.932, CTCF farkı +1.3 % / +4.7 % (v1: 0.935 / 0.918, −1.9 % / +8.0 %)."""
+    require_private()
     fitc_arr, meta = core.load_image(open(FITC, "rb"))
     a = core.analyze(fitc_arr, meta, core.load_image(open(DAPI, "rb"))[0], core.Settings(nuc_method="bright_core"))
     assert int(a.nuclei.max()) == 2 and len(a.cell_ids) == 2
@@ -83,6 +100,7 @@ def test_v2_bright_core_nuclei():
 def test_v2_local_nuclei():
     """v2 varsayılan çekirdek algılaması ('local', 2026-11-01). Image_392 elle çizime göre Dice 0.943/0.938;
     20× kümelerde (Image_287) bright_core 4 çekirdek bulurken local ≥ 40 bulmalı."""
+    require_private()
     fitc_arr, meta = core.load_image(open(FITC, "rb"))
     a = core.analyze(fitc_arr, meta, core.load_image(open(DAPI, "rb"))[0])
     assert a.nuc_method == "local" and int(a.nuclei.max()) == 2 and len(a.cell_ids) == 2
@@ -99,6 +117,7 @@ def test_v2_local_nuclei():
 def test_scale_label_reading():
     """Ölçek etiketi okunmalı: 20 µm (40×) ve 50 µm (20×). 2026-10-31 öncesi hep 20 varsayılıyordu →
     50 µm'lik görüntülerde alan 6.25 kat küçük çıkıyordu."""
+    require_private()
     a, _ = core.load_image(str(FITC))
     assert core.read_scale_label(a, core.detect_scale_bar(a)) == 20.0
     p50 = ROOT / "ornek" / "Image_286.jpg"
@@ -141,6 +160,7 @@ def test_report_exports(tmp=None):
 def test_batch_pairing():
     """Klasör eşleştirme: doğru çift eşleşir; başka alanın DAPI'si (numara ardışık olsa da) eşleşmez;
     EXIF'siz (merge/yeniden kaydedilmiş) JPEG atlanır."""
+    require_private()
     import shutil
     import tempfile
     from PIL import Image
@@ -191,6 +211,7 @@ def test_group_statistics():
 
 def test_manual_edits():
     """Elle düzeltme: birleştir/böl alanı korur, sil kaldırır, çiz ImageJ çokgen kuralıyla piksel ekler."""
+    require_private()
     from skimage import measure
     fitc_arr, meta = core.load_image(open(FITC, "rb"))
     a = core.analyze(fitc_arr, meta, core.load_image(open(DAPI, "rb"))[0])
@@ -211,6 +232,7 @@ def test_manual_edits():
 
 def test_fiji_bridge():
     """Fiji kuruluysa: aynı ROI'leri Fiji'nin kendi Measure motoru (Analyzer) ölçer → birebir aynı olmalı."""
+    require_private()
     import tempfile
     import fiji
     exe = fiji.find_fiji()
@@ -286,6 +308,7 @@ def test_translations():
 def test_chance_corrected_pairing():
     """Kalabalık alanda (hücreler görüntünün ~%50'si) başka alana ait DAPI ham oranla ~%55 örtüşür ve eşleşiyordu.
     Şansa göre düzeltilmiş skorla reddedilmeli; doğru çift ≈ 1 almalı (samples/Image_11305/06, 11323/22)."""
+    require_private()
     import shutil
     import tempfile
     import batch
@@ -305,6 +328,7 @@ def test_scale_bar_hard_cases():
     """Köşede kutudan büyük doymuş beyaz hücre (Image_10841; eski yöntem 65 px buldu) ve kutuya değen parlak hücre
     (Image_14164; etiket okunamıyordu): ikisinde de 20 µm / 137 px okunmalı. Bu arşivde kutu daha büyük
     (çubuk ~9 px, kutu 68 px) — Image_392'deki küçük kutu (3 px / 31 px) da aynı kodla okunur."""
+    require_private()
     for name in ("Image_10841.jpg", "Image_14164.jpg"):
         p = ROOT / "ornek" / name
         if not p.exists():
@@ -494,26 +518,14 @@ def test_update_version_compare():
 
 
 if __name__ == "__main__":
-    if not FITC.exists():
-        sys.exit(f"Örnek görüntü yok: {FITC}")
-    test_image_392()
-    test_analyze_matches_manual_pipeline()
-    test_v2_bright_core_nuclei()
-    test_v2_local_nuclei()
-    test_scale_label_reading()
-    test_report_exports()
-    test_batch_pairing()
-    test_group_statistics()
-    test_manual_edits()
-    test_fiji_bridge()
-    test_nuclear_cytoplasmic()
-    test_protein_panel()
-    test_tiff_metadata_calibration()
-    test_update_version_compare()
-    test_translations()
-    test_chance_corrected_pairing()
-    test_scale_bar_hard_cases()
-    test_examples_expected_results()
-    test_exposure_metadata_and_warning()
-    test_quality_control_and_exclusions()
-    print("✅ Doğrulama testi geçti: hesaplamalar Fiji ile doğrulanmış değerlerle aynı.")
+    passed, skipped = 0, []
+    for fn in (test_image_392, test_analyze_matches_manual_pipeline, test_v2_bright_core_nuclei, test_v2_local_nuclei, test_scale_label_reading, test_report_exports, test_batch_pairing, test_group_statistics, test_manual_edits, test_fiji_bridge, test_nuclear_cytoplasmic, test_protein_panel, test_tiff_metadata_calibration, test_update_version_compare, test_translations, test_chance_corrected_pairing, test_scale_bar_hard_cases, test_examples_expected_results, test_exposure_metadata_and_warning, test_quality_control_and_exclusions):
+        try:
+            fn()
+            passed += 1
+        except Skip as e:
+            skipped.append(f"{fn.__name__} ({e})")
+    for s in skipped:
+        print(f"  atlandı: {s}")
+    print(f"✅ {passed} test geçti" + (f", {len(skipped)} atlandı (yayımlanmamış örnek görüntüler yok)." if skipped else
+          ": hesaplamalar Fiji ile doğrulanmış değerlerle aynı."))

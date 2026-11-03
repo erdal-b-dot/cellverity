@@ -200,6 +200,8 @@ def stylesheet() -> str:
         return ""
     values = dict(COLORS)
     values["check"] = _CHECK.as_posix()   # QSS url() ters eğik çizgiyi sevmez
+    values["arrow_down"] = (ICONS / "arrow-down.svg").as_posix()
+    values["arrow_up"] = (ICONS / "arrow-up.svg").as_posix()
     return Template(template).substitute(values)
 
 

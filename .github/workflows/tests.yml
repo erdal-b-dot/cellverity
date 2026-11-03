@@ -1,0 +1,23 @@
+# Her commit ve pull request'te testler (herkese açık örnek veriyle; yayımlanmamış görüntüler gerektirenler atlanır).
+name: Tests
+on:
+  push:
+  pull_request:
+env:
+  PYTHONUTF8: "1"   # Windows konsolunda ✅ ve Türkçe karakterler
+jobs:
+  tests:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-22.04, windows-latest, macos-14]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - run: uv venv --python 3.12 .venv && uv pip install --python .venv -r requirements.txt
+        shell: bash
+      - run: |
+          if [ "$RUNNER_OS" = "Windows" ]; then PY=.venv/Scripts/python; else PY=.venv/bin/python; fi
+          $PY tests/test_core.py
+        shell: bash

@@ -188,12 +188,10 @@ QComboBox::drop-down {
     width: 17px;
 }
 QComboBox::down-arrow {
-    image: none;
-    border-left: 4px solid transparent;
-    border-right: 4px solid transparent;
-    border-top: 5px solid $dim;
-    width: 0;
-    height: 0;
+    /* Qt QSS kenarlıkla üçgen çizmeyi desteklemez (çubuk çıkıyordu): SVG ok */
+    image: url($arrow_down);
+    width: 10px;
+    height: 10px;
     margin-right: 6px;
 }
 QComboBox QAbstractItemView {
@@ -214,18 +212,12 @@ QSpinBox::down-button:hover, QDoubleSpinBox::down-button:hover {
     background: $active;
 }
 QSpinBox::up-arrow, QDoubleSpinBox::up-arrow {
-    image: none;
-    border-left: 3px solid transparent;
-    border-right: 3px solid transparent;
-    border-bottom: 4px solid $text;
-    width: 0; height: 0;
+    image: url($arrow_up);
+    width: 9px; height: 9px;
 }
 QSpinBox::down-arrow, QDoubleSpinBox::down-arrow {
-    image: none;
-    border-left: 3px solid transparent;
-    border-right: 3px solid transparent;
-    border-top: 4px solid $text;
-    width: 0; height: 0;
+    image: url($arrow_down);
+    width: 9px; height: 9px;
 }
 
 /* ------------------------------------------------- onay kutusu / radyo */

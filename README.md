@@ -55,6 +55,8 @@ Linux: `chmod +x CellVerity_*.AppImage` and run it (Ubuntu 22.04/24.04 may first
 **Scope:** developed and validated with images acquired by the author on an **Olympus BX43** fluorescence microscope with an **Olympus DP74** colour camera and **cellSens Entry** software (FITC + DAPI). Measurements work on other images; if the scale-bar label cannot be read, the program warns you and asks for the value.
 
 ## Contributors
+Contributions are welcome — see [CONTRIBUTING.md](CONTRIBUTING.md) (bug reports, test images from other microscopes, pull requests).
+
 - **Erdal Balcan** (Manisa Celal Bayar University) — author, design, validation
 - **Meriç Balcan** ([leachou0](https://github.com/leachou0)) — user-interface theme (dark / system) and toolbar icons
 
