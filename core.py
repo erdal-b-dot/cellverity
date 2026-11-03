@@ -25,7 +25,9 @@ def load_image(file) -> tuple[np.ndarray, dict]:
     meta = {}
     if name.endswith((".tif", ".tiff")):
         import tifffile
-        arr = tifffile.imread(file)
+        with tifffile.TiffFile(file) as tf:
+            arr = tf.asarray()
+            meta.update(tiff_metadata(tf))
         if arr.ndim == 3 and arr.shape[0] in (3, 4) and arr.shape[-1] not in (3, 4):
             arr = np.moveaxis(arr, 0, -1)
     else:
@@ -49,6 +51,59 @@ def load_image(file) -> tuple[np.ndarray, dict]:
     meta["dtype"] = str(arr.dtype)
     meta["max_value"] = 255 if arr.dtype == np.uint8 else int(np.iinfo(arr.dtype).max) if arr.dtype.kind == "u" else float(arr.max())
     return arr, meta
+
+
+CALIB_CONFLICT = 0.03  # çubuk ile meta veri arasında izin verilen fark (137–138 px çubukta ±1 px ≈ %0.7)
+UM_PER_PX_RANGE = (0.01, 50.0)  # makul piksel boyutu aralığı (µm); dışındaki meta veri değerleri yok sayılır
+
+
+def tiff_metadata(tf) -> dict:
+    """TIFF'ten kalibrasyon (µm/piksel), büyütme ve pozlama. Kaynak sırası: OME-XML PhysicalSizeX → Olympus SIS
+    (cellSens) → ImageJ (unit=micron + XResolution). Genel TIFF'in 72 dpi çözünürlüğü kalibrasyon sayılmaz."""
+    import re
+    out = {}
+    page = tf.pages[0]
+    upp, src = None, ""
+    try:
+        if tf.is_ome:
+            m = re.search(r'PhysicalSizeX="([0-9.eE+-]+)"', page.description or "")
+            u = re.search(r'PhysicalSizeXUnit="([^"]+)"', page.description or "")
+            unit = (u.group(1) if u else "µm").replace("um", "µm").replace("micron", "µm")
+            scale = {"µm": 1.0, "nm": 1e-3, "mm": 1e3, "m": 1e6}.get(unit)
+            if m and scale:
+                upp, src = float(m.group(1)) * scale, "OME"
+        if upp is None and getattr(tf, "is_sis", False) and "OlympusSIS" in page.tags:
+            sis = page.tags["OlympusSIS"].value
+            if sis.get("pixelsizex"):
+                upp, src = float(sis["pixelsizex"]) * 1e6, "Olympus SIS"
+        if upp is None and tf.is_imagej:
+            ij = tf.imagej_metadata or {}
+            if str(ij.get("unit", "")).lower() in ("micron", "µm", "um", "\u00B5m"):
+                xr = page.tags["XResolution"].value
+                if xr[0]:
+                    upp, src = xr[1] / xr[0], "ImageJ"
+        if getattr(tf, "is_sis", False) and "OlympusSIS" in page.tags:
+            mag = page.tags["OlympusSIS"].value.get("magnification")
+            if mag:
+                out["magnification_meta"] = float(mag)
+    except Exception:
+        upp = None
+    if upp is not None and UM_PER_PX_RANGE[0] <= upp <= UM_PER_PX_RANGE[1]:
+        out["um_per_px_meta"], out["calibration_meta_source"] = upp, src
+    try:  # pozlama ve kazanç (JPG'deki EXIF ile aynı alanlar)
+        ex = page.tags["ExifTag"].value if "ExifTag" in page.tags else {}
+        e = ex.get("ExposureTime")
+        if e:
+            out["exposure_s"] = e[0] / e[1] if isinstance(e, tuple) else float(e)
+        iso = ex.get("ISOSpeedRatings")
+        if iso:
+            out["iso"] = float(iso[0] if isinstance(iso, (tuple, list)) else iso)
+        for k, tag in (("make", "Make"), ("model", "Model"), ("software", "Software")):
+            if tag in page.tags:
+                out[k] = str(page.tags[tag].value)
+    except Exception:
+        pass
+    return out
 
 
 CHANNEL_MODES = {
@@ -524,6 +579,7 @@ class Settings:
     channel: str = "G"
     bar_um: float | None = None        # None → etiketten okunur; okunamazsa 20 varsayılır (uyarıyla)
     bar_px: int | None = None          # None → ölçek çubuğundan otomatik
+    um_per_px: float | None = None     # kullanıcının doğrudan girdiği kalibrasyon (çubuk/meta veriden önce gelir)
     camera_pixel_um: float = 5.86
     thresh_method: str = "Li"
     thresh_factor: float = 1.0
@@ -553,9 +609,17 @@ class Analysis:
     touching: list[tuple[int, int]] = field(default_factory=list)
     camera_pixel_um: float = 5.86
     bar_um: float = 20.0
-    bar_um_source: str = "default"     # "label" (okundu) | "user" | "default" (okunamadı → 20 varsayıldı)
+    bar_um_source: str = "default"     # "label" (okundu) | "user" | "default" (okunamadı → 20 varsayıldı) | "metadata"
     dapi_overlap: float | None = None  # çekirdek alanının hücre maskesi içindeki oranı (aynı alan mı?)
     nuc_method: str = ""
+    calib_conflict: float | None = None  # çubuk ile dosya meta verisi > %3 farklıysa meta verideki µm/piksel
+
+    @property
+    def imagej_scale(self) -> tuple[float | None, float]:
+        """ImageJ 'Set Scale' için (piksel, µm): çubuk varsa çubuk; meta veri/kullanıcı değeriyse 1 piksel = µm/piksel."""
+        if self.scale_bar.found and self.scale_bar.bar_px and self.bar_um_source != "metadata":
+            return self.scale_bar.bar_px, self.bar_um
+        return (1, self.um_per_px) if self.um_per_px else (None, 1.0)
 
     @property
     def segmentation_mode(self) -> str:
@@ -566,10 +630,10 @@ class Analysis:
         return estimate_objective(self.um_per_px, self.camera_pixel_um) if self.um_per_px else None
 
 
-def analyze(fitc_arr: np.ndarray, meta: dict, dapi_arr: np.ndarray | None = None,
-            s: Settings | None = None) -> Analysis:
-    """Kalibrasyon → çekirdek → hücre segmentasyonu. Arayüzler (Streamlit / masaüstü) bunu çağırır."""
-    s = s or Settings()
+def calibrate(arr: np.ndarray, meta: dict, s: "Settings") -> tuple:
+    """Kalibrasyon → (scale_bar, µm/piksel | None, kaynak, bar_um, çelişki). Öncelik: kullanıcının µm/piksel değeri →
+    görüntüdeki ölçek çubuğu + etiketi → dosya meta verisi (çubuk yoksa ya da etiketi okunamadıysa) → yok."""
+    fitc_arr = arr
     sb = detect_scale_bar(fitc_arr)
     bar_px = s.bar_px if s.bar_px is not None else sb.bar_px
     if s.bar_um is not None:
@@ -578,6 +642,23 @@ def analyze(fitc_arr: np.ndarray, meta: dict, dapi_arr: np.ndarray | None = None
         lbl = read_scale_label(fitc_arr, sb)
         bar_um, src = (lbl, "label") if lbl else (20.0, "default")
     upp = bar_um / bar_px if bar_px else None
+    meta_upp = meta.get("um_per_px_meta")
+    conflict = None
+    if s.um_per_px:  # kullanıcı doğrudan µm/piksel girdi
+        upp, src, bar_um = float(s.um_per_px), "user", float(s.um_per_px)
+    elif meta_upp and (upp is None or src == "default"):
+        # görüntüde çubuk yok (ör. cellSens ham TIFF) ya da çubuğun etiketi okunamadı (20 µm tahmini yerine)
+        upp, src, bar_um = meta_upp, "metadata", meta_upp
+    elif upp is not None and meta_upp and src != "user" and abs(upp / meta_upp - 1) > CALIB_CONFLICT:
+        conflict = meta_upp  # çubuk ile meta veri çelişiyor → arayüz uyarır
+    return sb, upp, src, bar_um, conflict
+
+
+def analyze(fitc_arr: np.ndarray, meta: dict, dapi_arr: np.ndarray | None = None,
+            s: Settings | None = None) -> Analysis:
+    """Kalibrasyon → çekirdek → hücre segmentasyonu. Arayüzler (Streamlit / masaüstü) bunu çağırır."""
+    s = s or Settings()
+    sb, upp, src, bar_um, conflict = calibrate(fitc_arr, meta, s)
     exclude = np.zeros(fitc_arr.shape[:2], bool)
     if sb.found:
         y0, y1, x0, x1 = sb.bbox
@@ -596,7 +677,7 @@ def analyze(fitc_arr: np.ndarray, meta: dict, dapi_arr: np.ndarray | None = None
         overlap = chance_corrected_overlap((labels > 0) & ~exclude, (nuclei > 0) & ~exclude)
     return Analysis(fitc_arr, meta, sb, upp, exclude, fitc_ch, dapi_ch, nuclei, labels, th, ids,
                     touching_pairs(labels), s.camera_pixel_um, bar_um, src, overlap,
-                    s.nuc_method if nuclei is not None else "")
+                    s.nuc_method if nuclei is not None else "", conflict)
 
 
 def chance_corrected_overlap(cell_mask: np.ndarray, nuc_mask: np.ndarray) -> float:

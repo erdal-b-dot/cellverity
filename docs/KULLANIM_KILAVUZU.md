@@ -105,8 +105,9 @@ Program ne kadar iyi olursa olsun, ölçümün geçerliliği görüntüye bağl�
 
 **Önerilir:**
 - **Aynı alanın DAPI görüntüsü.** Birbirine değen hücreleri doğru ayırmak için şart ([Uyarılar](#12-uyarilar-ne-anlama-gelir-ne-yapmali)).
-- **Ölçek çubuğu görüntüde kalsın.** Program kalibrasyonu çubuktan okur (cellSens sağ alt köşe beyaz kutu).
-- **TIFF** kaydı JPEG'den iyidir (JPEG kayıplıdır). Aynı çalışmada tüm görüntüler aynı formatta olmalı.
+- **Kalibrasyon:** görüntüde ölçek çubuğu (cellSens sağ alt köşe beyaz kutu) **ya da** dosyada piksel boyutu bilgisi (cellSens ham TIFF, OME-TIFF, ImageJ TIFF) olmalı. İkisi de yoksa piksel boyutunu elle girersiniz ([6.2](#62-kalibrasyonu-kontrol-etmek)).
+- **TIFF** kaydı JPEG'den iyidir (JPEG kayıplıdır). Aynı çalışmada **FITC görüntüleri** aynı formatta olmalı (DAPI yalnızca hücre ayırmada kullanıldığı için JPG olabilir; TIFF FITC + JPG DAPI eşleştirmesi desteklenir).
+- **Desteklenen dosyalar:** JPG, PNG, TIFF (8/16-bit, RGB ya da tek kanal). Üretici biçimleri (.czi, .nd2, .lif, .vsi) şimdilik desteklenmez; Fiji'de TIFF olarak kaydedin (piksel boyutu korunur).
 
 **Test edilen ekipman:** Olympus BX43 floresan mikroskop, Olympus DP74 renkli kamera, cellSens Entry yazılımı. **DP74 notu:** Bu renkli kamerada FITC sinyali sarı-yeşil, DAPI ise **turkuaz** görünür. Program FITC'yi **yeşil (G) kanalından** ölçer; FITC/DAPI ayrımını parlak piksellerin mavi/kırmızı oranından yapar.
 
@@ -166,6 +167,12 @@ Sağ panelde **Kalibrasyon** satırı kaynağı da söyler:
 - *etiketten okundu* — ölçek çubuğunun altındaki değer (20 µm, 50 µm) okundu. ✅
 - *elle girildi* — **Ölçek çubuğu** kutusuna sizin yazdığınız değer.
 - *etiket OKUNAMADI, varsayıldı* — kırmızı uyarı çıkar; görüntüdeki değeri **Ölçek çubuğu** kutusuna yazın.
+- *dosya meta verisinden (OME / Olympus SIS / ImageJ)* — görüntüde ölçek çubuğu yok; piksel boyutu dosyanın içinden okundu. cellSens'in **ham TIFF** kayıtları böyledir (üzerine çubuk basılmaz, piksel boyutu dosyada saklanır). ✅
+- *elle girildi* (µm/piksel) — **Düzelt ▸ Kalibrasyonu elle gir**: piksel boyutunu doğrudan ya da objektif + kamera piksel boyutundan (kamera pikseli ÷ büyütme; DP74: 5.86 µm) girersiniz.
+
+**Öncelik sırası:** elle girilen değer → görüntüdeki ölçek çubuğu → dosya meta verisi. Hem çubuk hem meta veri varsa ve %3'ten fazla farklıysa kırmızı uyarı çıkar (görüntü yeniden boyutlandırılmış ya da çubuk yanlış okunmuş olabilir).
+
+**Ölçek hiç bulunamazsa** (çubuk yok, meta veri yok) program bir pencereyle kalibrasyon ister. *Piksel biriminde ölç* derseniz alanlar piksel² olur ve hücre/çekirdek boyut filtreleri piksel cinsinden çalışır — hücreler parçalanabilir; yalnızca aynı ayarla çekilmiş görüntüleri kendi aralarında karşılaştırmak için kullanın. Toplu ölçümde kalibrasyonsuz görüntüler sonuçlarda ve istatistikte uyarıyla belirtilir.
 
 > ⚠️ Ölçek değeri yanlışsa **alan ve IntDen kat kat yanlış** çıkar (ör. 50 µm yerine 20 µm: 6.25 kat). Bu yüzden her yeni görüntüde kalibrasyon satırına bir göz atın.
 

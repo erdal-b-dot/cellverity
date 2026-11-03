@@ -446,6 +446,45 @@ def test_protein_panel():
     assert batch.protein_of(f / "Deney_1" / "Kontrol" / "a.jpg", f) == ""
 
 
+def test_tiff_metadata_calibration():
+    """Ölçek çubuğu olmayan TIFF: kalibrasyon dosya meta verisinden (OME / ImageJ); meta verisizse kalibrasyonsuz,
+    kullanıcı µm/piksel girebilir. Çubuk varken çubuk önceliklidir; meta veriyle > %3 farkta çelişki işaretlenir."""
+    import tempfile
+    import tifffile
+    img = np.zeros((300, 400), np.uint8)
+    img[100:200, 150:250] = 120
+    with tempfile.TemporaryDirectory() as d:
+        ome, ij, plain = Path(d) / "ome.tif", Path(d) / "ij.tif", Path(d) / "plain.tif"
+        tifffile.imwrite(ome, img, ome=True, metadata={"PhysicalSizeX": 0.2, "PhysicalSizeXUnit": "µm",
+                                                       "PhysicalSizeY": 0.2, "PhysicalSizeYUnit": "µm"})
+        tifffile.imwrite(ij, img, imagej=True, resolution=(1 / 0.3, 1 / 0.3), metadata={"unit": "um"})
+        tifffile.imwrite(plain, img, resolution=(72, 72))
+        lzw = Path(d) / "lzw.tif"  # LZW sıkıştırmalı TIFF (imagecodecs gerekir; yoksa hiç açılmıyordu)
+        tifffile.imwrite(lzw, img, compression="lzw")
+        assert (core.load_image(str(lzw))[0] == img).all()
+        m_ome, m_ij, m_plain = (core.load_image(str(f))[1] for f in (ome, ij, plain))
+        assert abs(m_ome["um_per_px_meta"] - 0.2) < 1e-9 and m_ome["calibration_meta_source"] == "OME"
+        assert abs(m_ij["um_per_px_meta"] - 0.3) < 1e-6 and m_ij["calibration_meta_source"] == "ImageJ"
+        assert "um_per_px_meta" not in m_plain  # 72 dpi kalibrasyon sayılmaz
+        a = core.analyze(*core.load_image(str(ome)))
+        assert a.bar_um_source == "metadata" and abs(a.um_per_px - 0.2) < 1e-9 and a.imagej_scale == (1, a.um_per_px)
+        a = core.analyze(*core.load_image(str(plain)))
+        assert a.um_per_px is None and a.imagej_scale[0] is None
+        a = core.analyze(*core.load_image(str(plain)), s=core.Settings(um_per_px=0.15))
+        assert a.bar_um_source == "user" and a.um_per_px == 0.15 and a.imagej_scale == (1, 0.15)
+    # çubuk varken çubuk kazanır; meta veri %3'ten fazla farklıysa çelişki işaretlenir
+    fa, m = core.load_image(str(ROOT / "examples" / "PARC_control" / "Image_11305.jpg"))
+    a = core.analyze(fa, dict(m, um_per_px_meta=0.2))
+    assert a.bar_um_source == "label" and abs(a.um_per_px - 20 / 137) < 1e-9 and a.calib_conflict == 0.2
+    a = core.analyze(fa, dict(m, um_per_px_meta=0.1465))  # %0.35 fark → çelişki yok
+    assert a.calib_conflict is None and a.imagej_scale == (137, 20.0)
+    bea = Path("/Volumes/KINGSTON/ba deney(PrP)/BeA p53/Image_25019.tif")  # cellSens ham TIFF (varsa)
+    if bea.exists():
+        a = core.analyze(*core.load_image(str(bea)))
+        assert a.bar_um_source == "metadata" and abs(a.um_per_px - 0.1465) < 1e-9
+        assert a.meta["exposure_s"] == 5.36 and a.objective[0] == 40
+
+
 if __name__ == "__main__":
     if not FITC.exists():
         sys.exit(f"Örnek görüntü yok: {FITC}")
@@ -461,6 +500,7 @@ if __name__ == "__main__":
     test_fiji_bridge()
     test_nuclear_cytoplasmic()
     test_protein_panel()
+    test_tiff_metadata_calibration()
     test_translations()
     test_chance_corrected_pairing()
     test_scale_bar_hard_cases()

@@ -13,7 +13,7 @@ CTCF = Integrated density − (Cell area × Mean background)        (McCloy et a
 *Türkçe açıklama aşağıda — [Türkçe](#türkçe).*
 
 ## Features
-- **Automatic calibration** from the cellSens scale bar, including the printed value (20 µm, 50 µm) → µm/pixel and objective
+- **Automatic calibration** from the cellSens scale bar, including the printed value (20 µm, 50 µm) → µm/pixel and objective; for images without a burned-in bar, from the pixel size stored in the file (OME-TIFF, Olympus cellSens TIFF, ImageJ TIFF); otherwise entered manually (directly or from objective + camera pixel size)
 - **Cell segmentation** from the FITC channel; **touching cells separated with DAPI-stained nuclei**; automatic check that the DAPI image belongs to the same field
 - **Background** boxes placed automatically away from cells — movable by drag-and-drop, or placed manually
 - **Manual boundary editing:** split, merge, delete, draw — with undo/redo
@@ -21,7 +21,11 @@ CTCF = Integrated density − (Cell area × Mean background)        (McCloy et a
 - **Statistics:** Welch's t / Mann–Whitney; one-way ANOVA, Kruskal–Wallis, **Dunnett vs a chosen control**, Tukey; on cell, image or **independent-experiment means** (guards against pseudoreplication); GraphPad-style plots (PNG 600 dpi / PDF / SVG)
 - **Excel export with full provenance:** calibration source, segmentation and nucleus method, manual edits, Fiji check, program version; image- and experiment-mean sheets
 - **Fiji bridge:** re-measure the same ROIs with Fiji's own *Measure* engine in the background and compare; open results in Fiji; compare manually traced RoiSets with automatic boundaries (**Bland–Altman**, Dice) for method validation
+- **Nuclear/cytoplasmic CTCF and N/C ratio** (translocation read-out), also verified in Fiji
+- **Protein panel:** several proteins measured in different wells shown side by side as fold change vs their own control in the same experiment (ratio paired t, Holm)
 - **Turkish and English** interface; autosave; images never leave your computer
+
+**Supported images:** JPG, PNG and TIFF (8/16-bit, RGB or single channel). Vendor formats (.czi, .nd2, .lif, .vsi) are not read directly yet — save them as TIFF in Fiji (the calibration is kept).
 
 ## Download
 Stand-alone apps (no Python needed): **[Releases](https://github.com/erdal-b-dot/cellverity/releases)**

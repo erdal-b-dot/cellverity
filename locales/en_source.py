@@ -23,6 +23,43 @@ EN = {
     "Ölç": "Measure",
     "Örtüşme": "Overlap",
     "Durum": "Status",
+    "Hakkında / sürüm bilgisi…": "About / version info…",
+    "Bilgileri kopyala": "Copy info",
+    "<span style='color:#a60'>Geliştirme sürümü: henüz yayımlanmadı ve DOI'si yok. Yayın için ölçümlerde yayımlanmış bir sürüm kullanın.</span>":
+        "<span style='color:#a60'>Development build: not yet released and has no DOI. For publications, measure with a released version.</span>",
+    "Bu sürümün DOI'si: Zenodo sayfasında (Versions)": "DOI of this version: see the Zenodo page (Versions)",
+    "Sürüm bilgisi panoya kopyalandı (hata bildirirken yapıştırın).": "Version info copied to the clipboard (paste it when reporting a problem).",
+    "kaynak kod": "source code",
+    "kaynak kod, commit {0}": "source code, commit {0}",
+    "Bu sürümün DOI'si: <a href='https://doi.org/{0}'>{0}</a>": "DOI of this version: <a href='https://doi.org/{0}'>{0}</a>",
+    "<b>{0} {1}</b> — eski adı ICC CTCF Ölçer<br>İmmünositokimya görüntülerinde doğrulanabilir hücre başına floresan (CTCF) ölçümü.<br><br>{2}<br>Tüm sürümler: <a href='https://doi.org/{3}'>{3}</a><br><br>Derleme: {4}<br>Sistem: {5}<br><br>CTCF = IntDen − (Area × Mean background) — McCloy et al., 2014, <i>Cell Cycle</i><br>Ölçümler ImageJ/Fiji ile birebir aynıdır.<br>© 2026 Erdal Balcan, Manisa Celal Bayar Üniversitesi — MIT lisansı":
+        "<b>{0} {1}</b> — formerly ICC CTCF Ölçer<br>Verifiable per-cell fluorescence (CTCF) quantification for immunocytochemistry images.<br><br>{2}<br>All versions: <a href='https://doi.org/{3}'>{3}</a><br><br>Build: {4}<br>System: {5}<br><br>CTCF = IntDen − (Area × Mean background) — McCloy et al., 2014, <i>Cell Cycle</i><br>Measurements are identical to ImageJ/Fiji.<br>© 2026 Erdal Balcan, Manisa Celal Bayar University — MIT License",
+    "Kalibrasyon (µm/piksel)": "Calibration (µm/pixel)",
+    " µm/piksel": " µm/pixel",
+    " µm (kamera pikseli)": " µm (camera pixel)",
+    "Olympus DP74: 5.86 µm. Kameranızın teknik belgesinde 'pixel size' olarak yazar.": "Olympus DP74: 5.86 µm. Listed as 'pixel size' in your camera's specifications.",
+    "µm/piksel": "µm/pixel",
+    "ya da objektif": "or objective",
+    "kamera piksel boyutu": "camera pixel size",
+    "Uygula": "Apply",
+    "Piksel biriminde ölç": "Measure in pixels",
+    "Kalibrasyonsuz devam eder: alanlar piksel², boyut filtreleri piksel cinsinden (hücreler parçalanabilir). Yalnızca aynı ayarla çekilmiş görüntüleri kendi aralarında karşılaştırmak için.":
+        "Continues without calibration: areas in pixels², size filters in pixels (cells may be fragmented). Only for comparing images acquired with identical settings among themselves.",
+    "Piksel boyutunu girin ya da objektif ve kamera piksel boyutundan hesaplatın (kamera piksel boyutu ÷ objektif büyütmesi; ara büyütme/adaptör varsa ona da bölün).":
+        "Enter the pixel size or let it be calculated from the objective and the camera pixel size (camera pixel size ÷ objective magnification; also divide by any intermediate magnification/adapter).",
+    "Kalibrasyonu elle gir (µm/piksel)…": "Enter calibration manually (µm/pixel)…",
+    "Ölçek bulunamadı — piksel birimi": "No scale found — pixel units",
+    "⚠️ Kalibrasyon yok: alanlar piksel², boyut filtreleri piksel cinsinden; hücreler parçalanabilir. Düzelt ▸ Kalibrasyonu elle gir.":
+        "⚠️ No calibration: areas in pixels², size filters in pixels; cells may be fragmented. Edit ▸ Enter calibration manually.",
+    "<b>Bu görüntüde ölçek bulunamadı</b>: üzerinde ölçek çubuğu yok ve dosyada piksel boyutu bilgisi (meta veri) yok.<br><br>Kalibrasyon olmadan alan µm² yerine piksel² olur ve hücre/çekirdek boyut filtreleri yanlış ölçekte çalışır; hücreler parçalanabilir.<br><br>":
+        "<b>No scale found in this image</b>: there is no scale bar on it and no pixel-size information (metadata) in the file.<br><br>Without calibration, areas are in pixels² instead of µm² and the cell/nucleus size filters work at the wrong scale; cells may be fragmented.<br><br>",
+    "Kalibrasyonsuz (piksel biriminde) devam ediliyor.": "Continuing without calibration (pixel units).",
+    "{0:.4f} µm/piksel  (dosya meta verisinden: {1})": "{0:.4f} µm/pixel  (from file metadata: {1})",
+    "{0:.4f} µm/piksel  (elle girildi)": "{0:.4f} µm/pixel  (entered manually)",
+    "⚠️ Ölçek çubuğu ({0:.4f} µm/piksel) ile dosyanın meta verisi ({1:.4f} µm/piksel) %{2:.0f} farklı. Görüntü yeniden boyutlandırılmış ya da çubuk yanlış okunmuş olabilir; doğru değeri Düzelt ▸ Kalibrasyonu elle gir ile verin.":
+        "⚠️ The scale bar ({0:.4f} µm/pixel) and the file metadata ({1:.4f} µm/pixel) differ by {2:.0f} %. The image may have been resized or the bar misread; enter the correct value with Edit ▸ Enter calibration manually.",
+    "⚠️ {0} görüntü kalibrasyonsuz ölçüldü (ölçek çubuğu ve dosya meta verisi yok): alanları piksel², boyut filtreleri piksel cinsinden. Bu görüntüleri tek tek açıp Düzelt ▸ Kalibrasyonu elle gir ile µm/piksel verin.":
+        "⚠️ {0} images were measured without calibration (no scale bar and no file metadata): their areas are in pixels² and size filters in pixels. Open them one by one and enter µm/pixel with Edit ▸ Enter calibration manually.",
     "ör. p53": "e.g. p53",
     "Bu görüntüde ölçülen protein / hedef. Birden çok protein ölçüldüyse Sonuçlar ▸ Protein paneli\nher proteini aynı deneydeki kendi kontrolüne oranlayarak yan yana gösterir.":
         "Protein / target measured in this image. If several proteins were measured, Results ▸ Protein panel\nshows them side by side, each normalised to its own control in the same experiment.",

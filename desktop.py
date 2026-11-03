@@ -45,7 +45,9 @@ import report
 from batch import guess_kind
 
 APP_NAME = "CellVerity"
-VERSION = "2.1.0"
+VERSION = "2.2.0-dev"
+CONCEPT_DOI = "10.5281/zenodo.23860020"  # tüm sürümler (her zaman en yenisine yönlendirir)
+RELEASE_DOIS = {"2.0.0": "10.5281/zenodo.23860021", "2.1.0": "10.5281/zenodo.23884562"}  # sürüme özel DOI'ler
 IMAGE_FILTER = T("Görüntüler (*.jpg *.jpeg *.tif *.tiff *.png)")
 AUTOSAVE = Path.home() / "Documents" / "CellVerity" / "otomatik_kayit.xlsx"
 OLD_AUTOSAVE = Path.home() / "Documents" / "ICC CTCF Olcer" / "otomatik_kayit.xlsx"  # 2.1 öncesi
@@ -58,7 +60,7 @@ def result_meta(a: core.Analysis, fitc: Path, dapi: Path | None, group: str, bg_
     return {"Protein": protein, "Group": group, "Experiment": experiment, "Image": fitc.name, "Image_path": str(fitc), "DAPI_image": dapi.name if dapi else "",
             "Channel": "G", "Exposure_s": a.meta.get("exposure_s", np.nan), "ISO": a.meta.get("iso", np.nan),
             "um_per_px": a.um_per_px or np.nan, "Scale_bar_um": a.bar_um,
-            "Scale_source": a.bar_um_source, "Objective": a.objective[0] if a.objective else np.nan,
+            "Scale_source": a.bar_um_source if a.um_per_px else "none", "Objective": a.objective[0] if a.objective else np.nan,
             "BG_mode": bg_mode, "BG_box_px": bg_size, "BG_n": bg_n,
             "Segmentation": a.segmentation_mode,
             "Nucleus_method": a.nuc_method,
@@ -937,6 +939,60 @@ class PlotDialog(QDialog):
             Path(path).write_text(head + self.stats.toPlainText(), encoding="utf-8")
 
 
+class CalibrationDialog(QDialog):
+    """Kalibrasyon bulunamadığında (çubuk yok, dosya meta verisi yok) ya da kullanıcı değiştirmek istediğinde:
+    µm/piksel doğrudan ya da objektif + kamera piksel boyutundan."""
+    OBJECTIVES = (4, 10, 20, 40, 60, 63, 100)
+
+    def __init__(self, parent, current: float | None, missing: bool):
+        super().__init__(parent)
+        self.setWindowTitle(T("Kalibrasyon (µm/piksel)"))
+        lay = QVBoxLayout(self)
+        txt = QLabel((T("<b>Bu görüntüde ölçek bulunamadı</b>: üzerinde ölçek çubuğu yok ve dosyada piksel boyutu bilgisi (meta veri) yok.<br><br>Kalibrasyon olmadan alan µm² yerine piksel² olur ve hücre/çekirdek boyut filtreleri yanlış ölçekte çalışır; hücreler parçalanabilir.<br><br>") if missing else "")
+                     + T("Piksel boyutunu girin ya da objektif ve kamera piksel boyutundan hesaplatın (kamera piksel boyutu ÷ objektif büyütmesi; ara büyütme/adaptör varsa ona da bölün)."))
+        txt.setWordWrap(True)
+        lay.addWidget(txt)
+        form = QFormLayout()
+        self.upp = QDoubleSpinBox()
+        self.upp.setDecimals(4)
+        self.upp.setRange(0.0, 50.0)
+        self.upp.setSingleStep(0.01)
+        self.upp.setSuffix(T(" µm/piksel"))
+        self.upp.setValue(current or 0.0)
+        self.obj = QComboBox()
+        self.obj.addItem("—", 0)
+        for o in self.OBJECTIVES:
+            self.obj.addItem(f"{o}×", o)
+        self.cam = QDoubleSpinBox()
+        self.cam.setDecimals(2)
+        self.cam.setRange(0.5, 30.0)
+        self.cam.setValue(5.86)
+        self.cam.setSuffix(T(" µm (kamera pikseli)"))
+        self.cam.setToolTip(T("Olympus DP74: 5.86 µm. Kameranızın teknik belgesinde 'pixel size' olarak yazar."))
+        form.addRow(T("µm/piksel"), self.upp)
+        form.addRow(T("ya da objektif"), self.obj)
+        form.addRow(T("kamera piksel boyutu"), self.cam)
+        lay.addLayout(form)
+        for w in (self.obj, self.cam):
+            (w.currentIndexChanged if w is self.obj else w.valueChanged).connect(self._calc)
+        row = QHBoxLayout()
+        self.btn_ok = QPushButton(T("Uygula"))
+        self.btn_ok.setDefault(True)
+        self.btn_px = QPushButton(T("Piksel biriminde ölç"))
+        self.btn_px.setToolTip(T("Kalibrasyonsuz devam eder: alanlar piksel², boyut filtreleri piksel cinsinden (hücreler parçalanabilir). Yalnızca aynı ayarla çekilmiş görüntüleri kendi aralarında karşılaştırmak için."))
+        row.addWidget(self.btn_px)
+        row.addStretch()
+        row.addWidget(self.btn_ok)
+        lay.addLayout(row)
+        self.btn_ok.clicked.connect(lambda: self.done(1) if self.upp.value() > 0 else None)
+        self.btn_px.clicked.connect(lambda: self.done(2))
+
+    def _calc(self, *_):
+        o = self.obj.currentData()
+        if o:
+            self.upp.setValue(self.cam.value() / o)
+
+
 class PanelDialog(QDialog):
     """Protein paneli: her protein aynı deneydeki kendi kontrolüne oranlanır (kat değişimi), proteinler yan yana."""
 
@@ -1095,6 +1151,7 @@ class MainWindow(QMainWindow):
         self._img_cache = {}    # görüntü yolu → dizi (son birkaç görüntü)
         self._after_analysis = None
         self._fresh_image = True
+        self.manual_upp, self._calib_asked = None, False  # kullanıcının girdiği µm/piksel (görüntü başına)
         self.sum_table = make_table(SUM_COLS)
         self.tabs.addTab(self.table, T("Hücreler"))
         self.tabs.addTab(self.bg_table, T("Background kutuları"))
@@ -1190,6 +1247,8 @@ class MainWindow(QMainWindow):
         m.addSeparator()
         m.addAction(self.a_fiji_path)
         m = self.menuBar().addMenu(T("Düzelt"))
+        m.addAction(act(T("Kalibrasyonu elle gir (µm/piksel)…"), lambda: self.ask_calibration(missing=False)))
+        m.addSeparator()
         m.addActions(list(self.edit_acts.values()))
         m.addSeparator()
         m.addActions([self.a_undo, self.a_redo])
@@ -1208,7 +1267,14 @@ class MainWindow(QMainWindow):
             lm.addAction(la)
         m = self.menuBar().addMenu(T("Yardım"))
         m.addAction(act(T("Kullanım kılavuzu"), self.open_manual, QKeySequence.StandardKey.HelpContents))
-        m.addAction(act(T("Hakkında"), self.about))
+        a_about = act(T("Hakkında / sürüm bilgisi…"), self.about)
+        a_about.setMenuRole(QAction.MenuRole.NoRole)  # macOS bunu uygulama menüsüne taşımasın: Yardım'da kalsın
+        m.addSeparator()
+        m.addAction(a_about)
+        if sys.platform == "darwin":  # macOS: ayrıca CellVerity ▸ About (diğer sistemlerde Yardım'da ikinci kopya olurdu)
+            a_mac = act(T("Hakkında / sürüm bilgisi…"), self.about)
+            a_mac.setMenuRole(QAction.MenuRole.AboutRole)
+            m.addAction(a_mac)
 
         tb = self.addToolBar(T("Araçlar"))
         tb.setMovable(False)
@@ -1304,6 +1370,7 @@ class MainWindow(QMainWindow):
                 self.analysis = None
                 self.selected, self.manual_boxes = set(), []
                 self.exclusions, self._fresh_image = {}, True
+                self.manual_upp, self._calib_asked = None, False
                 self.panel.bar_um.setValue(0)  # yeni görüntü → etiketten oku
                 if self.fitc is not None and self.dapi is not None:  # önceki alanın DAPI'si yanlış ayırır
                     self.dapi = None
@@ -1338,7 +1405,7 @@ class MainWindow(QMainWindow):
         QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
         self._thread = QThread(self)
         bar = self.panel.bar_um.value()
-        self._worker = AnalysisWorker(arr, meta, dapi, core.Settings(bar_um=bar or None))
+        self._worker = AnalysisWorker(arr, meta, dapi, core.Settings(bar_um=bar or None, um_per_px=self.manual_upp))
         self._worker.moveToThread(self._thread)
         self._thread.started.connect(self._worker.run)
         self._worker.finished.connect(self.on_done)
@@ -1350,6 +1417,18 @@ class MainWindow(QMainWindow):
         self._thread.quit()
         self._thread.wait()
         self._thread = None
+
+    def ask_calibration(self, missing: bool = False):
+        if self.fitc is None:
+            return
+        cur = self.manual_upp or (self.analysis.um_per_px if self.analysis else None)
+        d = CalibrationDialog(self, cur, missing)
+        r = d.exec()
+        if r == 1:
+            self.manual_upp = d.upp.value()
+            self.run_analysis()
+        elif r == 2:
+            self.statusBar().showMessage(T("Kalibrasyonsuz (piksel biriminde) devam ediliyor."), 8000)
 
     def on_fail(self, msg):
         self._stop_thread()
@@ -1366,11 +1445,19 @@ class MainWindow(QMainWindow):
         self.analysis = a
         p = self.panel
         if a.um_per_px:
-            src = {"label": T("etiketten okundu"), "user": T("elle girildi"),
-                   "default": T("etiket OKUNAMADI, varsayıldı")}[a.bar_um_source]
-            p.set(T("Kalibrasyon"), T("{0:.4f} µm/piksel  (çubuk {1} px = {2:g} µm, {3})").format(a.um_per_px, a.scale_bar.bar_px, a.bar_um, src))
+            if a.bar_um_source == "metadata":
+                p.set(T("Kalibrasyon"), T("{0:.4f} µm/piksel  (dosya meta verisinden: {1})").format(a.um_per_px, a.meta.get("calibration_meta_source", "")))
+            elif a.bar_um_source == "user" and a.imagej_scale[0] == 1:
+                p.set(T("Kalibrasyon"), T("{0:.4f} µm/piksel  (elle girildi)").format(a.um_per_px))
+            else:
+                src = {"label": T("etiketten okundu"), "user": T("elle girildi"),
+                       "default": T("etiket OKUNAMADI, varsayıldı")}[a.bar_um_source]
+                p.set(T("Kalibrasyon"), T("{0:.4f} µm/piksel  (çubuk {1} px = {2:g} µm, {3})").format(a.um_per_px, a.scale_bar.bar_px, a.bar_um, src))
             if a.bar_um_source == "default":
                 p.calib_warn.setText(T("⚠️ Ölçek çubuğunun değeri okunamadı; 20 µm varsayıldı. Görüntünün sağ alt köşesindeki değere bakıp yukarıdaki 'Ölçek çubuğu' kutusuna yazın — yanlış değer alan ve IntDen'i kat kat değiştirir."))
+                p.calib_warn.show()
+            elif a.calib_conflict:
+                p.calib_warn.setText(T("⚠️ Ölçek çubuğu ({0:.4f} µm/piksel) ile dosyanın meta verisi ({1:.4f} µm/piksel) %{2:.0f} farklı. Görüntü yeniden boyutlandırılmış ya da çubuk yanlış okunmuş olabilir; doğru değeri Düzelt ▸ Kalibrasyonu elle gir ile verin.").format(a.um_per_px, a.calib_conflict, 100 * abs(a.um_per_px / a.calib_conflict - 1)))
                 p.calib_warn.show()
             else:
                 p.calib_warn.hide()
@@ -1382,8 +1469,14 @@ class MainWindow(QMainWindow):
             p.set(T("Objektif"), T("{0}×  (hesaplanan {1:.1f}×)").format(obj, raw)
                   + (T(" · pozlama {0}").format(raw_txt) if raw_txt else ""))
         else:
-            p.set(T("Kalibrasyon"), T("Ölçek çubuğu bulunamadı — piksel birimi"))
+            p.set(T("Kalibrasyon"), T("Ölçek bulunamadı — piksel birimi"))
             p.set(T("Objektif"), "—")
+            p.calib_warn.setText(T("⚠️ Kalibrasyon yok: alanlar piksel², boyut filtreleri piksel cinsinden; hücreler parçalanabilir. Düzelt ▸ Kalibrasyonu elle gir."))
+            p.calib_warn.show()
+            if not self._calib_asked:
+                self._calib_asked = True
+                from PySide6.QtCore import QTimer
+                QTimer.singleShot(0, lambda: self.ask_calibration(missing=True))
         p.set(T("Hücre sayısı"), f"{len(a.cell_ids)}")
         p.set(T("Çekirdek sayısı"), f"{int(a.nuclei.max())}" if a.nuclei is not None else T("— (DAPI yok)"))
         p.set_mode(a)
@@ -1886,7 +1979,8 @@ class MainWindow(QMainWindow):
         self.panel.res_info.setText(T("Biriken: <b>{0}</b> hücre, {1} görüntü, {2} grup").format(len(r), n_img, n_grp)
                                     + (T("  <span style='color:#a60'>(kaydedilmedi)</span>") if self._dirty else "")
                                     + "".join(f"<br><span style='color:#b22'>{w}</span>" for w in
-                                              (report.mixed_objectives(r), report.mixed_exposures(r)) if len(r) and w))
+                                              (report.mixed_objectives(r), report.mixed_exposures(r),
+                                               report.uncalibrated(r)) if len(r) and w))
         for w in (self.panel.btn_excel, self.panel.btn_plot):
             w.setEnabled(len(r) > 0)
         for a_ in (self.a_xlsx, self.a_csv, self.a_plot, self.a_reset):
@@ -1942,8 +2036,8 @@ class MainWindow(QMainWindow):
         path = self._save_path(T("ImageJ/Fiji paketini kaydet"), f"ImageJ_{base}.zip", "ZIP (*.zip)")
         if path:
             path.write_bytes(core.imagej_export_zip(a.fitc_ch, a.labels, sorted(self.selected), self.boxes, base,
-                                                    (a.scale_bar.bar_px, a.bar_um)))
-            message(self, "info", T("Kaydedildi: {0}\n\nFiji'de: TIFF'i açın → Analyze ▸ Set Scale: {1} piksel = {2:g} µm → ROI Manager ▸ Open: RoiSet.zip → Measure.\nAyrıntılar ZIP içindeki NASIL_KULLANILIR.txt dosyasında.").format(path.name, a.scale_bar.bar_px, a.bar_um))
+                                                    a.imagej_scale))
+            message(self, "info", T("Kaydedildi: {0}\n\nFiji'de: TIFF'i açın → Analyze ▸ Set Scale: {1} piksel = {2:g} µm → ROI Manager ▸ Open: RoiSet.zip → Measure.\nAyrıntılar ZIP içindeki NASIL_KULLANILIR.txt dosyasında.").format(path.name, *a.imagej_scale))
 
     def reset_results(self):
         if len(self.results) and message(self, "question", T("Biriken {0} hücrelik tablo silinsin mi?").format(len(self.results))
@@ -2048,8 +2142,8 @@ class MainWindow(QMainWindow):
             return
         folder = AUTOSAVE.parent / "Fiji" / self.fitc[0].stem
         (tif, rois), ids = self._fiji_package(folder)
-        fiji.open_in_fiji(exe, tif, rois, a.scale_bar.bar_px, a.bar_um)
-        self.statusBar().showMessage(T("Fiji açılıyor: {0} hücre + {1} kutu, ölçek {2} px = {3:g} µm. Dosyalar: {4}").format(len(ids), len(self.boxes), a.scale_bar.bar_px, a.bar_um, folder), 10000)
+        fiji.open_in_fiji(exe, tif, rois, *a.imagej_scale)
+        self.statusBar().showMessage(T("Fiji açılıyor: {0} hücre + {1} kutu, ölçek {2} px = {3:g} µm. Dosyalar: {4}").format(len(ids), len(self.boxes), *a.imagej_scale, folder), 10000)
 
     def manual_compare(self):
         a = self.analysis
@@ -2127,8 +2221,47 @@ class MainWindow(QMainWindow):
         QDesktopServices.openUrl(QUrl.fromLocalFile(str(path)))
 
     def about(self):
-        message(self, "info",
-                T("<b>{0} {1}</b><br>Immunositokimya görüntülerinde CTCF ölçümü.<br><br>CTCF = IntDen − (Area × Mean background)<br>McCloy et al., 2014, <i>Cell Cycle</i><br><br>Ölçümler ImageJ/Fiji ile birebir aynıdır.<br>Atıf: <a href='https://doi.org/10.5281/zenodo.23860020'>doi:10.5281/zenodo.23860020</a> (v2.0.0: 10.5281/zenodo.23860021)<br>© Erdal Balcan, MIT lisansı").format(APP_NAME, VERSION))
+        info = version_info()
+        dev = VERSION.endswith("-dev")
+        doi = RELEASE_DOIS.get(VERSION)
+        doi_html = (T("Bu sürümün DOI'si: <a href='https://doi.org/{0}'>{0}</a>").format(doi) if doi else
+                    T("<span style='color:#a60'>Geliştirme sürümü: henüz yayımlanmadı ve DOI'si yok. Yayın için ölçümlerde yayımlanmış bir sürüm kullanın.</span>") if dev else
+                    T("Bu sürümün DOI'si: Zenodo sayfasında (Versions)"))
+        box = QMessageBox(self)
+        box.setWindowTitle(T("Hakkında"))
+        box.setTextFormat(Qt.TextFormat.RichText)
+        box.setText(T("<b>{0} {1}</b> — eski adı ICC CTCF Ölçer<br>İmmünositokimya görüntülerinde doğrulanabilir hücre başına floresan (CTCF) ölçümü.<br><br>{2}<br>Tüm sürümler: <a href='https://doi.org/{3}'>{3}</a><br><br>Derleme: {4}<br>Sistem: {5}<br><br>CTCF = IntDen − (Area × Mean background) — McCloy et al., 2014, <i>Cell Cycle</i><br>Ölçümler ImageJ/Fiji ile birebir aynıdır.<br>© 2026 Erdal Balcan, Manisa Celal Bayar Üniversitesi — MIT lisansı").format(APP_NAME, VERSION, doi_html, CONCEPT_DOI, info["build"], info["system"]))
+        copy = box.addButton(T("Bilgileri kopyala"), QMessageBox.ButtonRole.ActionRole)
+        box.addButton(QMessageBox.StandardButton.Ok)
+        box.exec()
+        if box.clickedButton() is copy:
+            QApplication.clipboard().setText(f"{APP_NAME} {VERSION}\nBuild: {info['build']}\nSystem: {info['system']}")
+            self.statusBar().showMessage(T("Sürüm bilgisi panoya kopyalandı (hata bildirirken yapıştırın)."), 6000)
+
+
+def version_info() -> dict:
+    """Derleme (commit + tarih) ve sistem bilgisi. Paketlenmiş sürümde derleme bilgisi build_info.txt'den
+    (cellverity.spec derleme anında yazar), kaynak koddan çalışırken git'ten okunur."""
+    import platform
+    build = ""
+    f = resource("build_info.txt")
+    if f.exists():
+        build = f.read_text(encoding="utf-8").strip()
+    else:
+        try:
+            import subprocess
+            r = subprocess.run(["git", "log", "-1", "--format=%h %cs"], cwd=Path(__file__).resolve().parent,
+                               capture_output=True, text=True, timeout=5)
+            build = (T("kaynak kod, commit {0}").format(r.stdout.strip()) if r.returncode == 0 and r.stdout.strip()
+                     else T("kaynak kod"))
+        except Exception:
+            build = T("kaynak kod")
+    osname = {"Darwin": "macOS " + platform.mac_ver()[0]}.get(platform.system(), f"{platform.system()} {platform.release()}")
+    try:
+        from PySide6 import __version__ as qt
+    except Exception:
+        qt = "?"
+    return {"build": build or "?", "system": f"{osname} ({platform.machine()}) · Python {platform.python_version()} · Qt {qt}"}
 
 
 def resource(rel: str) -> Path:

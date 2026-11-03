@@ -136,8 +136,9 @@ The program looks for Fiji in <code>Downloads/Fiji</code>, <code>Applications/Fi
 - <strong>No saturated pixels.</strong> The number of saturated pixels is reported for every cell ("Saturated px" column).</p>
 <p><strong>Recommended:</strong>
 - <strong>The DAPI image of the same field.</strong> Essential for separating touching cells correctly (<a href="#12-warnings-what-they-mean-and-what-to-do">Warnings</a>).
-- <strong>Keep the scale bar in the image.</strong> Calibration is read from it (cellSens style: white box in the lower right corner).
-- <strong>TIFF</strong> is better than JPEG (JPEG is lossy). Use the same format for all images of a study.</p>
+- <strong>Calibration:</strong> the image needs a scale bar (cellSens style: white box in the lower right corner) <strong>or</strong> pixel-size information in the file (cellSens raw TIFF, OME-TIFF, ImageJ TIFF). Without either, you enter the pixel size manually (<a href="#62-checking-the-calibration">6.2</a>).
+- <strong>TIFF</strong> is better than JPEG (JPEG is lossy). Use the same format for all <strong>FITC images</strong> of a study (DAPI is only used to separate cells and may be JPG; TIFF FITC + JPG DAPI pairing is supported).
+- <strong>Supported files:</strong> JPG, PNG, TIFF (8/16-bit, RGB or single channel). Vendor formats (.czi, .nd2, .lif, .vsi) are not supported yet; save them as TIFF in Fiji (the pixel size is kept).</p>
 <p><strong>Tested equipment:</strong> Olympus BX43 fluorescence microscope, Olympus DP74 colour camera, cellSens Entry software. On this camera FITC appears yellow-green and DAPI <strong>cyan</strong>. FITC is measured on the <strong>green (G) channel</strong>; FITC and DAPI are told apart by the blue/red ratio of the brightest pixels. Other cameras/software should work for measurement; if the scale-bar label cannot be read, the program warns you and asks for the value (<a href="#62-checking-the-calibration">Section 6.2</a>).</p>
 <hr />
 <h2 id="4-quick-start-5-minutes">4. Quick start (5 minutes)</h2>
@@ -232,7 +233,11 @@ The program looks for Fiji in <code>Downloads/Fiji</code>, <code>Applications/Fi
 <p>The <strong>Calibration</strong> line in the right panel also tells the source:
 - <em>read from label</em> — the value under the scale bar (20 µm, 50 µm) was read. ✅
 - <em>entered manually</em> — the value you typed into the <strong>Scale bar</strong> box.
-- <em>label NOT READ, assumed</em> — a red warning appears; type the value shown in the image into the <strong>Scale bar</strong> box.</p>
+- <em>label NOT READ, assumed</em> — a red warning appears; type the value shown in the image into the <strong>Scale bar</strong> box.
+- <em>from file metadata (OME / Olympus SIS / ImageJ)</em> — the image has no scale bar; the pixel size was read from the file. cellSens <strong>raw TIFF</strong> files are like this (no bar burned in, pixel size stored in the file). ✅
+- <em>entered manually</em> (µm/pixel) — <strong>Edit ▸ Enter calibration manually</strong>: enter the pixel size directly or from the objective + camera pixel size (camera pixel ÷ magnification; DP74: 5.86 µm).</p>
+<p><strong>Order of precedence:</strong> manually entered value → scale bar in the image → file metadata. If both a bar and metadata exist and differ by more than 3 %, a red warning appears (the image may have been resized or the bar misread).</p>
+<p><strong>If no scale is found at all</strong> (no bar, no metadata) the program asks for the calibration in a dialog. With <em>Measure in pixels</em>, areas are in pixels² and the cell/nucleus size filters work in pixels — cells may be fragmented; use it only to compare images acquired with identical settings among themselves. In batch mode, uncalibrated images are flagged in the results and statistics.</p>
 <blockquote>
 <p>⚠️ A wrong scale value makes <strong>area and IntDen wrong several-fold</strong> (e.g. 20 µm instead of 50 µm: 6.25×). Glance at the calibration line for every new image.</p>
 </blockquote>

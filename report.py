@@ -75,7 +75,9 @@ def methods_table(version: str) -> pd.DataFrame:
             "whole-cell CTCF remains valid. Widefield images: out-of-focus cytoplasm above and "
             "below the nucleus adds to the nuclear value, so NC_ratio is biased toward 1 — compare conditions, "
             "not absolute values",
-            "Scale bar length detected automatically; its µm value read from the label (Scale_source column)",
+            "Scale bar length detected automatically and its µm value read from the label; if the image has no "
+            "scale bar, the pixel size stored in the file (OME / Olympus SIS / ImageJ TIFF metadata) is used; "
+            "otherwise entered by the user (Scale_source column: label / metadata / user / default / none)",
             "McCloy et al., 2014, Cell Cycle 13(9):1400–1412, doi:10.4161/cc.28401"]})
 
 
@@ -179,6 +181,17 @@ def mixed_objectives(results: pd.DataFrame) -> str:
     return (T("⚠️ Farklı objektifler karışık ({0}) — {1}. Büyütme farkı floresan yoğunluğunu ve alanı etkiler; yalnızca aynı objektifle çekilmiş görüntüleri karşılaştırın.").format(', '.join(f'{v}×' for v in allv), detail))
 
 
+def uncalibrated(results: pd.DataFrame) -> str:
+    """Kalibrasyonsuz (piksel biriminde) ölçülmüş görüntü varsa uyarı metni."""
+    if "um_per_px" not in results:
+        return ""
+    imgs = results.drop_duplicates("Image_path" if "Image_path" in results else "Image")
+    n = int(imgs["um_per_px"].isna().sum())
+    if not n:
+        return ""
+    return T("⚠️ {0} görüntü kalibrasyonsuz ölçüldü (ölçek çubuğu ve dosya meta verisi yok): alanları piksel², boyut filtreleri piksel cinsinden. Bu görüntüleri tek tek açıp Düzelt ▸ Kalibrasyonu elle gir ile µm/piksel verin.").format(n)
+
+
 def mixed_exposures(results: pd.DataFrame) -> str:
     """Farklı pozlama süreleriyle çekilmiş görüntüler bir arada ise uyarı metni (yoksa boş). Floresan sinyali
     pozlamayla orantılı arttığı için bu görüntülerin CTCF değerleri karşılaştırılamaz (2026-11-01: samples
@@ -250,7 +263,7 @@ def compare(results: pd.DataFrame, metric: str = "CTCF", level: str = "cell", co
         lines += ["", T("ℹ️ Grup başına {0} {1}: test gücü düşük; en az 3 bağımsız deney önerilir.").format(min(len(d) for d in data), unit)]
     if level == "cell":
         lines += ["", T("⚠️ Her hücre ayrı tekrar sayıldı (yalancı tekrar riski). Yayın için 'Deney ortalaması' düzeyini kullanın.")]
-    for warn in (mixed_objectives(results), mixed_exposures(results)):
+    for warn in (mixed_objectives(results), mixed_exposures(results), uncalibrated(results)):
         if warn:
             lines += ["", warn]
     return groups, data, "\n".join(lines), pairs

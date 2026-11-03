@@ -137,8 +137,9 @@ Program Fiji'yi şu yerlerde kendisi arar: <code>İndirilenler/Fiji</code>, <cod
 - <strong>Doymuş (saturated) piksel olmamalı.</strong> Program doymuş piksel sayısını her hücre için raporlar ("Doymuş px" sütunu).</p>
 <p><strong>Önerilir:</strong>
 - <strong>Aynı alanın DAPI görüntüsü.</strong> Birbirine değen hücreleri doğru ayırmak için şart (<a href="#12-uyarilar-ne-anlama-gelir-ne-yapmali">Uyarılar</a>).
-- <strong>Ölçek çubuğu görüntüde kalsın.</strong> Program kalibrasyonu çubuktan okur (cellSens sağ alt köşe beyaz kutu).
-- <strong>TIFF</strong> kaydı JPEG'den iyidir (JPEG kayıplıdır). Aynı çalışmada tüm görüntüler aynı formatta olmalı.</p>
+- <strong>Kalibrasyon:</strong> görüntüde ölçek çubuğu (cellSens sağ alt köşe beyaz kutu) <strong>ya da</strong> dosyada piksel boyutu bilgisi (cellSens ham TIFF, OME-TIFF, ImageJ TIFF) olmalı. İkisi de yoksa piksel boyutunu elle girersiniz (<a href="#62-kalibrasyonu-kontrol-etmek">6.2</a>).
+- <strong>TIFF</strong> kaydı JPEG'den iyidir (JPEG kayıplıdır). Aynı çalışmada <strong>FITC görüntüleri</strong> aynı formatta olmalı (DAPI yalnızca hücre ayırmada kullanıldığı için JPG olabilir; TIFF FITC + JPG DAPI eşleştirmesi desteklenir).
+- <strong>Desteklenen dosyalar:</strong> JPG, PNG, TIFF (8/16-bit, RGB ya da tek kanal). Üretici biçimleri (.czi, .nd2, .lif, .vsi) şimdilik desteklenmez; Fiji'de TIFF olarak kaydedin (piksel boyutu korunur).</p>
 <p><strong>Test edilen ekipman:</strong> Olympus BX43 floresan mikroskop, Olympus DP74 renkli kamera, cellSens Entry yazılımı. <strong>DP74 notu:</strong> Bu renkli kamerada FITC sinyali sarı-yeşil, DAPI ise <strong>turkuaz</strong> görünür. Program FITC'yi <strong>yeşil (G) kanalından</strong> ölçer; FITC/DAPI ayrımını parlak piksellerin mavi/kırmızı oranından yapar.</p>
 <hr />
 <h2 id="4-hizli-baslangic-5-dakika">4. Hızlı başlangıç (5 dakika)</h2>
@@ -233,7 +234,11 @@ Program Fiji'yi şu yerlerde kendisi arar: <code>İndirilenler/Fiji</code>, <cod
 <p>Sağ panelde <strong>Kalibrasyon</strong> satırı kaynağı da söyler:
 - <em>etiketten okundu</em> — ölçek çubuğunun altındaki değer (20 µm, 50 µm) okundu. ✅
 - <em>elle girildi</em> — <strong>Ölçek çubuğu</strong> kutusuna sizin yazdığınız değer.
-- <em>etiket OKUNAMADI, varsayıldı</em> — kırmızı uyarı çıkar; görüntüdeki değeri <strong>Ölçek çubuğu</strong> kutusuna yazın.</p>
+- <em>etiket OKUNAMADI, varsayıldı</em> — kırmızı uyarı çıkar; görüntüdeki değeri <strong>Ölçek çubuğu</strong> kutusuna yazın.
+- <em>dosya meta verisinden (OME / Olympus SIS / ImageJ)</em> — görüntüde ölçek çubuğu yok; piksel boyutu dosyanın içinden okundu. cellSens'in <strong>ham TIFF</strong> kayıtları böyledir (üzerine çubuk basılmaz, piksel boyutu dosyada saklanır). ✅
+- <em>elle girildi</em> (µm/piksel) — <strong>Düzelt ▸ Kalibrasyonu elle gir</strong>: piksel boyutunu doğrudan ya da objektif + kamera piksel boyutundan (kamera pikseli ÷ büyütme; DP74: 5.86 µm) girersiniz.</p>
+<p><strong>Öncelik sırası:</strong> elle girilen değer → görüntüdeki ölçek çubuğu → dosya meta verisi. Hem çubuk hem meta veri varsa ve %3'ten fazla farklıysa kırmızı uyarı çıkar (görüntü yeniden boyutlandırılmış ya da çubuk yanlış okunmuş olabilir).</p>
+<p><strong>Ölçek hiç bulunamazsa</strong> (çubuk yok, meta veri yok) program bir pencereyle kalibrasyon ister. <em>Piksel biriminde ölç</em> derseniz alanlar piksel² olur ve hücre/çekirdek boyut filtreleri piksel cinsinden çalışır — hücreler parçalanabilir; yalnızca aynı ayarla çekilmiş görüntüleri kendi aralarında karşılaştırmak için kullanın. Toplu ölçümde kalibrasyonsuz görüntüler sonuçlarda ve istatistikte uyarıyla belirtilir.</p>
 <blockquote>
 <p>⚠️ Ölçek değeri yanlışsa <strong>alan ve IntDen kat kat yanlış</strong> çıkar (ör. 50 µm yerine 20 µm: 6.25 kat). Bu yüzden her yeni görüntüde kalibrasyon satırına bir göz atın.</p>
 </blockquote>

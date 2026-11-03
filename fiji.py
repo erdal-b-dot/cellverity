@@ -148,7 +148,7 @@ def write_package(folder: Path, a: core.Analysis, cell_ids, boxes, base: str,
     """Ölçülen kanal (TIFF) + ROI'ler (RoiSet.zip) → klasöre; DAPI varsa çekirdek/sitoplazma etiket görüntüleri de
     (<base>_nucleus_labels.tif, <base>_cytoplasm_labels.tif). → (tif, roiset)."""
     folder.mkdir(parents=True, exist_ok=True)
-    data = core.imagej_export_zip(a.fitc_ch, a.labels, cell_ids, boxes, base, (a.scale_bar.bar_px, a.bar_um))
+    data = core.imagej_export_zip(a.fitc_ch, a.labels, cell_ids, boxes, base, a.imagej_scale)
     zipfile.ZipFile(io.BytesIO(data)).extractall(folder)
     tif = folder / f"{base}_measured_channel.tif"
     if a.nuclei is not None and a.nuclei.any():  # çekirdek/sitoplazma bölmeleri (N/C doğrulaması)

@@ -103,8 +103,9 @@ However good the program is, the validity of the measurement depends on the imag
 
 **Recommended:**
 - **The DAPI image of the same field.** Essential for separating touching cells correctly ([Warnings](#12-warnings-what-they-mean-and-what-to-do)).
-- **Keep the scale bar in the image.** Calibration is read from it (cellSens style: white box in the lower right corner).
-- **TIFF** is better than JPEG (JPEG is lossy). Use the same format for all images of a study.
+- **Calibration:** the image needs a scale bar (cellSens style: white box in the lower right corner) **or** pixel-size information in the file (cellSens raw TIFF, OME-TIFF, ImageJ TIFF). Without either, you enter the pixel size manually ([6.2](#62-checking-the-calibration)).
+- **TIFF** is better than JPEG (JPEG is lossy). Use the same format for all **FITC images** of a study (DAPI is only used to separate cells and may be JPG; TIFF FITC + JPG DAPI pairing is supported).
+- **Supported files:** JPG, PNG, TIFF (8/16-bit, RGB or single channel). Vendor formats (.czi, .nd2, .lif, .vsi) are not supported yet; save them as TIFF in Fiji (the pixel size is kept).
 
 **Tested equipment:** Olympus BX43 fluorescence microscope, Olympus DP74 colour camera, cellSens Entry software. On this camera FITC appears yellow-green and DAPI **cyan**. FITC is measured on the **green (G) channel**; FITC and DAPI are told apart by the blue/red ratio of the brightest pixels. Other cameras/software should work for measurement; if the scale-bar label cannot be read, the program warns you and asks for the value ([Section 6.2](#62-checking-the-calibration)).
 
@@ -164,6 +165,12 @@ The **Calibration** line in the right panel also tells the source:
 - *read from label* — the value under the scale bar (20 µm, 50 µm) was read. ✅
 - *entered manually* — the value you typed into the **Scale bar** box.
 - *label NOT READ, assumed* — a red warning appears; type the value shown in the image into the **Scale bar** box.
+- *from file metadata (OME / Olympus SIS / ImageJ)* — the image has no scale bar; the pixel size was read from the file. cellSens **raw TIFF** files are like this (no bar burned in, pixel size stored in the file). ✅
+- *entered manually* (µm/pixel) — **Edit ▸ Enter calibration manually**: enter the pixel size directly or from the objective + camera pixel size (camera pixel ÷ magnification; DP74: 5.86 µm).
+
+**Order of precedence:** manually entered value → scale bar in the image → file metadata. If both a bar and metadata exist and differ by more than 3 %, a red warning appears (the image may have been resized or the bar misread).
+
+**If no scale is found at all** (no bar, no metadata) the program asks for the calibration in a dialog. With *Measure in pixels*, areas are in pixels² and the cell/nucleus size filters work in pixels — cells may be fragmented; use it only to compare images acquired with identical settings among themselves. In batch mode, uncalibrated images are flagged in the results and statistics.
 
 > ⚠️ A wrong scale value makes **area and IntDen wrong several-fold** (e.g. 20 µm instead of 50 µm: 6.25×). Glance at the calibration line for every new image.
 

@@ -11,3 +11,4 @@ build/
 dist/
 selftest_result.json
 .uv-cache/
+build_info.txt
