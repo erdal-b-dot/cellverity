@@ -2425,7 +2425,21 @@ def selftest(fitc: str, dapi: str) -> int:
     i18n.set_language("en")
     en_ok = T("Hücre sayısı") == "Cell count" and resource("docs/user_guide.html").exists()
     i18n.set_language(cur)
+    # paketin içine girmesi gereken dosyalar ve kitaplıklar (tema, simgeler, LZW TIFF, SVG, güncelleme denetimi)
+    import theme
+    icons = list(theme.ICONS.glob("*.svg"))
+    try:
+        import imagecodecs  # noqa: F401
+        import certifi  # noqa: F401
+        from PySide6 import QtSvg  # noqa: F401
+        import updates  # noqa: F401
+        libs_ok = True
+    except Exception:
+        libs_ok = False
+    package_ok = bool(theme.stylesheet()) and len(icons) >= 28 and resource("build_info.txt").exists() == bool(
+        getattr(sys, "frozen", False)) and libs_ok
     out = json.dumps({"version": VERSION, "bar_um": a.bar_um, "um_per_px": a.um_per_px, "cells": len(a.cell_ids),
+                      "package_ok": package_ok, "icons": len(icons), "libs_ok": libs_ok,
                       "nuclei": int(a.nuclei.max()), "area": cells["Area"].round(2).tolist(),
                       "ctcf": cells["CTCF"].round(1).tolist(), "excel": ok_xlsx, "english": en_ok,
                       "system_language": i18n.system_language()},

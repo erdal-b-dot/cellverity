@@ -22,6 +22,14 @@ jobs:
           if [ "$RUNNER_OS" = "Windows" ]; then PI=.build/Scripts/pyinstaller; else PI=.build/bin/pyinstaller; fi
           $PI --noconfirm --clean --distpath dist --workpath build cellverity.spec
         shell: bash
+      - name: Öz-test (paketlenmiş program)
+        run: |
+          if [ "$RUNNER_OS" = "Windows" ]; then EXE=dist/CellVerity/CellVerity.exe; else EXE=dist/CellVerity.app/Contents/MacOS/CellVerity; fi
+          "$EXE" --selftest examples/PARC_control/Image_11305.jpg examples/PARC_control/Image_11306.jpg || true
+          cat selftest_result.json
+          python3 -c "import json; r = json.load(open('selftest_result.json')); assert r['cells'] == 47 and r['nuclei'] == 46 and r['package_ok'], r; print('Öz-test GEÇTİ / Self-test PASSED')"
+          rm -f selftest_result.json
+        shell: bash
       - uses: actions/upload-artifact@v7
         with:
           name: CellVerity_${{ matrix.name }}

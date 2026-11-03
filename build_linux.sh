@@ -46,7 +46,7 @@ QT_QPA_PLATFORM=offscreen dist/linux/CellVerity/CellVerity --selftest \
 echo 'Beklenen / Expected: "cells": 47, "nuclei": 46, "bar_um": 20.0, "english": true'
 .build-linux/bin/python - <<'PY'
 import json; r = json.load(open("selftest_result.json"))
-assert r["cells"] == 47 and r["nuclei"] == 46 and r["bar_um"] == 20.0 and r["english"] and r["excel"], r
+assert r["cells"] == 47 and r["nuclei"] == 46 and r["bar_um"] == 20.0 and r["english"] and r["excel"] and r["package_ok"], r
 print("Öz-test GEÇTİ / Self-test PASSED")
 PY
 rm -f selftest_result.json
