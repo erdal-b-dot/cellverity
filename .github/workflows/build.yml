@@ -3,6 +3,8 @@
 name: Build
 on:
   workflow_dispatch:
+env:
+  PYTHONUTF8: "1"   # Windows konsolunda Türkçe karakterler (öz-test çıktısı)
 jobs:
   build:
     strategy:
