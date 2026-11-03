@@ -14,15 +14,15 @@ jobs:
             name: mac_Intel
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v6
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10
       - run: uv venv --python 3.12 .build && uv pip install --python .build -r requirements-desktop.txt pyinstaller==6.16.0
         shell: bash
       - run: |
           if [ "$RUNNER_OS" = "Windows" ]; then PI=.build/Scripts/pyinstaller; else PI=.build/bin/pyinstaller; fi
           $PI --noconfirm --clean --distpath dist --workpath build cellverity.spec
         shell: bash
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: CellVerity_${{ matrix.name }}
           path: dist/
@@ -39,10 +39,10 @@ jobs:
             name: Linux_aarch64
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v6
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10
       - run: ./build_linux.sh --native
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: CellVerity_${{ matrix.name }}
           path: |

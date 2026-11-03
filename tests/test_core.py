@@ -35,8 +35,8 @@ EXPECTED = [(498.26, 146.71, 73097.7), (475.80, 139.17, 66216.8)]
 
 
 def run_default_pipeline():
-    fitc_arr, meta = core.load_image(open(FITC, "rb"))
-    dapi_arr = core.load_image(open(DAPI, "rb"))[0]
+    fitc_arr, meta = core.load_image(str(FITC))
+    dapi_arr = core.load_image(str(DAPI))[0]
     sb = core.detect_scale_bar(fitc_arr)
     upp = 20.0 / sb.bar_px
     exclude = np.zeros(fitc_arr.shape[:2], bool)
@@ -59,8 +59,8 @@ def test_analyze_matches_manual_pipeline():
     """core.analyze() (masaüstü sürümün kullandığı akış) adım adım akışla birebir aynı olmalı."""
     require_private()
     sb, upp, cells_ref, bg_ref = run_default_pipeline()
-    fitc_arr, meta = core.load_image(open(FITC, "rb"))
-    a = core.analyze(fitc_arr, meta, core.load_image(open(DAPI, "rb"))[0], core.Settings(nuc_method="otsu"))
+    fitc_arr, meta = core.load_image(str(FITC))
+    a = core.analyze(fitc_arr, meta, core.load_image(str(DAPI))[0], core.Settings(nuc_method="otsu"))
     assert a.um_per_px == upp and a.segmentation_mode == "DAPI nuclei"
     assert a.objective[0] == 40
     cells, bg, _ = core.background_and_measure(a, a.cell_ids)
@@ -87,8 +87,8 @@ def test_v2_bright_core_nuclei():
     """v2 çekirdek algılaması (parlak çekirdek gövdesi). Değerler 2026-10-31 tarihli; elle çizimle
     karşılaştırma: Dice 0.938 / 0.932, CTCF farkı +1.3 % / +4.7 % (v1: 0.935 / 0.918, −1.9 % / +8.0 %)."""
     require_private()
-    fitc_arr, meta = core.load_image(open(FITC, "rb"))
-    a = core.analyze(fitc_arr, meta, core.load_image(open(DAPI, "rb"))[0], core.Settings(nuc_method="bright_core"))
+    fitc_arr, meta = core.load_image(str(FITC))
+    a = core.analyze(fitc_arr, meta, core.load_image(str(DAPI))[0], core.Settings(nuc_method="bright_core"))
     assert int(a.nuclei.max()) == 2 and len(a.cell_ids) == 2
     nuc = sorted(np.bincount(a.nuclei.ravel())[1:] * a.um_per_px ** 2)
     assert abs(nuc[0] - 354.3) < 1 and abs(nuc[1] - 383.1) < 1, nuc
@@ -101,8 +101,8 @@ def test_v2_local_nuclei():
     """v2 varsayılan çekirdek algılaması ('local', 2026-11-01). Image_392 elle çizime göre Dice 0.943/0.938;
     20× kümelerde (Image_287) bright_core 4 çekirdek bulurken local ≥ 40 bulmalı."""
     require_private()
-    fitc_arr, meta = core.load_image(open(FITC, "rb"))
-    a = core.analyze(fitc_arr, meta, core.load_image(open(DAPI, "rb"))[0])
+    fitc_arr, meta = core.load_image(str(FITC))
+    a = core.analyze(fitc_arr, meta, core.load_image(str(DAPI))[0])
     assert a.nuc_method == "local" and int(a.nuclei.max()) == 2 and len(a.cell_ids) == 2
     cells, _, _ = core.background_and_measure(a, a.cell_ids)
     for got, exp in zip(cells[["Area", "CTCF"]].to_numpy(), [(478.58, 70203.38), (495.48, 69111.2)]):
@@ -151,10 +151,10 @@ def test_report_exports(tmp=None):
     with tempfile.TemporaryDirectory() as d:
         path = Path(d) / "t.xlsx"
         report.write_excel(path, res, pd.DataFrame({"BG": [1]}), "test")
-        x = pd.ExcelFile(path)
-        assert x.sheet_names == ["Cells", "Group_summary", "Image_means", "Background", "Methods"]
-        assert len(pd.read_excel(x, "Cells")) == 20
-        assert pd.read_excel(x, "Group_summary")["n"].tolist() == [10, 10]
+        with pd.ExcelFile(path) as x:  # Windows açık dosyayı silmez: kapatılmalı
+            assert x.sheet_names == ["Cells", "Group_summary", "Image_means", "Background", "Methods"]
+            assert len(pd.read_excel(x, "Cells")) == 20
+            assert pd.read_excel(x, "Group_summary")["n"].tolist() == [10, 10]
 
 
 def test_batch_pairing():
@@ -213,8 +213,8 @@ def test_manual_edits():
     """Elle düzeltme: birleştir/böl alanı korur, sil kaldırır, çiz ImageJ çokgen kuralıyla piksel ekler."""
     require_private()
     from skimage import measure
-    fitc_arr, meta = core.load_image(open(FITC, "rb"))
-    a = core.analyze(fitc_arr, meta, core.load_image(open(DAPI, "rb"))[0])
+    fitc_arr, meta = core.load_image(str(FITC))
+    a = core.analyze(fitc_arr, meta, core.load_image(str(DAPI))[0])
     L = a.labels
     M = core.merge_cells(L, 1, 2)
     assert set(np.unique(M)) == {0, 1} and (M > 0).sum() == (L > 0).sum()
@@ -239,8 +239,8 @@ def test_fiji_bridge():
     if exe is None:
         print("  (Fiji bulunamadı — Fiji köprüsü testi atlandı)")
         return
-    fitc_arr, meta = core.load_image(open(FITC, "rb"))
-    a = core.analyze(fitc_arr, meta, core.load_image(open(DAPI, "rb"))[0])
+    fitc_arr, meta = core.load_image(str(FITC))
+    a = core.analyze(fitc_arr, meta, core.load_image(str(DAPI))[0])
     cells, bg, boxes = core.background_and_measure(a, a.cell_ids)
     with tempfile.TemporaryDirectory() as d:
         tif, rois = fiji.write_package(Path(d), a, a.cell_ids, boxes, "t")
@@ -463,7 +463,8 @@ def test_protein_panel():
     assert set(report.group_summary(res)["Protein"]) == {"p53", "MDM2"}  # proteinler karışmaz
     with tempfile.TemporaryDirectory() as d:
         report.write_excel(Path(d) / "p.xlsx", res.assign(Image="x", Image_path="x"), pd.DataFrame(), "test")
-        sheets = pd.ExcelFile(Path(d) / "p.xlsx").sheet_names
+        with pd.ExcelFile(Path(d) / "p.xlsx") as x:
+            sheets = x.sheet_names
     assert "Protein_panel" in sheets and "Protein_panel_experiments" in sheets
     f = Path("/v/sec")
     assert batch.protein_of(f / "p53" / "Deney_1" / "Kontrol" / "a.jpg", f) == "p53"
@@ -517,9 +518,41 @@ def test_update_version_compare():
     assert not updates.is_newer("v2.1.0", "2.2.0-dev") and not updates.is_newer("2.2.0", "2.2.0")
 
 
+def test_toolbar_fits_small_screen():
+    """Araç çubuklarındaki hiçbir düğme 1280 px genişlikte gizlenmemeli (simge + yazıyla 'Fiji ile doğrula'
+    taşıp görünmez olmuştu). PySide6 yoksa (yalnız hesaplama ortamı) atlanır."""
+    import os
+    try:
+        from PySide6.QtWidgets import QApplication, QToolBar
+    except ImportError:
+        raise Skip("PySide6 yok")
+    os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+    import desktop
+    import i18n
+    import theme
+    app = QApplication.instance() or QApplication([])
+    theme.set_mode("dark")
+    theme.apply(app)
+    cur = i18n.language()
+    try:
+        for lang in ("tr", "en"):
+            i18n.set_language(lang)
+            w = desktop.MainWindow()
+            w.resize(1280, 800)
+            w.show()
+            app.processEvents()
+            hidden = [a.iconText() for tb in w.findChildren(QToolBar) for a in tb.actions()
+                      if a.text() and not tb.widgetForAction(a).isVisible()]
+            w.close()
+            assert not hidden, (lang, hidden)
+    finally:
+        i18n.set_language(cur)
+
+
 if __name__ == "__main__":
     passed, skipped = 0, []
-    for fn in (test_image_392, test_analyze_matches_manual_pipeline, test_v2_bright_core_nuclei, test_v2_local_nuclei, test_scale_label_reading, test_report_exports, test_batch_pairing, test_group_statistics, test_manual_edits, test_fiji_bridge, test_nuclear_cytoplasmic, test_protein_panel, test_tiff_metadata_calibration, test_update_version_compare, test_translations, test_chance_corrected_pairing, test_scale_bar_hard_cases, test_examples_expected_results, test_exposure_metadata_and_warning, test_quality_control_and_exclusions):
+    tests = [f for name, f in list(globals().items()) if name.startswith("test_") and callable(f)]  # tanım sırası
+    for fn in tests:
         try:
             fn()
             passed += 1

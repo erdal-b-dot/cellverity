@@ -1317,6 +1317,13 @@ class MainWindow(QMainWindow):
             a_mac.setMenuRole(QAction.MenuRole.AboutRole)
             m.addAction(a_mac)
 
+        # Araç çubuğunda kısa adlar (menülerde uzun adlar kalır): simge + yazıyla iki çubuk dar ekranda
+        # (1280 px) da sığsın; yoksa sondaki 'Fiji ile doğrula' görünmez oluyordu.
+        for a_, short in ((self.a_close, T("Kapat")), (self.a_fit, T("Sığdır")), (self.a_nuc, T("Çekirdekler")),
+                          (self.a_add, T("Tabloya ekle")), (self.a_batch, T("Toplu ölç…")),
+                          (self.a_xlsx, T("Excel…")), (self.a_plot, T("Grafik…")),
+                          (self.a_fiji_verify, T("Fiji ile doğrula"))):
+            a_.setIconText(short)
         tb = self.addToolBar(T("Araçlar"))
         tb.setMovable(False)
         # Simge + yazı: simgeler tanımayı hızlandırır, yazı kalır — programı ayda
@@ -1331,6 +1338,7 @@ class MainWindow(QMainWindow):
         tb.addWidget(self.view_mode)
         tb.addAction(self.a_nuc)
         tb.addSeparator()
+        tb.addAction(self.a_fiji_verify)  # ikinci çubuk dar ekranda taşmasın diye burada
         self.addToolBarBreak()
         tb2 = self.addToolBar(T("Sınır düzeltme"))
         tb2.setMovable(False)
@@ -1346,8 +1354,6 @@ class MainWindow(QMainWindow):
         tb2.addSeparator()
         tb2.addWidget(QLabel(T(" Sonuçlar: ")))
         tb2.addActions([self.a_add, self.a_batch, self.a_xlsx, self.a_plot])
-        tb2.addSeparator()
-        tb2.addAction(self.a_fiji_verify)
 
     # ---------------------------------------------------------- dosya açma
     def close_images(self):

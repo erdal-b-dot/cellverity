@@ -32,6 +32,7 @@ def load_image(file) -> tuple[np.ndarray, dict]:
             arr = np.moveaxis(arr, 0, -1)
     else:
         im = Image.open(file)
+        im.load()  # pikselleri okuyup dosyayı hemen bırak (Windows açık dosyayı kilitler)
         exif = im.getexif()
         meta["make"] = exif.get(271, "")
         meta["model"] = exif.get(272, "")
@@ -46,6 +47,7 @@ def load_image(file) -> tuple[np.ndarray, dict]:
         except Exception:
             pass
         arr = np.asarray(im.convert("RGB") if im.mode not in ("L", "I;16", "I") else im)
+        im.close()
     if arr.ndim == 3:
         arr = arr[..., :3]
     meta["dtype"] = str(arr.dtype)
