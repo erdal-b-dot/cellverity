@@ -1354,6 +1354,24 @@ class MainWindow(QMainWindow):
         tb2.addSeparator()
         tb2.addWidget(QLabel(T(" Sonuçlar: ")))
         tb2.addActions([self.a_add, self.a_batch, self.a_xlsx, self.a_plot])
+        self._toolbars = [tb, tb2]
+
+    def _fit_toolbars(self):
+        """Sığmayan araç çubuğu yalnız simgeye geçer (adı ipucunda); genişleyince yazılar geri gelir. Böylece ekran
+        genişliği, yazı tipi (Windows Segoe UI daha geniş) ve dil ne olursa olsun hiçbir düğme gizlenmez."""
+        avail = self.width() - 12
+        for tb in getattr(self, "_toolbars", []):
+            tb.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
+            if tb.sizeHint().width() > avail:
+                tb.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonIconOnly)
+
+    def resizeEvent(self, e):
+        super().resizeEvent(e)
+        self._fit_toolbars()
+
+    def showEvent(self, e):
+        super().showEvent(e)
+        self._fit_toolbars()
 
     # ---------------------------------------------------------- dosya açma
     def close_images(self):
