@@ -23,7 +23,7 @@ a = Analysis(
     + collect_submodules("skimage.measure") + collect_submodules("skimage.filters")
     + collect_submodules("skimage.morphology") + collect_submodules("skimage.draw")
     + collect_submodules("scipy._external") + collect_submodules("scipy.stats") + collect_submodules("imagecodecs")
-    + ["matplotlib.backends.backend_qtagg", "openpyxl", "roifile", "tifffile", "scipy.stats"],
+    + ["matplotlib.backends.backend_qtagg", "openpyxl", "roifile", "tifffile", "scipy.stats", "updates", "certifi"],
     excludes=["streamlit", "streamlit_image_coordinates", "pyarrow", "tkinter", "IPython", "jupyter",
               "PySide6.QtWebEngineCore", "PySide6.Qt3DCore", "PySide6.QtQuick", "PySide6.QtQml"],
     noarchive=False,

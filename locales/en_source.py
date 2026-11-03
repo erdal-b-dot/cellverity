@@ -23,6 +23,21 @@ EN = {
     "Ölç": "Measure",
     "Örtüşme": "Overlap",
     "Durum": "Status",
+    "Güncellemeleri denetle…": "Check for updates…",
+    "Açılışta güncellemeleri denetle": "Check for updates at startup",
+    "Program açılırken (günde en çok bir kez) GitHub'a yalnızca 'en son sürüm hangisi?' diye sorar; görüntü ya da veri gönderilmez.":
+        "At startup (at most once a day) the program only asks GitHub 'which is the latest version?'; no images or data are sent.",
+    "Güncelleme denetlenemedi (internet bağlantısı yok ya da GitHub yanıt vermedi).\n\nSürümler: {0}\n\n{1}":
+        "Could not check for updates (no internet connection or GitHub did not respond).\n\nReleases: {0}\n\n{1}",
+    "Güncel sürümü kullanıyorsunuz ({0} {1}). Yayımlanmış en son sürüm: {2}.": "You are using the current version ({0} {1}). Latest released version: {2}.",
+    "Yeni sürüm var": "New version available",
+    "<b>{0} {1}</b> yayımlandı (kullandığınız: {2}).<br><br>Yeni sürümü indirip kurun; ayarlarınız korunur. Yayın için ölçümlerde güncel sürümü kullanmanız önerilir.":
+        "<b>{0} {1}</b> has been released (you are using {2}).<br><br>Download and install the new version; your settings are kept. Using the current version for measurements intended for publication is recommended.",
+    "İndir": "Download",
+    "Bu sürümü atla": "Skip this version",
+    "Daha sonra": "Later",
+    "ℹ️ {0}/{1} görüntünün pozlama süresi dosyada yazmıyor (ör. PNG ya da yeniden kaydedilmiş görüntü); program bunların aynı ayarla çekildiğini doğrulayamıyor — karşılaştırılan görüntülerin aynı pozlama, kazanç ve lamba ayarıyla çekildiğinden emin olun.":
+        "ℹ️ The exposure time of {0}/{1} images is not stored in the file (e.g. PNG or a re-saved image); the program cannot verify that they were acquired with the same settings — make sure the compared images share the same exposure, gain and lamp settings.",
     "Hakkında / sürüm bilgisi…": "About / version info…",
     "Bilgileri kopyala": "Copy info",
     "<span style='color:#a60'>Geliştirme sürümü: henüz yayımlanmadı ve DOI'si yok. Yayın için ölçümlerde yayımlanmış bir sürüm kullanın.</span>":

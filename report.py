@@ -198,13 +198,24 @@ def mixed_exposures(results: pd.DataFrame) -> str:
     klasöründe 0.33–1.0 s arası beş farklı pozlama)."""
     if "Exposure_s" not in results:
         return ""
-    e = results.drop_duplicates("Image_path" if "Image_path" in results else "Image")["Exposure_s"].dropna()
+    imgs = results.drop_duplicates("Image_path" if "Image_path" in results else "Image")["Exposure_s"]
+    e = imgs.dropna()
     vals = sorted({round(float(v), 4) for v in e})
-    if len(vals) <= 1:
-        return ""
-    return T("⚠️ Görüntüler farklı pozlama süreleriyle çekilmiş ({0}). Floresan sinyali pozlamayla orantılı arttığı "
-             "için bu görüntülerin CTCF değerleri birbiriyle karşılaştırılamaz; aynı pozlama, kazanç ve lamba "
-             "ayarıyla çekilmiş görüntüleri karşılaştırın.").format(", ".join(f"{v:g} s" for v in vals))
+    out = []
+    if len(vals) > 1:
+        out.append(T("⚠️ Görüntüler farklı pozlama süreleriyle çekilmiş ({0}). Floresan sinyali pozlamayla orantılı arttığı "
+                     "için bu görüntülerin CTCF değerleri birbiriyle karşılaştırılamaz; aynı pozlama, kazanç ve lamba "
+                     "ayarıyla çekilmiş görüntüleri karşılaştırın.").format(", ".join(f"{v:g} s" for v in vals)))
+    n_unknown = int(imgs.isna().sum())
+    if n_unknown and len(imgs) > 1:
+        out.append(unknown_exposure_text(n_unknown, len(imgs)))
+    return "\n".join(out)
+
+
+def unknown_exposure_text(n_unknown: int, n_total: int) -> str:
+    return T("ℹ️ {0}/{1} görüntünün pozlama süresi dosyada yazmıyor (ör. PNG ya da yeniden kaydedilmiş görüntü); "
+             "program bunların aynı ayarla çekildiğini doğrulayamıyor — karşılaştırılan görüntülerin aynı pozlama, "
+             "kazanç ve lamba ayarıyla çekildiğinden emin olun.").format(n_unknown, n_total)
 
 
 def compare(results: pd.DataFrame, metric: str = "CTCF", level: str = "cell", control: str | None = None,

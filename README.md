@@ -23,7 +23,7 @@ CTCF = Integrated density − (Cell area × Mean background)        (McCloy et a
 - **Fiji bridge:** re-measure the same ROIs with Fiji's own *Measure* engine in the background and compare; open results in Fiji; compare manually traced RoiSets with automatic boundaries (**Bland–Altman**, Dice) for method validation
 - **Nuclear/cytoplasmic CTCF and N/C ratio** (translocation read-out), also verified in Fiji
 - **Protein panel:** several proteins measured in different wells shown side by side as fold change vs their own control in the same experiment (ratio paired t, Holm)
-- **Turkish and English** interface; autosave; images never leave your computer
+- **Turkish and English** interface; autosave; images never leave your computer (the optional update check only asks GitHub for the latest version number — Help ▸ Check for updates at startup)
 
 **Supported images:** JPG, PNG and TIFF (8/16-bit, RGB or single channel). Vendor formats (.czi, .nd2, .lif, .vsi) are not read directly yet — save them as TIFF in Fiji (the calibration is kept).
 

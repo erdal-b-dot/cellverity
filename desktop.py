@@ -699,6 +699,11 @@ class BatchDialog(QDialog):
         self.status.setText(T("<b>{0}</b> çift hazır · <span style='color:#c80'>{1} FITC'nin DAPI'si bulunamadı</span> (yalnız şekle göre ayrılır) · <span style='color:#999'>{2} dosya atlandı</span> (merge, işlenmiş, eşleşmeyen DAPI). Ölçülmesini istemediklerinizin işaretini kaldırın.").format(ready, nod, skip))
         self.btn_run.setEnabled(any(it.use for it in items))
         expos = sorted({round(it.exposure, 4) for it in items if it.use and it.exposure})
+        used = [it for it in items if it.use and it.fitc is not None]
+        n_unk = sum(not it.exposure for it in used)
+        if n_unk and len(used) > 1:
+            self.status.setText(self.status.text() + "<br><span style='color:#a60'>"
+                                + report.unknown_exposure_text(n_unk, len(used)) + "</span>")
         if len(expos) > 1:
             self.status.setText(self.status.text() + "<br><span style='color:#b22'>" + T(
                 "⚠️ Bu klasörde farklı pozlama süreleri var ({0}). Farklı pozlamayla çekilmiş görüntülerin CTCF "
@@ -937,6 +942,19 @@ class PlotDialog(QDialog):
         if path:
             head = (T("Değişken: {0}\nİstatistik birimi: {1}\nKontrol: {2}\n\n").format(self.metric_box.currentText(), self.level_box.currentText(), self.control_box.currentText()))
             Path(path).write_text(head + self.stats.toPlainText(), encoding="utf-8")
+
+
+class UpdateWorker(QObject):
+    """GitHub'daki en son sürümü arka planda sorar (arayüz donmasın)."""
+    finished = Signal(dict)
+    failed = Signal(str)
+
+    def run(self):
+        import updates
+        try:
+            self.finished.emit(updates.fetch_latest(VERSION))
+        except Exception as e:  # internet yok, zaman aşımı, GitHub yanıt vermedi
+            self.failed.emit(f"{type(e).__name__}: {e}")
 
 
 class CalibrationDialog(QDialog):
@@ -1267,6 +1285,11 @@ class MainWindow(QMainWindow):
             lm.addAction(la)
         m = self.menuBar().addMenu(T("Yardım"))
         m.addAction(act(T("Kullanım kılavuzu"), self.open_manual, QKeySequence.StandardKey.HelpContents))
+        m.addAction(act(T("Güncellemeleri denetle…"), lambda: self.check_updates(manual=True)))
+        self.a_autoupd = act(T("Açılışta güncellemeleri denetle"), self._toggle_autoupdate, checkable=True)
+        self.a_autoupd.setChecked(QSettings(*SETTINGS_ID).value("update_check", True, type=bool))
+        self.a_autoupd.setToolTip(T("Program açılırken (günde en çok bir kez) GitHub'a yalnızca 'en son sürüm hangisi?' diye sorar; görüntü ya da veri gönderilmez."))
+        m.addAction(self.a_autoupd)
         a_about = act(T("Hakkında / sürüm bilgisi…"), self.about)
         a_about.setMenuRole(QAction.MenuRole.NoRole)  # macOS bunu uygulama menüsüne taşımasın: Yardım'da kalsın
         m.addSeparator()
@@ -1978,7 +2001,7 @@ class MainWindow(QMainWindow):
         self.tabs.setTabText(2, T("Biriken sonuçlar ({0})").format(len(r)))
         self.panel.res_info.setText(T("Biriken: <b>{0}</b> hücre, {1} görüntü, {2} grup").format(len(r), n_img, n_grp)
                                     + (T("  <span style='color:#a60'>(kaydedilmedi)</span>") if self._dirty else "")
-                                    + "".join(f"<br><span style='color:#b22'>{w}</span>" for w in
+                                    + "".join(f"<br><span style='color:#b22'>{w.replace(chr(10), '<br>')}</span>" for w in
                                               (report.mixed_objectives(r), report.mixed_exposures(r),
                                                report.uncalibrated(r)) if len(r) and w))
         for w in (self.panel.btn_excel, self.panel.btn_plot):
@@ -2062,6 +2085,7 @@ class MainWindow(QMainWindow):
                 if not self.export_results("xlsx"):
                     e.ignore()
                     return
+        self._stop_upd()
         e.accept()
 
     # ---------------------------------------------------------- Fiji
@@ -2220,6 +2244,67 @@ class MainWindow(QMainWindow):
             return
         QDesktopServices.openUrl(QUrl.fromLocalFile(str(path)))
 
+    # ---------------------------------------------------------- güncelleme denetimi
+    def _toggle_autoupdate(self, on: bool):
+        QSettings(*SETTINGS_ID).setValue("update_check", bool(on))
+
+    def check_updates(self, manual: bool = False):
+        """Açılışta (günde en çok bir kez, kapatılabilir) ya da Yardım menüsünden elle."""
+        st = QSettings(*SETTINGS_ID)
+        today = datetime.now().strftime("%Y-%m-%d")
+        if not manual and (not st.value("update_check", True, type=bool) or st.value("update_last", "") == today):
+            return
+        if getattr(self, "_upd_thread", None) is not None:
+            return
+        self._upd_manual = manual
+        self._upd_thread = QThread(self)
+        self._upd_worker = UpdateWorker()
+        self._upd_worker.moveToThread(self._upd_thread)
+        self._upd_thread.started.connect(self._upd_worker.run)
+        self._upd_worker.finished.connect(self._on_update_info)
+        self._upd_worker.failed.connect(self._on_update_fail)
+        self._upd_thread.start()
+
+    def _stop_upd(self):
+        if getattr(self, "_upd_thread", None) is not None:
+            self._upd_thread.quit()
+            self._upd_thread.wait()
+            self._upd_thread = None
+
+    def _on_update_fail(self, msg):
+        self._stop_upd()
+        if self._upd_manual:
+            message(self, "warning", T("Güncelleme denetlenemedi (internet bağlantısı yok ya da GitHub yanıt vermedi).\n\nSürümler: {0}\n\n{1}").format("https://github.com/erdal-b-dot/cellverity/releases", msg))
+
+    def _on_update_info(self, info: dict):
+        self._stop_upd()
+        st = QSettings(*SETTINGS_ID)
+        st.setValue("update_last", datetime.now().strftime("%Y-%m-%d"))
+        if not info.get("newer"):
+            if self._upd_manual:
+                message(self, "info", T("Güncel sürümü kullanıyorsunuz ({0} {1}). Yayımlanmış en son sürüm: {2}.").format(APP_NAME, VERSION, info.get("version") or "—"))
+            return
+        if not self._upd_manual and st.value("update_skip", "") == info["version"]:
+            return  # kullanıcı bu sürümü atlamayı seçti
+        notes = info.get("notes", "")
+        notes = notes[:700] + ("…" if len(notes) > 700 else "")
+        box = QMessageBox(self)
+        box.setWindowTitle(T("Yeni sürüm var"))
+        box.setIcon(QMessageBox.Icon.Information)
+        box.setText(T("<b>{0} {1}</b> yayımlandı (kullandığınız: {2}).<br><br>Yeni sürümü indirip kurun; ayarlarınız korunur. Yayın için ölçümlerde güncel sürümü kullanmanız önerilir.").format(APP_NAME, info["version"], VERSION))
+        if notes:
+            box.setDetailedText(notes)
+        dl = box.addButton(T("İndir"), QMessageBox.ButtonRole.AcceptRole)
+        skip = box.addButton(T("Bu sürümü atla"), QMessageBox.ButtonRole.DestructiveRole)
+        box.addButton(T("Daha sonra"), QMessageBox.ButtonRole.RejectRole)
+        box.exec()
+        if box.clickedButton() is dl:
+            from PySide6.QtCore import QUrl
+            from PySide6.QtGui import QDesktopServices
+            QDesktopServices.openUrl(QUrl(info["url"]))
+        elif box.clickedButton() is skip:
+            st.setValue("update_skip", info["version"])
+
     def about(self):
         info = version_info()
         dev = VERSION.endswith("-dev")
@@ -2310,6 +2395,8 @@ def main():
     w.show()
     if len(sys.argv) < 2:
         w.offer_restore()
+    from PySide6.QtCore import QTimer
+    QTimer.singleShot(4000, w.check_updates)  # açılışı yavaşlatmasın
     for arg in sys.argv[1:3]:  # komut satırından: desktop.py FITC.jpg [DAPI.jpg]
         p = Path(arg)
         arr, meta = core.load_image(str(p))

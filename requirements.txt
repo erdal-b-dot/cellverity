@@ -8,6 +8,7 @@ pandas==3.1.0
 openpyxl==3.1.5
 matplotlib==3.11.2
 tifffile==2026.10.15
+certifi==2026.10.23  # güncelleme denetiminde HTTPS sertifikaları (paketlenmiş programda)
 imagecodecs==2026.10.10  # LZW/Deflate/JPEG sıkıştırmalı TIFF'ler (tifffile bunsuz açamaz)
 pillow==13.0.0
 roifile==2026.9.22

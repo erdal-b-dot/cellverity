@@ -79,6 +79,8 @@ Görüntüleriniz bilgisayarınızdan dışarı **hiçbir yere gönderilmez**; p
 
 **Başka bir bilgisayara aktarmak:** paket dosyasını paylaşım bağlantısı, USB bellek ya da e-postayla (≈100 MB) gönderin, ya da yukarıdaki indirme adresini paylaşın. Yeni paket üretmek: kaynak kod klasöründe `./build_mac.sh` (Mac) / `build_windows.bat` (Windows).
 
+**Güncellemeler:** program açılırken (günde en çok bir kez) GitHub'a yalnızca *en son sürüm hangisi?* diye sorar; yeni sürüm varsa **İndir / Bu sürümü atla / Daha sonra** penceresi çıkar. Görüntü ya da veri gönderilmez. Kapatmak için **Yardım ▸ Açılışta güncellemeleri denetle**; elle denetim **Yardım ▸ Güncellemeleri denetle…**. Kullandığınız sürüm ve derleme bilgisi: **Yardım ▸ Hakkında / sürüm bilgisi** (hata bildirirken *Bilgileri kopyala*).
+
 ### 2.2 Geliştirici kurulumu (kaynak koddan)
 Python ortamıyla çalıştırmak isterseniz (güncellemeleri `git pull` ile almak için):
 - Mac: `./install_mac.sh`, sonra `./run_desktop.command`

@@ -75,6 +75,8 @@ Download from **https://github.com/erdal-b-dot/cellverity/releases** (newest ver
 2. Double-click `CellVerity.exe`. If *"Windows protected your PC"* appears: **More info ▸ Run anyway**.
 3. Desktop shortcut: right-click the exe ▸ Send to ▸ Desktop (create shortcut).
 
+**Updates:** at startup (at most once a day) the program only asks GitHub *which is the latest version?*; if a new version exists, a **Download / Skip this version / Later** dialog appears. No images or data are sent. Turn it off with **Help ▸ Check for updates at startup**; check manually with **Help ▸ Check for updates…**. Your version and build: **Help ▸ About / version info** (use *Copy info* when reporting a problem).
+
 ### 2.2 Running from source
 With a Python environment (to receive updates via `git pull`):
 - macOS: `./install_mac.sh`, then `./run_desktop.command`

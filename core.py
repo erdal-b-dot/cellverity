@@ -98,6 +98,14 @@ def tiff_metadata(tf) -> dict:
         iso = ex.get("ISOSpeedRatings")
         if iso:
             out["iso"] = float(iso[0] if isinstance(iso, (tuple, list)) else iso)
+        if "exposure_s" not in out and tf.is_ome:  # OME-TIFF (başka mikroskop yazılımları): <Plane ExposureTime=…>
+            plane = re.search(r"<(?:\w+:)?Plane\b[^>]*>", page.description or "")
+            if plane:
+                ev = re.search(r'ExposureTime="([0-9.eE+-]+)"', plane.group(0))
+                eu = re.search(r'ExposureTimeUnit="([^"]+)"', plane.group(0))
+                f = {"s": 1.0, "ms": 1e-3, "µs": 1e-6, "us": 1e-6}.get(eu.group(1) if eu else "s")
+                if ev and f and float(ev.group(1)) > 0:
+                    out["exposure_s"] = float(ev.group(1)) * f
         for k, tag in (("make", "Make"), ("model", "Model"), ("software", "Software")):
             if tag in page.tags:
                 out[k] = str(page.tags[tag].value)

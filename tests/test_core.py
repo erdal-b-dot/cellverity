@@ -485,6 +485,14 @@ def test_tiff_metadata_calibration():
         assert a.meta["exposure_s"] == 5.36 and a.objective[0] == 40
 
 
+def test_update_version_compare():
+    """Güncelleme denetimi: sürüm karşılaştırması (ağ gerektirmez)."""
+    import updates
+    assert updates.is_newer("v2.2.0", "2.2.0-dev") and updates.is_newer("2.2.1", "2.2.0")
+    assert updates.is_newer("2.10.0", "2.9.9") and updates.is_newer("v3.0", "2.99.0")
+    assert not updates.is_newer("v2.1.0", "2.2.0-dev") and not updates.is_newer("2.2.0", "2.2.0")
+
+
 if __name__ == "__main__":
     if not FITC.exists():
         sys.exit(f"Örnek görüntü yok: {FITC}")
@@ -501,6 +509,7 @@ if __name__ == "__main__":
     test_nuclear_cytoplasmic()
     test_protein_panel()
     test_tiff_metadata_calibration()
+    test_update_version_compare()
     test_translations()
     test_chance_corrected_pairing()
     test_scale_bar_hard_cases()
