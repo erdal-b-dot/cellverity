@@ -54,6 +54,10 @@ Linux: `chmod +x CellVerity_*.AppImage` and run it (Ubuntu 22.04/24.04 may first
 
 **Scope:** developed and validated with images acquired by the author on an **Olympus BX43** fluorescence microscope with an **Olympus DP74** colour camera and **cellSens Entry** software (FITC + DAPI). Measurements work on other images; if the scale-bar label cannot be read, the program warns you and asks for the value.
 
+## Contributors
+- **Erdal Balcan** (Manisa Celal Bayar University) — author, design, validation
+- **Meriç Balcan** ([leachou0](https://github.com/leachou0)) — user-interface theme (dark / system) and toolbar icons
+
 ## Citation
 Balcan E. (2026). *CellVerity: verifiable per-cell fluorescence (CTCF) quantification for immunocytochemistry images* (Version 2.1.0) [Computer software]. Zenodo. https://doi.org/10.5281/zenodo.23884562
 
