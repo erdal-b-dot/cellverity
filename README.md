@@ -61,8 +61,9 @@ Contributions are welcome — see [CONTRIBUTING.md](CONTRIBUTING.md) (bug report
 - **Meriç Balcan** ([leachou0](https://github.com/leachou0)) — user-interface theme (dark / system) and toolbar icons; tests that run on a clean clone and on Windows (found the Windows file-lock and console-encoding issues)
 
 ## Citation
-Balcan E. (2026). *CellVerity: verifiable per-cell fluorescence (CTCF) quantification for immunocytochemistry images* (Version 2.2.0) [Computer software]. Zenodo. https://doi.org/10.5281/zenodo.23884562
+Balcan E. (2026). *CellVerity: verifiable per-cell fluorescence (CTCF) quantification for immunocytochemistry images* (Version 2.2.0) [Computer software]. Zenodo. https://doi.org/10.5281/zenodo.23978391
 
+- v2.2.0: [10.5281/zenodo.23978391](https://doi.org/10.5281/zenodo.23978391)
 - v2.1.0: [10.5281/zenodo.23884562](https://doi.org/10.5281/zenodo.23884562)
 - v2.0.0 (as ICC CTCF Ölçer): [10.5281/zenodo.23860021](https://doi.org/10.5281/zenodo.23860021)
 - All versions (resolves to the latest): [10.5281/zenodo.23860020](https://doi.org/10.5281/zenodo.23860020)

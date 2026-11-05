@@ -48,7 +48,7 @@ from batch import guess_kind
 APP_NAME = "CellVerity"
 VERSION = "2.2.0"
 CONCEPT_DOI = "10.5281/zenodo.23860020"  # tüm sürümler (her zaman en yenisine yönlendirir)
-RELEASE_DOIS = {"2.0.0": "10.5281/zenodo.23860021", "2.1.0": "10.5281/zenodo.23884562"}  # sürüme özel DOI'ler
+RELEASE_DOIS = {"2.0.0": "10.5281/zenodo.23860021", "2.1.0": "10.5281/zenodo.23884562", "2.2.0": "10.5281/zenodo.23978391"}  # sürüme özel DOI'ler
 AUTOSAVE = Path.home() / "Documents" / "CellVerity" / "otomatik_kayit.xlsx"
 OLD_AUTOSAVE = Path.home() / "Documents" / "ICC CTCF Olcer" / "otomatik_kayit.xlsx"  # 2.1 öncesi
 

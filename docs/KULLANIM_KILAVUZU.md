@@ -496,11 +496,12 @@ Excel'deki **Methods** sayfası ve **Cells** sayfasındaki *App_version, Nucleus
 
 **Atıf (kaynakçaya):**
 
-> Balcan E. (2026). *CellVerity: verifiable per-cell fluorescence (CTCF) quantification for immunocytochemistry images* (Version 2.2.0) [Computer software]. Zenodo. https://doi.org/10.5281/zenodo.23884562
+> Balcan E. (2026). *CellVerity: verifiable per-cell fluorescence (CTCF) quantification for immunocytochemistry images* (Version 2.2.0) [Computer software]. Zenodo. https://doi.org/10.5281/zenodo.23978391
 
 | DOI | Ne zaman kullanılır |
 |---|---|
-| **Kullandığınız sürümün DOI'si** (v2.1.0: 10.5281/zenodo.23884562) | Önerilen; okuyucu tam olarak sizin kullandığınız sürümü indirebilir |
+| **Kullandığınız sürümün DOI'si** (v2.2.0: 10.5281/zenodo.23978391) | Önerilen; okuyucu tam olarak sizin kullandığınız sürümü indirebilir |
+| 10.5281/zenodo.23978391 | v2.2.0 (*CellVerity*) |
 | 10.5281/zenodo.23884562 | v2.1.0 (*CellVerity*) |
 | 10.5281/zenodo.23860021 | v2.0.0 (*ICC CTCF Ölçer* adıyla yayımlandı) |
 | 10.5281/zenodo.23860020 | Programın **tüm sürümleri** (concept DOI; her zaman en yeni sürüme yönlendirir) |
