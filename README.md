@@ -58,7 +58,7 @@ Linux: `chmod +x CellVerity_*.AppImage` and run it (Ubuntu 22.04/24.04 may first
 Contributions are welcome — see [CONTRIBUTING.md](CONTRIBUTING.md) (bug reports, test images from other microscopes, pull requests).
 
 - **Erdal Balcan** (Manisa Celal Bayar University) — author, design, validation
-- **Meriç Balcan** ([leachou0](https://github.com/leachou0)) — user-interface theme (dark / system) and toolbar icons
+- **Meriç Balcan** ([leachou0](https://github.com/leachou0)) — user-interface theme (dark / system) and toolbar icons; tests that run on a clean clone and on Windows (found the Windows file-lock and console-encoding issues)
 
 ## Citation
 Balcan E. (2026). *CellVerity: verifiable per-cell fluorescence (CTCF) quantification for immunocytochemistry images* (Version 2.1.0) [Computer software]. Zenodo. https://doi.org/10.5281/zenodo.23884562
