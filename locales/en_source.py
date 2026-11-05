@@ -32,7 +32,7 @@ EN = {
     "Sığdır": "Fit",
     "Tema": "Theme",
     "Koyu (varsayılan)": "Dark (default)",
-    "Sistem (açık)": "System (light)",
+    "Sistem": "System",
     "Tema, program yeniden açıldığında uygulanır.": "The theme is applied when the program is restarted.",
     "Güncellemeleri denetle…": "Check for updates…",
     "Açılışta güncellemeleri denetle": "Check for updates at startup",

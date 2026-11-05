@@ -252,7 +252,7 @@
  "Seçimi temizle": "Clear selection",
  "Sil": "Delete",
  "Silinecek bölgeye tıklayın.": "Click the region to delete.",
- "Sistem (açık)": "System (light)",
+ "Sistem": "System",
  "Son oturumdan otomatik kaydedilmiş {0} hücrelik sonuç var ({1}).\n\nKaldığınız yerden devam edilsin mi?": "There are autosaved results for {0} cells from the last session ({1}).\n\nContinue where you left off?",
  "Sonuç tablosuna ekle": "Add to results table",
  "Sonuçlar": "Results",

@@ -2,7 +2,7 @@
 
 *Eski adı: ICC CTCF Ölçer*
 
-*Sürüm 2.1.0 · Erdal Balcan, Manisa Celal Bayar Üniversitesi · MIT lisansı · DOI (tüm sürümler): [10.5281/zenodo.23860020](https://doi.org/10.5281/zenodo.23860020)*
+*Sürüm 2.2.0 · Erdal Balcan, Manisa Celal Bayar Üniversitesi · MIT lisansı · DOI (tüm sürümler): [10.5281/zenodo.23860020](https://doi.org/10.5281/zenodo.23860020)*
 
 Kaynak kod ve indirmeler: https://github.com/erdal-b-dot/cellverity · English guide: `USER_GUIDE.md`
 
@@ -60,6 +60,8 @@ Görüntüleriniz bilgisayarınızdan dışarı **hiçbir yere gönderilmez**; p
 | Apple Silicon Mac (M1/M2/M3/M4) | `CellVerity_<sürüm>_mac_AppleSilicon.dmg` | macOS 12.3 |
 | Intel Mac (ör. eski iMac) | `CellVerity_<sürüm>_mac_Intel.dmg` | macOS 12.0 (Monterey) |
 | Windows 10/11 (64-bit) | `CellVerity_<sürüm>_Windows.zip` | Windows 10 |
+| Linux x86_64 (v2.2.0'dan itibaren) | `CellVerity_<sürüm>_Linux_x86_64.AppImage` (ya da `.tar.gz`) | Ubuntu 22.04, Debian 12, Fedora 36 (glibc 2.35) |
+| Linux ARM64 (v2.2.0'dan itibaren) | `CellVerity_<sürüm>_Linux_aarch64.AppImage` (ya da `.tar.gz`) | glibc 2.39 (ör. Ubuntu 24.04) |
 
 > Mac'inizin işlemcisini öğrenmek için: Apple menüsü ▸ **Bu Mac Hakkında**. "Çip: Apple M…" yazıyorsa Apple Silicon, "İşlemci: Intel…" yazıyorsa Intel paketini kullanın.
 > Monterey'de Apple Silicon paketi için **macOS 12.3 veya üstü** gerekir: Sistem Tercihleri ▸ Yazılım Güncelleme.
@@ -75,11 +77,31 @@ Görüntüleriniz bilgisayarınızdan dışarı **hiçbir yere gönderilmez**; p
 2. `CellVerity.exe`'ye çift tıklayın. "Windows bilgisayarınızı korudu" çıkarsa **Ek bilgi ▸ Yine de çalıştır**.
 3. Masaüstü kısayolu: exe'ye sağ tıklayın ▸ Gönder ▸ Masaüstü (kısayol oluştur).
 
+**Linux'ta (v2.2.0'dan itibaren):**
+1. `.AppImage` dosyasını kalıcı bir klasöre koyun, örneğin `~/Applications/CellVerity.AppImage`.
+2. Terminalde bir kez çalıştırma izni verin ve açın:
+   `chmod +x ~/Applications/CellVerity.AppImage` → `~/Applications/CellVerity.AppImage`
+   (Dosya adını elle yazmak yerine ilk harfleri yazıp **Tab** tuşuna basın; yazım hatası "No such file or directory" verir.)
+3. "FUSE" / `libfuse.so.2` hatası çıkarsa: `sudo apt install libfuse2` (Ubuntu 22.04) ya da `libfuse2t64` (24.04). Olmazsa `.tar.gz` paketini açıp `./CellVerity/CellVerity` çalıştırın (FUSE gerekmez).
+4. Uygulama menüsüne eklemek için `~/.local/share/applications/cellverity.desktop` dosyasını oluşturun:
+   ```
+   [Desktop Entry]
+   Type=Application
+   Name=CellVerity
+   Exec=/home/<kullanıcı>/Applications/CellVerity.AppImage
+   Icon=applications-science
+   Terminal=false
+   Categories=Science;
+   ```
+   Sonra **Etkinlikler**'de *CellVerity* yazın; sağ tık ▸ **Sık Kullanılanlara Ekle**. Yeni sürümde AppImage'ı aynı adla değiştirmeniz yeterli.
+
 **İndirme adresi:** https://github.com/erdal-b-dot/cellverity/releases (en yeni sürüm en üstte).
 
 **Başka bir bilgisayara aktarmak:** paket dosyasını paylaşım bağlantısı, USB bellek ya da e-postayla (≈100 MB) gönderin, ya da yukarıdaki indirme adresini paylaşın. Yeni paket üretmek: kaynak kod klasöründe `./build_mac.sh` (Mac) / `build_windows.bat` (Windows).
 
 **Güncellemeler:** program açılırken (günde en çok bir kez) GitHub'a yalnızca *en son sürüm hangisi?* diye sorar; yeni sürüm varsa **İndir / Bu sürümü atla / Daha sonra** penceresi çıkar. Görüntü ya da veri gönderilmez. Kapatmak için **Yardım ▸ Açılışta güncellemeleri denetle**; elle denetim **Yardım ▸ Güncellemeleri denetle…**. Kullandığınız sürüm ve derleme bilgisi: **Yardım ▸ Hakkında / sürüm bilgisi** (hata bildirirken *Bilgileri kopyala*).
+
+**Görünüm:** **Görünüm ▸ Tema** — *Koyu* (varsayılan) ya da *Sistem* (işletim sisteminin açık/koyu görünümü); yeniden açılışta uygulanır. Görüntünün çevresi iki temada da koyu kalır. Simgelerde yalnızca üç renk vardır: **FITC aç** yeşil, **DAPI aç** mavi, **Sil** kırmızı. Pencere daraldığında araç çubukları yazıları gizleyip yalnızca simgeleri gösterir (yazı, fareyle üzerine gelince görünür).
 
 ### 2.2 Geliştirici kurulumu (kaynak koddan)
 Python ortamıyla çalıştırmak isterseniz (güncellemeleri `git pull` ile almak için):
@@ -468,13 +490,13 @@ Programın otomatik sınırlarının elle çizime ne kadar yakın olduğunu öl�
 
 **Örnek yöntem metni (İngilizce, kendi ayarlarınıza göre düzenleyin):**
 
-> Corrected total cell fluorescence (CTCF) was quantified as CTCF = integrated density − (cell area × mean background fluorescence) (McCloy et al., 2014) using CellVerity v2.1.0 (formerly ICC CTCF Ölçer; Balcan, 2026; https://doi.org/10.5281/zenodo.23884562), an open-source tool whose measurements are identical to ImageJ/Fiji for the same regions of interest (verified with Fiji 1.54p). Images were acquired on an Olympus BX43 fluorescence microscope with an Olympus DP74 camera (cellSens Entry); FITC fluorescence was measured on the green channel of the unprocessed images (40× objective, 0.145 µm/pixel; calibration read from the embedded scale bar). Cells were segmented from the FITC channel (Li threshold) and touching cells were separated by watershed seeded with DAPI-stained nuclei. Background was the mean of three 50 × 50 pixel cell-free regions per field. Cells touching the image border were excluded. Automatic boundaries were compared with manual Fiji tracing in n = … cells from … images (Bland–Altman bias …%, 95% limits of agreement … to …%; mean Dice …). Statistics were performed on the means of N = … independent experiments using one-way ANOVA followed by Dunnett's test versus control.
+> Corrected total cell fluorescence (CTCF) was quantified as CTCF = integrated density − (cell area × mean background fluorescence) (McCloy et al., 2014) using CellVerity v2.2.0 (formerly ICC CTCF Ölçer; Balcan, 2026; https://doi.org/10.5281/zenodo.23884562), an open-source tool whose measurements are identical to ImageJ/Fiji for the same regions of interest (verified with Fiji 1.54p). Images were acquired on an Olympus BX43 fluorescence microscope with an Olympus DP74 camera (cellSens Entry); FITC fluorescence was measured on the green channel of the unprocessed images (40× objective, 0.145 µm/pixel; calibration read from the embedded scale bar). Cells were segmented from the FITC channel (Li threshold) and touching cells were separated by watershed seeded with DAPI-stained nuclei. Background was the mean of three 50 × 50 pixel cell-free regions per field. Cells touching the image border were excluded. Automatic boundaries were compared with manual Fiji tracing in n = … cells from … images (Bland–Altman bias …%, 95% limits of agreement … to …%; mean Dice …). Statistics were performed on the means of N = … independent experiments using one-way ANOVA followed by Dunnett's test versus control.
 
 Excel'deki **Methods** sayfası ve **Cells** sayfasındaki *App_version, Nucleus_method, Scale_source, BG_box_px, BG_n, Selection, Manual_edits, Fiji_check* sütunları bu metni doldurmak için gereken bilgileri içerir.
 
 **Atıf (kaynakçaya):**
 
-> Balcan E. (2026). *CellVerity: verifiable per-cell fluorescence (CTCF) quantification for immunocytochemistry images* (Version 2.1.0) [Computer software]. Zenodo. https://doi.org/10.5281/zenodo.23884562
+> Balcan E. (2026). *CellVerity: verifiable per-cell fluorescence (CTCF) quantification for immunocytochemistry images* (Version 2.2.0) [Computer software]. Zenodo. https://doi.org/10.5281/zenodo.23884562
 
 | DOI | Ne zaman kullanılır |
 |---|---|

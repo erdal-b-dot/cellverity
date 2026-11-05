@@ -2,7 +2,7 @@
 
 *Formerly ICC CTCF Ölçer*
 
-*Version 2.1.0 · Erdal Balcan, Manisa Celal Bayar University · MIT license · DOI (all versions): [10.5281/zenodo.23860020](https://doi.org/10.5281/zenodo.23860020)*
+*Version 2.2.0 · Erdal Balcan, Manisa Celal Bayar University · MIT license · DOI (all versions): [10.5281/zenodo.23860020](https://doi.org/10.5281/zenodo.23860020)*
 
 Source code and downloads: https://github.com/erdal-b-dot/cellverity · Türkçe kılavuz: `KULLANIM_KILAVUZU.md`
 
@@ -61,6 +61,8 @@ Download from **https://github.com/erdal-b-dot/cellverity/releases** (newest ver
 | Apple Silicon Mac (M1/M2/M3/M4) | `CellVerity_<version>_mac_AppleSilicon.dmg` | macOS 12.3 |
 | Intel Mac | `CellVerity_<version>_mac_Intel.dmg` | macOS 12.0 (Monterey) |
 | Windows 10/11 (64-bit) | `CellVerity_<version>_Windows.zip` | Windows 10 |
+| Linux x86_64 (from v2.2.0) | `CellVerity_<version>_Linux_x86_64.AppImage` (or `.tar.gz`) | Ubuntu 22.04, Debian 12, Fedora 36 (glibc 2.35) |
+| Linux ARM64 (from v2.2.0) | `CellVerity_<version>_Linux_aarch64.AppImage` (or `.tar.gz`) | glibc 2.39 (e.g. Ubuntu 24.04) |
 
 > To find your Mac's processor: Apple menu ▸ **About This Mac**. "Chip: Apple M…" means Apple Silicon; "Processor: Intel…" means Intel.
 
@@ -75,7 +77,27 @@ Download from **https://github.com/erdal-b-dot/cellverity/releases** (newest ver
 2. Double-click `CellVerity.exe`. If *"Windows protected your PC"* appears: **More info ▸ Run anyway**.
 3. Desktop shortcut: right-click the exe ▸ Send to ▸ Desktop (create shortcut).
 
+**Linux (from v2.2.0):**
+1. Put the `.AppImage` in a permanent folder, e.g. `~/Applications/CellVerity.AppImage`.
+2. In a terminal, make it executable once and run it:
+   `chmod +x ~/Applications/CellVerity.AppImage` → `~/Applications/CellVerity.AppImage`
+   (Type the first letters and press **Tab** instead of typing the name; a typo gives "No such file or directory".)
+3. If you see a "FUSE" / `libfuse.so.2` error: `sudo apt install libfuse2` (Ubuntu 22.04) or `libfuse2t64` (24.04). Otherwise extract the `.tar.gz` and run `./CellVerity/CellVerity` (no FUSE needed).
+4. To add it to the application menu, create `~/.local/share/applications/cellverity.desktop`:
+   ```
+   [Desktop Entry]
+   Type=Application
+   Name=CellVerity
+   Exec=/home/<user>/Applications/CellVerity.AppImage
+   Icon=applications-science
+   Terminal=false
+   Categories=Science;
+   ```
+   Then search *CellVerity* in **Activities**; right-click ▸ **Add to Favorites**. For a new version, replace the AppImage under the same name.
+
 **Updates:** at startup (at most once a day) the program only asks GitHub *which is the latest version?*; if a new version exists, a **Download / Skip this version / Later** dialog appears. No images or data are sent. Turn it off with **Help ▸ Check for updates at startup**; check manually with **Help ▸ Check for updates…**. Your version and build: **Help ▸ About / version info** (use *Copy info* when reporting a problem).
+
+**Appearance:** **View ▸ Theme** — *Dark* (default) or *System* (the operating system's light/dark appearance); applied at the next start. The area around the image stays dark in both. Only three icons are coloured: **Open FITC** green, **Open DAPI** blue, **Delete** red. When the window is narrow, toolbars hide their labels and show icons only (the label appears on hover).
 
 ### 2.2 Running from source
 With a Python environment (to receive updates via `git pull`):
@@ -466,13 +488,13 @@ To quantify how close the automatic boundaries are to manual tracing (recommende
 
 **Example methods text (adapt to your settings):**
 
-> Corrected total cell fluorescence (CTCF) was quantified as CTCF = integrated density − (cell area × mean background fluorescence) (McCloy et al., 2014) using CellVerity v2.1.0 (formerly ICC CTCF Ölçer; Balcan, 2026; https://doi.org/10.5281/zenodo.23884562), an open-source tool whose measurements are identical to ImageJ/Fiji for the same regions of interest (verified with Fiji 1.54p). Images were acquired on an Olympus BX43 fluorescence microscope with an Olympus DP74 camera (cellSens Entry); FITC fluorescence was measured on the green channel of the unprocessed images (40× objective, 0.145 µm/pixel; calibration read from the embedded scale bar). Cells were segmented from the FITC channel (Li threshold) and touching cells were separated by watershed seeded with DAPI-stained nuclei. Background was the mean of three 50 × 50 pixel cell-free regions per field. Cells touching the image border were excluded. Automatic boundaries were compared with manual Fiji tracing in n = … cells from … images (Bland–Altman bias …%, 95% limits of agreement … to …%; mean Dice …). Statistics were performed on the means of N = … independent experiments using one-way ANOVA followed by Dunnett's test versus control.
+> Corrected total cell fluorescence (CTCF) was quantified as CTCF = integrated density − (cell area × mean background fluorescence) (McCloy et al., 2014) using CellVerity v2.2.0 (formerly ICC CTCF Ölçer; Balcan, 2026; https://doi.org/10.5281/zenodo.23884562), an open-source tool whose measurements are identical to ImageJ/Fiji for the same regions of interest (verified with Fiji 1.54p). Images were acquired on an Olympus BX43 fluorescence microscope with an Olympus DP74 camera (cellSens Entry); FITC fluorescence was measured on the green channel of the unprocessed images (40× objective, 0.145 µm/pixel; calibration read from the embedded scale bar). Cells were segmented from the FITC channel (Li threshold) and touching cells were separated by watershed seeded with DAPI-stained nuclei. Background was the mean of three 50 × 50 pixel cell-free regions per field. Cells touching the image border were excluded. Automatic boundaries were compared with manual Fiji tracing in n = … cells from … images (Bland–Altman bias …%, 95% limits of agreement … to …%; mean Dice …). Statistics were performed on the means of N = … independent experiments using one-way ANOVA followed by Dunnett's test versus control.
 
 The **Methods** sheet in Excel and the *App_version, Nucleus_method, Scale_source, BG_box_px, BG_n, Selection, Manual_edits, Fiji_check* columns in the **Cells** sheet contain everything needed to fill in this text.
 
 **Citation (reference list):**
 
-> Balcan E. (2026). *CellVerity: verifiable per-cell fluorescence (CTCF) quantification for immunocytochemistry images* (Version 2.1.0) [Computer software]. Zenodo. https://doi.org/10.5281/zenodo.23884562
+> Balcan E. (2026). *CellVerity: verifiable per-cell fluorescence (CTCF) quantification for immunocytochemistry images* (Version 2.2.0) [Computer software]. Zenodo. https://doi.org/10.5281/zenodo.23884562
 
 | DOI | When to use |
 |---|---|

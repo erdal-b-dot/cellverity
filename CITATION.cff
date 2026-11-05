@@ -7,8 +7,8 @@ authors:
     given-names: Erdal
     affiliation: "Manisa Celal Bayar Üniversitesi"
     orcid: "https://orcid.org/0000-0001-7675-1386"
-version: 2.1.0
-date-released: 2026-11-02
+version: 2.2.0
+date-released: 2026-11-05
 repository-code: "https://github.com/erdal-b-dot/cellverity"
 doi: "10.5281/zenodo.23860020"
 identifiers:

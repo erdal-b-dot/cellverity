@@ -46,7 +46,7 @@ import report
 from batch import guess_kind
 
 APP_NAME = "CellVerity"
-VERSION = "2.2.0-dev"
+VERSION = "2.2.0"
 CONCEPT_DOI = "10.5281/zenodo.23860020"  # tüm sürümler (her zaman en yenisine yönlendirir)
 RELEASE_DOIS = {"2.0.0": "10.5281/zenodo.23860021", "2.1.0": "10.5281/zenodo.23884562"}  # sürüme özel DOI'ler
 AUTOSAVE = Path.home() / "Documents" / "CellVerity" / "otomatik_kayit.xlsx"
@@ -1304,7 +1304,7 @@ class MainWindow(QMainWindow):
         tm = m.addMenu(T("Tema"))
         tg = QActionGroup(self)
         cur_theme = QSettings(*SETTINGS_ID).value("theme", "dark")
-        for key, label in (("dark", T("Koyu (varsayılan)")), ("system", T("Sistem (açık)"))):
+        for key, label in (("dark", T("Koyu (varsayılan)")), ("system", T("Sistem"))):
             a_ = QAction(label, self, checkable=True)
             a_.setChecked(cur_theme == key)
             a_.triggered.connect(lambda _, k=key: self.set_theme(k))

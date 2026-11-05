@@ -16,7 +16,7 @@ h1+p+hr+h2{break-before:avoid}table{display:table;break-inside:auto}tr,blockquot
 @page{size:A4;margin:16mm 14mm}}
 </style></head><body><h1 id="cellverity-kullanim-kilavuzu">CellVerity — Kullanım Kılavuzu</h1>
 <p><em>Eski adı: ICC CTCF Ölçer</em></p>
-<p><em>Sürüm 2.1.0 · Erdal Balcan, Manisa Celal Bayar Üniversitesi · MIT lisansı · DOI (tüm sürümler): <a href="https://doi.org/10.5281/zenodo.23860020">10.5281/zenodo.23860020</a></em></p>
+<p><em>Sürüm 2.2.0 · Erdal Balcan, Manisa Celal Bayar Üniversitesi · MIT lisansı · DOI (tüm sürümler): <a href="https://doi.org/10.5281/zenodo.23860020">10.5281/zenodo.23860020</a></em></p>
 <p>Kaynak kod ve indirmeler: https://github.com/erdal-b-dot/cellverity · English guide: <code>USER_GUIDE.md</code></p>
 <hr />
 <h2 id="icindekiler">İçindekiler</h2>
@@ -101,6 +101,16 @@ h1+p+hr+h2{break-before:avoid}table{display:table;break-inside:auto}tr,blockquot
 <td><code>CellVerity_&lt;sürüm&gt;_Windows.zip</code></td>
 <td>Windows 10</td>
 </tr>
+<tr>
+<td>Linux x86_64 (v2.2.0'dan itibaren)</td>
+<td><code>CellVerity_&lt;sürüm&gt;_Linux_x86_64.AppImage</code> (ya da <code>.tar.gz</code>)</td>
+<td>Ubuntu 22.04, Debian 12, Fedora 36 (glibc 2.35)</td>
+</tr>
+<tr>
+<td>Linux ARM64 (v2.2.0'dan itibaren)</td>
+<td><code>CellVerity_&lt;sürüm&gt;_Linux_aarch64.AppImage</code> (ya da <code>.tar.gz</code>)</td>
+<td>glibc 2.39 (ör. Ubuntu 24.04)</td>
+</tr>
 </tbody>
 </table>
 <blockquote>
@@ -116,9 +126,25 @@ Monterey'de Apple Silicon paketi için <strong>macOS 12.3 veya üstü</strong> g
 1. Zip'e sağ tıklayın ▸ <strong>Tümünü ayıkla</strong>. Klasörü örneğin <code>Belgeler</code> içine koyun (zip'in içinden çalıştırmayın).
 2. <code>CellVerity.exe</code>'ye çift tıklayın. "Windows bilgisayarınızı korudu" çıkarsa <strong>Ek bilgi ▸ Yine de çalıştır</strong>.
 3. Masaüstü kısayolu: exe'ye sağ tıklayın ▸ Gönder ▸ Masaüstü (kısayol oluştur).</p>
+<p><strong>Linux'ta (v2.2.0'dan itibaren):</strong>
+1. <code>.AppImage</code> dosyasını kalıcı bir klasöre koyun, örneğin <code>~/Applications/CellVerity.AppImage</code>.
+2. Terminalde bir kez çalıştırma izni verin ve açın:
+   <code>chmod +x ~/Applications/CellVerity.AppImage</code> → <code>~/Applications/CellVerity.AppImage</code>
+   (Dosya adını elle yazmak yerine ilk harfleri yazıp <strong>Tab</strong> tuşuna basın; yazım hatası "No such file or directory" verir.)
+3. "FUSE" / <code>libfuse.so.2</code> hatası çıkarsa: <code>sudo apt install libfuse2</code> (Ubuntu 22.04) ya da <code>libfuse2t64</code> (24.04). Olmazsa <code>.tar.gz</code> paketini açıp <code>./CellVerity/CellVerity</code> çalıştırın (FUSE gerekmez).
+4. Uygulama menüsüne eklemek için <code>~/.local/share/applications/cellverity.desktop</code> dosyasını oluşturun:
+   <code>[Desktop Entry]
+   Type=Application
+   Name=CellVerity
+   Exec=/home/&lt;kullanıcı&gt;/Applications/CellVerity.AppImage
+   Icon=applications-science
+   Terminal=false
+   Categories=Science;</code>
+   Sonra <strong>Etkinlikler</strong>'de <em>CellVerity</em> yazın; sağ tık ▸ <strong>Sık Kullanılanlara Ekle</strong>. Yeni sürümde AppImage'ı aynı adla değiştirmeniz yeterli.</p>
 <p><strong>İndirme adresi:</strong> https://github.com/erdal-b-dot/cellverity/releases (en yeni sürüm en üstte).</p>
 <p><strong>Başka bir bilgisayara aktarmak:</strong> paket dosyasını paylaşım bağlantısı, USB bellek ya da e-postayla (≈100 MB) gönderin, ya da yukarıdaki indirme adresini paylaşın. Yeni paket üretmek: kaynak kod klasöründe <code>./build_mac.sh</code> (Mac) / <code>build_windows.bat</code> (Windows).</p>
 <p><strong>Güncellemeler:</strong> program açılırken (günde en çok bir kez) GitHub'a yalnızca <em>en son sürüm hangisi?</em> diye sorar; yeni sürüm varsa <strong>İndir / Bu sürümü atla / Daha sonra</strong> penceresi çıkar. Görüntü ya da veri gönderilmez. Kapatmak için <strong>Yardım ▸ Açılışta güncellemeleri denetle</strong>; elle denetim <strong>Yardım ▸ Güncellemeleri denetle…</strong>. Kullandığınız sürüm ve derleme bilgisi: <strong>Yardım ▸ Hakkında / sürüm bilgisi</strong> (hata bildirirken <em>Bilgileri kopyala</em>).</p>
+<p><strong>Görünüm:</strong> <strong>Görünüm ▸ Tema</strong> — <em>Koyu</em> (varsayılan) ya da <em>Sistem</em> (işletim sisteminin açık/koyu görünümü); yeniden açılışta uygulanır. Görüntünün çevresi iki temada da koyu kalır. Simgelerde yalnızca üç renk vardır: <strong>FITC aç</strong> yeşil, <strong>DAPI aç</strong> mavi, <strong>Sil</strong> kırmızı. Pencere daraldığında araç çubukları yazıları gizleyip yalnızca simgeleri gösterir (yazı, fareyle üzerine gelince görünür).</p>
 <h3 id="22-gelistirici-kurulumu-kaynak-koddan">2.2 Geliştirici kurulumu (kaynak koddan)</h3>
 <p>Python ortamıyla çalıştırmak isterseniz (güncellemeleri <code>git pull</code> ile almak için):
 - Mac: <code>./install_mac.sh</code>, sonra <code>./run_desktop.command</code>
@@ -878,12 +904,12 @@ Program Fiji'yi şu yerlerde kendisi arar: <code>İndirilenler/Fiji</code>, <cod
 <h2 id="13-makale-icin-yontem-metni-ve-atif">13. Makale için: yöntem metni ve atıf</h2>
 <p><strong>Örnek yöntem metni (İngilizce, kendi ayarlarınıza göre düzenleyin):</strong></p>
 <blockquote>
-<p>Corrected total cell fluorescence (CTCF) was quantified as CTCF = integrated density − (cell area × mean background fluorescence) (McCloy et al., 2014) using CellVerity v2.1.0 (formerly ICC CTCF Ölçer; Balcan, 2026; https://doi.org/10.5281/zenodo.23884562), an open-source tool whose measurements are identical to ImageJ/Fiji for the same regions of interest (verified with Fiji 1.54p). Images were acquired on an Olympus BX43 fluorescence microscope with an Olympus DP74 camera (cellSens Entry); FITC fluorescence was measured on the green channel of the unprocessed images (40× objective, 0.145 µm/pixel; calibration read from the embedded scale bar). Cells were segmented from the FITC channel (Li threshold) and touching cells were separated by watershed seeded with DAPI-stained nuclei. Background was the mean of three 50 × 50 pixel cell-free regions per field. Cells touching the image border were excluded. Automatic boundaries were compared with manual Fiji tracing in n = … cells from … images (Bland–Altman bias …%, 95% limits of agreement … to …%; mean Dice …). Statistics were performed on the means of N = … independent experiments using one-way ANOVA followed by Dunnett's test versus control.</p>
+<p>Corrected total cell fluorescence (CTCF) was quantified as CTCF = integrated density − (cell area × mean background fluorescence) (McCloy et al., 2014) using CellVerity v2.2.0 (formerly ICC CTCF Ölçer; Balcan, 2026; https://doi.org/10.5281/zenodo.23884562), an open-source tool whose measurements are identical to ImageJ/Fiji for the same regions of interest (verified with Fiji 1.54p). Images were acquired on an Olympus BX43 fluorescence microscope with an Olympus DP74 camera (cellSens Entry); FITC fluorescence was measured on the green channel of the unprocessed images (40× objective, 0.145 µm/pixel; calibration read from the embedded scale bar). Cells were segmented from the FITC channel (Li threshold) and touching cells were separated by watershed seeded with DAPI-stained nuclei. Background was the mean of three 50 × 50 pixel cell-free regions per field. Cells touching the image border were excluded. Automatic boundaries were compared with manual Fiji tracing in n = … cells from … images (Bland–Altman bias …%, 95% limits of agreement … to …%; mean Dice …). Statistics were performed on the means of N = … independent experiments using one-way ANOVA followed by Dunnett's test versus control.</p>
 </blockquote>
 <p>Excel'deki <strong>Methods</strong> sayfası ve <strong>Cells</strong> sayfasındaki <em>App_version, Nucleus_method, Scale_source, BG_box_px, BG_n, Selection, Manual_edits, Fiji_check</em> sütunları bu metni doldurmak için gereken bilgileri içerir.</p>
 <p><strong>Atıf (kaynakçaya):</strong></p>
 <blockquote>
-<p>Balcan E. (2026). <em>CellVerity: verifiable per-cell fluorescence (CTCF) quantification for immunocytochemistry images</em> (Version 2.1.0) [Computer software]. Zenodo. https://doi.org/10.5281/zenodo.23884562</p>
+<p>Balcan E. (2026). <em>CellVerity: verifiable per-cell fluorescence (CTCF) quantification for immunocytochemistry images</em> (Version 2.2.0) [Computer software]. Zenodo. https://doi.org/10.5281/zenodo.23884562</p>
 </blockquote>
 <table>
 <thead>
