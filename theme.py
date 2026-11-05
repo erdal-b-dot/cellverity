@@ -50,6 +50,11 @@ COLORS = {
     "accent_hi": "#4d93e3",
     "icon":      "#c8c8c8",
     "icon_off":  "#6e6e6e",   # pasif
+    # Anlamlı simge renkleri — yalnızca üç simge: FITC açma (yeşil), DAPI açma (mavi), Sil (kırmızı).
+    # Geri kalan simgeler nötr; az renk, renge anlam yükler.
+    "icon_fitc":   "#7fd48a",
+    "icon_dapi":   "#7fb2f0",
+    "icon_delete": "#ec8a8a",
     # Zengin metin durumları. Hepsi #2b2b2b üzerinde en az 4.5:1 okunur;
     # eskiden bu renkler çevrilen cümlelerin içine gömülüydü (#a60, #b22, #555…)
     # ve açık zemin için seçilmişti, koyu zeminde okunmuyordu.
@@ -71,6 +76,7 @@ LIGHT = dict(DARK, **{
     "text": "#1d1d1d", "dim": "#5f5f5f", "bright": "#000000",
     "accent": "#2a6fc2", "accent_hi": "#3a7fd2",
     "icon": "#3a3a3a", "icon_off": "#a6a6a6",
+    "icon_fitc": "#24883a", "icon_dapi": "#2a6fc2", "icon_delete": "#c43030",
     "warn": "#9a5b00", "bad": "#b02020", "good": "#1e7a34", "info": "#5f5f5f",
     "bad_bg": "#fbe4e4", "good_bg": "#e3f4e6", "warn_bg": "#fdf3d8",
 })
@@ -89,12 +95,23 @@ QMenu::item:checked { font-weight: bold; }
 """
 
 
+def _os_dark() -> bool:
+    """İşletim sistemi koyu görünümde mi? 'Sistem' temasında yazı/simge renkleri zemine göre seçilsin diye
+    (koyu sistemde açık tema renkleri — koyu gri simgeler — okunmuyordu). QApplication yoksa ya da bilinemiyorsa False."""
+    try:
+        from PySide6.QtGui import QGuiApplication
+        app = QGuiApplication.instance()
+        return bool(app) and app.styleHints().colorScheme() == Qt.ColorScheme.Dark
+    except Exception:
+        return False
+
+
 def set_mode(mode: str) -> None:
     """'dark' | 'system'. Simgeler ve renkler ilk kullanımda önbelleğe alınır: pencereler kurulmadan önce çağrılmalı."""
     global MODE
     MODE = mode if mode in ("dark", "system") else "dark"
     COLORS.clear()
-    COLORS.update(DARK if MODE == "dark" else LIGHT)
+    COLORS.update(DARK if MODE == "dark" or _os_dark() else LIGHT)
     _source.cache_clear()
     icon.cache_clear()
 
@@ -122,6 +139,10 @@ def _render(src: str, color: str, size: int) -> QPixmap:
     return QPixmap.fromImage(img)
 
 
+# Simge adı → renk anahtarı. Burada olmayan simgeler nötr (COLORS["icon"]).
+ICON_TINT = {"open-fitc": "icon_fitc", "open-dapi": "icon_dapi", "delete": "icon_delete"}
+
+
 @lru_cache(maxsize=None)
 def icon(name: str) -> QIcon:
     """assets/icons/<name>.svg — tema rengine boyanmış QIcon.
@@ -133,12 +154,14 @@ def icon(name: str) -> QIcon:
     src = _source(name)
     if src is None:
         return QIcon()
+    tint = COLORS.get(ICON_TINT.get(name, ""))
     result = QIcon()
     for size in (16, 24, 32, 48):
-        result.addPixmap(_render(src, COLORS["icon"], size), QIcon.Mode.Normal)
+        result.addPixmap(_render(src, tint or COLORS["icon"], size), QIcon.Mode.Normal)
         result.addPixmap(_render(src, COLORS["icon_off"], size), QIcon.Mode.Disabled)
-        result.addPixmap(_render(src, COLORS["bright"], size), QIcon.Mode.Active)
-        result.addPixmap(_render(src, COLORS["bright"], size), QIcon.Mode.Selected)
+        # Renkli simge üzerine gelince de rengini korur; nötrler parlaklaşır.
+        result.addPixmap(_render(src, tint or COLORS["bright"], size), QIcon.Mode.Active)
+        result.addPixmap(_render(src, tint or COLORS["bright"], size), QIcon.Mode.Selected)
     return result
 
 
